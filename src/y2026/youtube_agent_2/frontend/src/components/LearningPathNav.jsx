@@ -137,6 +137,62 @@ export function CourseViewDropdown({ options, value, onSelect }) {
   )
 }
 
+export function CourseDropdown({ plan, course, mode = 'overview', onSelect }) {
+  const [open, setOpen] = React.useState(false)
+  const [search, setSearch] = React.useState('')
+  const [sort, setSort] = React.useState('name')
+  const pickerRef = React.useRef(null)
+
+  React.useEffect(() => {
+    const close = event => {
+      if (!pickerRef.current?.contains(event.target)) setOpen(false)
+    }
+    document.addEventListener('pointerdown', close)
+    return () => document.removeEventListener('pointerdown', close)
+  }, [])
+
+  const sortedCourses = sortItems(
+    (plan.courses || []).filter(item => `${item.title || ''} ${item.description || ''}`.toLowerCase().includes(search.trim().toLowerCase())),
+    sort,
+    'title',
+  )
+
+  const choose = selectedCourse => {
+    onSelect(selectedCourse)
+    setOpen(false)
+  }
+
+  return (
+    <div className="learning-path-picker" ref={pickerRef}>
+      <button
+        type="button"
+        className="learning-path-trigger current-course"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen(current => !current)}
+      >
+        <ItemLogo item={course} fallback={course.title?.charAt(0)?.toUpperCase() || '?'} />
+        <span>{course.title}</span>
+        <ChevronIcon />
+      </button>
+      {open && (
+        <div className="learning-path-menu course-menu" role="menu" aria-label={`Switch course in ${plan.name}`}>
+          <strong>Courses in {plan.name}</strong>
+          <MenuTools value={search} onChange={setSearch} sort={sort} onSortChange={setSort} label="courses" />
+          {sortedCourses.map(item => (
+            <button type="button" role="menuitem" className={`learning-path-menu-item-with-logo ${item.id === course.id ? 'active' : ''}`} key={item.id} onClick={() => choose(item)}>
+              <span className="learning-path-menu-check">{item.id === course.id && <CheckIcon />}</span>
+              <ItemLogo item={item} fallback={item.title?.charAt(0)?.toUpperCase() || '?'} />
+              <span><b>{item.title}</b><small>{item.modules?.length || 0} modules</small></span>
+            </button>
+          ))}
+          {sortedCourses.length === 0 && <p className="learning-path-menu-empty">No courses match your search.</p>}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function LearningPathNav({ plan, course, mode = 'overview', actions = null, showHome = true, className = '' }) {
   const navigate = useNavigate()
   const plans = useSelector(state => state.plans.items)
