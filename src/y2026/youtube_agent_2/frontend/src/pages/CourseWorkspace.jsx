@@ -76,7 +76,7 @@ export default function CourseWorkspace() {
   }
 
   const standardCourseTabs = [
-    { id: "ALL", label: "All courses", shortLabel: "ALL" },
+    { id: "ALL", label: "All courses", shortLabel: "All Courses" },
     { id: "bookmarked", label: "Bookmarked" },
     { id: "watched", label: "Watched" },
     { id: "mark_for_delete", label: "Marked for delete" },

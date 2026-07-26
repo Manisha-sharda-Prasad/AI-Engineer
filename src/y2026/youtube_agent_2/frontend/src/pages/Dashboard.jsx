@@ -83,7 +83,6 @@ export default function Dashboard({ onOpenAiModels }) {
         <section className="dashboard-panel dashboard-progress-panel">
           <div className="dashboard-panel-heading"><div className="dashboard-progress-heading-main">
             {selectedPlan ? <div className="dashboard-plan-logo">{selectedPlan.logo_url || selectedPlan.logo ? <img src={selectedPlan.logo_url || selectedPlan.logo} alt="" /> : <span>{selectedPlan.name?.charAt(0).toUpperCase() || '?'}</span>}</div> : <div className="dashboard-plan-logo-stack" aria-label={`${plans.length} learning plans`}>{plans.slice(0, 4).map(plan => plan.logo_url || plan.logo ? <img src={plan.logo_url || plan.logo} alt="" key={plan.id} /> : <span key={plan.id}>{plan.name?.charAt(0).toUpperCase() || '?'}</span>)}{plans.length === 0 && <span><DashboardIcon name="plans" /></span>}</div>}
-            <div><span>Overall progress</span><h2>{selectedPlan?.name || 'All learning plans'}</h2></div>
           </div><small>{analytics.watched} of {analytics.videos} videos</small></div>
           <div className="dashboard-progress-content">
             <div className="dashboard-progress-ring" style={{ '--dashboard-progress': `${analytics.progress * 3.6}deg` }}>

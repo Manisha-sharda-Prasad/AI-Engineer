@@ -1020,7 +1020,7 @@ tr:hover td { background: var(--border-light); }
 .ai-request-status-button { flex: 0 0 auto; white-space: nowrap; }
 .ai-request-status-button svg { width: 14px; height: 14px; flex: 0 0 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .add-course-group { display: flex; gap: 0.25rem; padding-left: 0.5rem; border-left: 1px solid var(--border-color); }
-.add-course-group button { display: inline-flex; align-items: center; gap: 0.3rem; }
+.add-course-group button { display: inline-flex; align-items: center; gap: 0.3rem; border-color: blueviolet; }
 .add-course-group svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .overview-divider { margin: 1.25rem 0; border: 0; border-top: 1px solid var(--border-color); }
 .catalog-controls input { flex: 1; min-width: 0; padding: 0.5rem 0.7rem; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-primary); }

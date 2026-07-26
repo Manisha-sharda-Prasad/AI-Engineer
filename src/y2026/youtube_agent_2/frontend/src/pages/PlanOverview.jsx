@@ -275,41 +275,7 @@ function LearningPlanOverviewDrawer({
                   <span>{bookmarked} bookmarked</span>
                   <span>{markedForDelete} marked</span>
                 </div>
-                <section className="plan-info-status">
-                  <div>
-                    <h4>Plan status</h4>
-                    <p>Bookmark, complete, or mark this plan for later cleanup.</p>
-                  </div>
-                  {labelError && <div className="alert alert-error">{labelError}</div>}
-                  <div className="plan-info-status-actions" role="group" aria-label="Plan status">
-                    {[
-                      ["bookmarked", "Bookmark"],
-                      ["watched", "Watched"],
-                      ["mark_for_delete", "Mark for delete"],
-                    ].map(([label, text]) => (
-                      <button
-                        type="button"
-                        key={label}
-                        className={plan.labels?.includes(label) ? "active" : ""}
-                        aria-pressed={plan.labels?.includes(label)}
-                        disabled={Boolean(updatingLabel)}
-                        onClick={() => togglePlanLabel(label)}
-                      >
-                        <LabelIcon label={label} />
-                        <span>{updatingLabel === label ? "Updating…" : text}</span>
-                      </button>
-                    ))}
-                  </div>
-                  {plan.labels?.some((label) => !["bookmarked", "watched", "mark_for_delete"].includes(label)) && (
-                    <div className="plan-card-labels">
-                      {plan.labels
-                        .filter((label) => !["bookmarked", "watched", "mark_for_delete"].includes(label))
-                        .map((label) => (
-                          <span className="badge badge-green" key={label}>{label.replaceAll("_", " ")}</span>
-                        ))}
-                    </div>
-                  )}
-                </section>
+
                 <div className="plan-card-timestamps">
                   <span>
                     Created:{" "}
@@ -325,7 +291,7 @@ function LearningPlanOverviewDrawer({
                   </span>
                 </div>
               </section>
-              <hr className="overview-section-divider" />
+
               <section className="workspace-source-section plan-overview-sources">
                 <h3>Content sources</h3>
                 {sourceChannels.length ? (
@@ -450,7 +416,7 @@ export default function PlanOverview() {
     dispatch(rememberLearningLocation({ planId, courseId: "all", moduleId: null, videoId: null }));
   }, [dispatch, planId]);
   const standardCourseTabs = [
-    { id: "ALL", label: "All courses", shortLabel: "ALL" },
+    { id: "ALL", label: "All courses", shortLabel: "All Courses" },
     { id: "bookmarked", label: "Bookmarked" },
     { id: "watched", label: "Watched" },
     { id: "mark_for_delete", label: "Marked for delete" },
@@ -529,6 +495,27 @@ export default function PlanOverview() {
       >
         <WorkspaceIcon name="info" />
       </button>}
+
+      
+      {!isAllPlans && <div className="add-course-group">
+        <button className="btn btn-secondary btn-sm" onClick={() => setShowManual(true)}>
+          <WorkspaceIcon name="manual" />
+          Manual course
+        </button>
+        <button className="btn btn-secondary btn-sm" onClick={() => setShowAi(true)}>
+          <WorkspaceIcon name="ai" />
+          AI suggested Course
+        </button>
+      </div>}
+
+      {!isAllPlans && <button
+        className="btn btn-secondary btn-sm ai-request-status-button"
+        onClick={() => navigate(`/plans/${planId}/ai-requests`)}
+      >
+        <WorkspaceIcon name="progress" />
+        <span>AI Request Status</span>
+      </button>}
+
       <input
         value={query}
         onChange={(event) => updatePageState({ query: event.target.value })}
@@ -543,23 +530,7 @@ export default function PlanOverview() {
       >
         <WorkspaceIcon name="sort" />
       </button>
-      {!isAllPlans && <button
-        className="btn btn-secondary btn-sm ai-request-status-button"
-        onClick={() => navigate(`/plans/${planId}/ai-requests`)}
-      >
-        <WorkspaceIcon name="progress" />
-        <span>AI Request Status</span>
-      </button>}
-      {!isAllPlans && <div className="add-course-group">
-        <button className="btn btn-secondary btn-sm" onClick={() => setShowManual(true)}>
-          <WorkspaceIcon name="manual" />
-          Manual
-        </button>
-        <button className="btn btn-secondary btn-sm" onClick={() => setShowAi(true)}>
-          <WorkspaceIcon name="ai" />
-          AI
-        </button>
-      </div>}
+
     </div>
   );
 
