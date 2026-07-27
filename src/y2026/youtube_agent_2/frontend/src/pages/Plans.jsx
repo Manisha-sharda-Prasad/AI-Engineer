@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { createPlan, deletePlan as deletePlanRequest } from '../api/client'
 import { updatePlanLabels, updatePlanMetadata } from '../api/client'
 import EditMetadataDrawer from '../components/EditMetadataDrawer'
-import { EditIcon, LabelIcon, RefreshIcon, WorkspaceIcon } from '../components/Icons'
+import { CloseIcon, EditIcon, LabelIcon, RefreshIcon, WorkspaceIcon } from '../components/Icons'
 import { addPlan, updatePlan, deletePlan, selectPlan, clearSelection } from '../store/plansSlice'
 import { rememberLearningLocation, updatePlansPage } from '../store/learningUiSlice'
 import appLogo from '../../app-logo.png'
@@ -100,7 +100,7 @@ export default function Plans({ newPlanRequest, onRefresh, refreshing = false })
           <div className="drawer">
             <div className="drawer-header">
               <h2>Create Learning Plan</h2>
-              <button className="btn btn-secondary btn-sm" onClick={closeDrawer} aria-label="Close">×</button>
+              <button className="btn btn-secondary btn-sm" onClick={closeDrawer} aria-label="Close"><CloseIcon /></button>
             </div>
             <div className="drawer-body">
               <div className="form-group">
@@ -170,8 +170,8 @@ export default function Plans({ newPlanRequest, onRefresh, refreshing = false })
             )
           })}</div>
       </div>
-      {showMobileActions && <><div className="drawer-overlay mobile-page-actions-overlay" onClick={() => setShowMobileActions(false)} /><aside className="drawer mobile-page-actions-drawer"><div className="drawer-header"><h2>Learning plan actions</h2><button className="btn btn-secondary btn-sm" onClick={() => setShowMobileActions(false)} aria-label="Close">×</button></div><div className="drawer-body">{renderPlanActions('mobile-drawer-actions')}</div></aside></>}
-      {showSort && <><div className="drawer-overlay" onClick={() => setShowSort(false)} /><aside className="drawer"><div className="drawer-header"><h2>Sort learning plans</h2><button className="btn btn-secondary btn-sm" onClick={() => setShowSort(false)}>×</button></div><div className="drawer-body"><div className="material-select"><label>Sort learning plans</label><div className="sort-toggle" role="group" aria-label="Sort learning plans"><button className={sortBy === 'updated' ? 'active' : ''} onClick={() => dispatch(updatePlansPage({ sortBy: 'updated' }))}>Recently updated</button><button className={sortBy === 'name' ? 'active' : ''} onClick={() => dispatch(updatePlansPage({ sortBy: 'name' }))}>Name</button></div></div></div><div className="drawer-footer"><button className="btn btn-secondary" onClick={() => dispatch(updatePlansPage({ sortBy: 'updated' }))}>Reset</button><button className="btn btn-primary" onClick={() => setShowSort(false)}>Apply</button></div></aside></>}
+      {showMobileActions && <><div className="drawer-overlay mobile-page-actions-overlay" onClick={() => setShowMobileActions(false)} /><aside className="drawer mobile-page-actions-drawer"><div className="drawer-header"><div className="mobile-action-drawer-heading"><span className="mobile-action-drawer-icon"><WorkspaceIcon name="menu" /></span><div><small>Learning plans</small><h2>Plan actions</h2></div></div><button className="mobile-action-drawer-close" onClick={() => setShowMobileActions(false)} aria-label="Close"><CloseIcon /></button></div><div className="drawer-body">{renderPlanActions('mobile-drawer-actions')}</div></aside></>}
+      {showSort && <><div className="drawer-overlay" onClick={() => setShowSort(false)} /><aside className="drawer"><div className="drawer-header"><h2>Sort learning plans</h2><button className="btn btn-secondary btn-sm" onClick={() => setShowSort(false)}><CloseIcon /></button></div><div className="drawer-body"><div className="material-select"><label>Sort learning plans</label><div className="sort-toggle" role="group" aria-label="Sort learning plans"><button className={sortBy === 'updated' ? 'active' : ''} onClick={() => dispatch(updatePlansPage({ sortBy: 'updated' }))}>Recently updated</button><button className={sortBy === 'name' ? 'active' : ''} onClick={() => dispatch(updatePlansPage({ sortBy: 'name' }))}>Name</button></div></div></div><div className="drawer-footer"><button className="btn btn-secondary" onClick={() => dispatch(updatePlansPage({ sortBy: 'updated' }))}>Reset</button><button className="btn btn-primary" onClick={() => setShowSort(false)}>Apply</button></div></aside></>}
       {planToEdit && <EditMetadataDrawer item={planToEdit} type="plan" onClose={() => setPlanToEdit(null)} onSave={async form => { await updatePlanMetadata(planToEdit.id, { name: form.name, description: form.description, logo_url: form.logo_url }); const response = await updatePlanLabels(planToEdit.id, form.labels); dispatch(updatePlan(response.plan)); setPlanToEdit(null) }} onDelete={() => { setPlanToEdit(null); setPlanToDelete(planToEdit) }} />}
       {planToDelete && (
         <div className="confirm-overlay" onClick={() => setPlanToDelete(null)}>

@@ -25,6 +25,10 @@ function CourseViewIcon({ id }) {
   return <WorkspaceIcon name={id === 'refresh_needed' ? 'progress' : 'menu'} />
 }
 
+function courseViewIconClass(id) {
+  return `learning-path-view-icon is-${String(id || 'all').toLowerCase().replaceAll('_', '-')}`
+}
+
 function sortItems(items, sort, nameField) {
   return [...items].sort((left, right) => {
     if (sort === 'created') {
@@ -121,7 +125,7 @@ export function CourseViewDropdown({ options, value, onSelect }) {
   return (
     <div className="learning-path-picker course-view-picker" ref={pickerRef}>
       <button type="button" className="learning-path-trigger current-course" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(current => !current)}>
-        <span className="learning-path-view-icon"><CourseViewIcon id={selected.id} /></span>
+        <span className={courseViewIconClass(selected.id)}><CourseViewIcon id={selected.id} /></span>
         <span>{selected.shortLabel || selected.label}</span>
         <ChevronIcon />
       </button>
@@ -129,10 +133,66 @@ export function CourseViewDropdown({ options, value, onSelect }) {
         <strong>Show courses</strong>
         {options.map(option => <button type="button" role="menuitemradio" aria-checked={option.id === selected.id} className={`learning-path-menu-item-with-logo ${option.id === selected.id ? 'active' : ''}`} key={option.id} onClick={() => choose(option.id)}>
           <span className="learning-path-menu-check">{option.id === selected.id && <CheckIcon />}</span>
-          <span className="learning-path-view-icon"><CourseViewIcon id={option.id} /></span>
+          <span className={courseViewIconClass(option.id)}><CourseViewIcon id={option.id} /></span>
           <span><b>{option.label}</b><small>{option.count} {option.count === 1 ? 'course' : 'courses'}</small></span>
         </button>)}
       </div>}
+    </div>
+  )
+}
+
+export function CourseDropdown({ plan, course, mode = 'overview', onSelect }) {
+  const [open, setOpen] = React.useState(false)
+  const [search, setSearch] = React.useState('')
+  const [sort, setSort] = React.useState('name')
+  const pickerRef = React.useRef(null)
+
+  React.useEffect(() => {
+    const close = event => {
+      if (!pickerRef.current?.contains(event.target)) setOpen(false)
+    }
+    document.addEventListener('pointerdown', close)
+    return () => document.removeEventListener('pointerdown', close)
+  }, [])
+
+  const sortedCourses = sortItems(
+    (plan.courses || []).filter(item => `${item.title || ''} ${item.description || ''}`.toLowerCase().includes(search.trim().toLowerCase())),
+    sort,
+    'title',
+  )
+
+  const choose = selectedCourse => {
+    onSelect(selectedCourse)
+    setOpen(false)
+  }
+
+  return (
+    <div className="learning-path-picker" ref={pickerRef}>
+      <button
+        type="button"
+        className="learning-path-trigger current-course"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen(current => !current)}
+      >
+        <ItemLogo item={course} fallback={course.title?.charAt(0)?.toUpperCase() || '?'} />
+        <span>{course.title}</span>
+        <ChevronIcon />
+      </button>
+      {open && (
+        <div className="learning-path-menu course-menu" role="menu" aria-label={`Switch course in ${plan.name}`}>
+          <strong>Courses in {plan.name}</strong>
+          <MenuTools value={search} onChange={setSearch} sort={sort} onSortChange={setSort} label="courses" />
+          {sortedCourses.map(item => (
+            <button type="button" role="menuitem" className={`learning-path-menu-item-with-logo ${item.id === course.id ? 'active' : ''}`} key={item.id} onClick={() => choose(item)}>
+              <span className="learning-path-menu-check">{item.id === course.id && <CheckIcon />}</span>
+              <ItemLogo item={item} fallback={item.title?.charAt(0)?.toUpperCase() || '?'} />
+              <span><b>{item.title}</b><small>{item.modules?.length || 0} modules</small></span>
+            </button>
+          ))}
+          {sortedCourses.length === 0 && <p className="learning-path-menu-empty">No courses match your search.</p>}
+        </div>
+      )}
     </div>
   )
 }

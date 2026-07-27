@@ -16,7 +16,7 @@ import {
   readable,
 } from '../pages/AiModelConfigs'
 import { loadAiModels, updateAiModelInStore } from '../store/aiModelsSlice'
-import { WorkspaceIcon } from './Icons'
+import { CloseIcon, WorkspaceIcon } from './Icons'
 
 export default function AiModelConfigDrawer({ onClose }) {
   const dispatch = useDispatch()
@@ -141,7 +141,7 @@ export default function AiModelConfigDrawer({ onClose }) {
       <aside className="drawer ai-model-library-drawer" role="dialog" aria-modal="true" aria-labelledby="ai-model-library-title">
         <header className="drawer-header course-overview-drawer-header">
           <div><h2 id="ai-model-library-title">AI Model Configurations</h2><p>Choose, inspect, and maintain the models used across your workspace.</p></div>
-          <div className="ai-model-library-header-actions"><button className="btn btn-secondary btn-sm" onClick={startCreate}><WorkspaceIcon name="manual" /> Add model</button><button className="btn btn-secondary btn-sm" disabled={actionLoading} onClick={onClose} aria-label="Close">×</button></div>
+          <div className="ai-model-library-header-actions"><button className="btn btn-secondary btn-sm" onClick={startCreate}><WorkspaceIcon name="manual" /> Add model</button><button className="btn btn-secondary btn-sm" disabled={actionLoading} onClick={onClose} aria-label="Close"><CloseIcon /></button></div>
         </header>
 
         {message && <div className={`ai-model-drawer-message ${message.type}`}>{message.text}</div>}

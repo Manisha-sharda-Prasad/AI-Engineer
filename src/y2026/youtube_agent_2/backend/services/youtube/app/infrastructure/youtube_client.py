@@ -1,3 +1,4 @@
+import json
 import os
 from typing import List, Optional
 import requests
@@ -368,6 +369,9 @@ def get_playlist_videos(playlist_id: str) -> List[dict]:
             break
     
     items = _enrich_video_details(items, headers)
+    with open("src/y2026/youtube_agent_2/docs/prefill-learning-plan/videos.json", "w") as file:
+        json.dump(items, file, indent=2)
+
     print(f"✅ Found {len(items)} videos in playlist {playlist_id}")
     return items
 

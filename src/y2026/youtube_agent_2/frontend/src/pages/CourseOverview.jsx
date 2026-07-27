@@ -2,7 +2,7 @@ import React from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate, useParams } from 'react-router-dom'
 import LearningPathNav from '../components/LearningPathNav'
-import { WorkspaceIcon } from '../components/Icons'
+import { CloseIcon, WorkspaceIcon } from '../components/Icons'
 import { rememberLearningLocation } from '../store/learningUiSlice'
 
 export default function CourseOverview() {
@@ -33,6 +33,6 @@ export default function CourseOverview() {
       </div>
     })}</div> : <p>No sources recorded.</p>}</div>
     <button className="btn btn-primary desktop-page-actions" onClick={() => navigate(`/plans/${planId}/courses/${courseId}/learn`)}>Continue learning</button>
-    {showMobileActions && <><div className="drawer-overlay mobile-page-actions-overlay" onClick={() => setShowMobileActions(false)} /><aside className="drawer mobile-page-actions-drawer"><div className="drawer-header"><h2>Course actions</h2><button className="btn btn-secondary btn-sm" onClick={() => setShowMobileActions(false)} aria-label="Close">×</button></div><div className="drawer-body mobile-course-actions"><button className="btn btn-secondary" onClick={() => navigate(`/plans/${planId}`)}>← Back to {plan.name}</button><button className="btn btn-primary" onClick={() => navigate(`/plans/${planId}/courses/${courseId}/learn`)}>Continue learning</button></div></aside></>}
+    {showMobileActions && <><div className="drawer-overlay mobile-page-actions-overlay" onClick={() => setShowMobileActions(false)} /><aside className="drawer mobile-page-actions-drawer"><div className="drawer-header"><div className="mobile-action-drawer-heading"><span className="mobile-action-drawer-icon"><WorkspaceIcon name="menu" /></span><div><small>Course overview</small><h2>Course actions</h2></div></div><button className="mobile-action-drawer-close" onClick={() => setShowMobileActions(false)} aria-label="Close"><CloseIcon /></button></div><div className="drawer-body mobile-course-actions"><button className="btn btn-secondary" onClick={() => navigate(`/plans/${planId}`)}>← Back to {plan.name}</button><button className="btn btn-primary" onClick={() => navigate(`/plans/${planId}/courses/${courseId}/learn`)}>Continue learning</button></div></aside></>}
   </div>
 }

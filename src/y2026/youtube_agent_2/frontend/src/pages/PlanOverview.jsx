@@ -12,7 +12,7 @@ import {
   updatePlanLabels,
 } from "../api/client";
 import EditMetadataDrawer from "../components/EditMetadataDrawer";
-import { EditIcon, LabelIcon, WorkspaceIcon } from "../components/Icons";
+import { CloseIcon, EditIcon, LabelIcon, WorkspaceIcon } from "../components/Icons";
 import {
   CourseViewDropdown,
   LearningPlanDropdown,
@@ -33,6 +33,170 @@ function JsonActionIcon({ name }) {
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <path d={paths[name]} />
     </svg>
+  );
+}
+
+function CourseThumbnail({ logoUrl, title }) {
+  const [imageShape, setImageShape] = React.useState("emblem");
+
+  React.useEffect(() => {
+    setImageShape("emblem");
+  }, [logoUrl]);
+
+  if (!logoUrl) {
+    return (
+      <div className="course-card-thumbnail is-empty">
+        <div className="course-card-thumbnail-fallback">
+          {title?.charAt(0).toUpperCase() || "?"}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`course-card-thumbnail has-logo is-${imageShape}`}>
+      <img
+        src={logoUrl}
+        alt=""
+        onLoad={(event) => {
+          const { naturalWidth, naturalHeight } = event.currentTarget;
+          setImageShape(
+            naturalHeight > 0 && naturalWidth / naturalHeight >= 1.35
+              ? "wide"
+              : "emblem",
+          );
+        }}
+      />
+    </div>
+  );
+}
+
+const BULK_ACTION_OPTIONS = [
+  {
+    value: "label:mark_for_delete",
+    label: "Mark for delete",
+    description: "Flag selected courses for deletion",
+    icon: "delete",
+  },
+  {
+    value: "label:bookmarked",
+    label: "Bookmark",
+    description: "Bookmark selected courses",
+    icon: "bookmark",
+  },
+  {
+    value: "label:watched",
+    label: "Mark watched",
+    description: "Mark selected courses as watched",
+    icon: "check",
+  },
+  {
+    value: "custom_label",
+    label: "Add custom label",
+    description: "Attach a label to selected courses",
+    icon: "label",
+  },
+  {
+    value: "clear_labels",
+    label: "Clear all labels",
+    description: "Remove every label from selected courses",
+    icon: "clear",
+  },
+  {
+    value: "update_logo",
+    label: "Update logo",
+    description: "Replace the selected course logos",
+    icon: "image",
+  },
+];
+
+function BulkActionIcon({ name }) {
+  const paths = {
+    delete: "M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13M10 11v5m4-5v5",
+    bookmark: "M6 3h12v18l-6-4-6 4V3Z",
+    check: "m5 12 4 4L19 6",
+    label: "M4 5h9l7 7-8 8-8-8V5Zm5 4h.01",
+    clear: "m5 16 7-9 7 9-3 3H8l-3-3Zm5 3h10",
+    image: "M4 5h16v14H4V5Zm0 11 5-5 4 4 2-2 5 5M15 9h.01",
+  };
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d={paths[name]} />
+    </svg>
+  );
+}
+
+function BulkActionDropdown({ value, onChange, disabled }) {
+  const [open, setOpen] = React.useState(false);
+  const pickerRef = React.useRef(null);
+  const selected =
+    BULK_ACTION_OPTIONS.find((option) => option.value === value) ||
+    BULK_ACTION_OPTIONS[0];
+
+  React.useEffect(() => {
+    const close = (event) => {
+      if (!pickerRef.current?.contains(event.target)) setOpen(false);
+    };
+    document.addEventListener("pointerdown", close);
+    return () => document.removeEventListener("pointerdown", close);
+  }, []);
+
+  React.useEffect(() => {
+    if (disabled) setOpen(false);
+  }, [disabled]);
+
+  return (
+    <div className="learning-path-picker course-bulk-action-picker" ref={pickerRef}>
+      <button
+        type="button"
+        className="learning-path-trigger course-bulk-action-trigger"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        disabled={disabled}
+        onClick={() => setOpen((current) => !current)}
+      >
+        <span className={`course-bulk-action-icon is-${selected.icon}`}>
+          <BulkActionIcon name={selected.icon} />
+        </span>
+        <span>{selected.label}</span>
+        <svg className="course-bulk-chevron" viewBox="0 0 16 16" aria-hidden="true">
+          <path d="m4 6 4 4 4-4" />
+        </svg>
+      </button>
+      {open && (
+        <div className="learning-path-menu course-bulk-action-menu" role="menu" aria-label="Choose bulk action">
+          <strong>Choose bulk action</strong>
+          {BULK_ACTION_OPTIONS.map((option) => (
+            <button
+              type="button"
+              role="menuitemradio"
+              aria-checked={option.value === value}
+              className={`course-bulk-action-option ${option.value === value ? "active" : ""}`}
+              key={option.value}
+              onClick={() => {
+                onChange(option.value);
+                setOpen(false);
+              }}
+            >
+              <span className="learning-path-menu-check">
+                {option.value === value && (
+                  <svg viewBox="0 0 16 16" aria-hidden="true">
+                    <path d="m3 8 3 3 7-7" />
+                  </svg>
+                )}
+              </span>
+              <span className={`course-bulk-action-icon is-${option.icon}`}>
+                <BulkActionIcon name={option.icon} />
+              </span>
+              <span>
+                <b>{option.label}</b>
+                <small>{option.description}</small>
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -186,9 +350,7 @@ function LearningPlanOverviewDrawer({
       <aside className="drawer learning-plan-overview-drawer">
         <div className="drawer-header">
           <h2>Plan information</h2>
-          <button className="btn btn-secondary btn-sm" onClick={onClose}>
-            ×
-          </button>
+          <button className="btn btn-secondary btn-sm" onClick={onClose}><CloseIcon /></button>
         </div>
         <div className="refresh-feed-tabs">
           <button
@@ -275,41 +437,7 @@ function LearningPlanOverviewDrawer({
                   <span>{bookmarked} bookmarked</span>
                   <span>{markedForDelete} marked</span>
                 </div>
-                <section className="plan-info-status">
-                  <div>
-                    <h4>Plan status</h4>
-                    <p>Bookmark, complete, or mark this plan for later cleanup.</p>
-                  </div>
-                  {labelError && <div className="alert alert-error">{labelError}</div>}
-                  <div className="plan-info-status-actions" role="group" aria-label="Plan status">
-                    {[
-                      ["bookmarked", "Bookmark"],
-                      ["watched", "Watched"],
-                      ["mark_for_delete", "Mark for delete"],
-                    ].map(([label, text]) => (
-                      <button
-                        type="button"
-                        key={label}
-                        className={plan.labels?.includes(label) ? "active" : ""}
-                        aria-pressed={plan.labels?.includes(label)}
-                        disabled={Boolean(updatingLabel)}
-                        onClick={() => togglePlanLabel(label)}
-                      >
-                        <LabelIcon label={label} />
-                        <span>{updatingLabel === label ? "Updating…" : text}</span>
-                      </button>
-                    ))}
-                  </div>
-                  {plan.labels?.some((label) => !["bookmarked", "watched", "mark_for_delete"].includes(label)) && (
-                    <div className="plan-card-labels">
-                      {plan.labels
-                        .filter((label) => !["bookmarked", "watched", "mark_for_delete"].includes(label))
-                        .map((label) => (
-                          <span className="badge badge-green" key={label}>{label.replaceAll("_", " ")}</span>
-                        ))}
-                    </div>
-                  )}
-                </section>
+
                 <div className="plan-card-timestamps">
                   <span>
                     Created:{" "}
@@ -325,7 +453,7 @@ function LearningPlanOverviewDrawer({
                   </span>
                 </div>
               </section>
-              <hr className="overview-section-divider" />
+
               <section className="workspace-source-section plan-overview-sources">
                 <h3>Content sources</h3>
                 {sourceChannels.length ? (
@@ -440,8 +568,15 @@ export default function PlanOverview() {
   const [courseToEdit, setCourseToEdit] = React.useState(null);
   const [showOverview, setShowOverview] = React.useState(false);
   const [showSortFilter, setShowSortFilter] = React.useState(false);
+  const [labelSearch, setLabelSearch] = React.useState("");
   const [showMobileActions, setShowMobileActions] = React.useState(false);
-  const { query, sortBy, labelFilters, courseLabelTab } = useSelector((state) =>
+  const [selectedCourseKeys, setSelectedCourseKeys] = React.useState([]);
+  const [bulkAction, setBulkAction] = React.useState("label:mark_for_delete");
+  const [bulkCustomLabel, setBulkCustomLabel] = React.useState("");
+  const [bulkLogoUrl, setBulkLogoUrl] = React.useState("");
+  const [bulkUpdating, setBulkUpdating] = React.useState(false);
+  const [bulkError, setBulkError] = React.useState("");
+  const { query, sortBy, labelFilters, courseLabelTab, showCourseProgress } = useSelector((state) =>
     selectPlanPageState(state, planId),
   );
   const updatePageState = (changes) =>
@@ -450,7 +585,7 @@ export default function PlanOverview() {
     dispatch(rememberLearningLocation({ planId, courseId: "all", moduleId: null, videoId: null }));
   }, [dispatch, planId]);
   const standardCourseTabs = [
-    { id: "ALL", label: "All courses", shortLabel: "ALL" },
+    { id: "ALL", label: "All courses", shortLabel: "All Courses" },
     { id: "bookmarked", label: "Bookmarked" },
     { id: "watched", label: "Watched" },
     { id: "mark_for_delete", label: "Marked for delete" },
@@ -462,6 +597,9 @@ export default function PlanOverview() {
   const customCourseLabels = [
     ...new Set((plan?.courses || []).flatMap((course) => course.labels || [])),
   ].filter((label) => !standardCourseLabelIds.includes(label));
+  const visibleCustomCourseLabels = customCourseLabels
+    .filter((label) => label.toLowerCase().includes(labelSearch.trim().toLowerCase()))
+    .sort((left, right) => left.localeCompare(right));
   const visibleCourses = [...(plan?.courses || [])]
     .filter(
       (course) =>
@@ -477,6 +615,101 @@ export default function PlanOverview() {
         ? a.title.localeCompare(b.title)
         : new Date(b.updated_at) - new Date(a.updated_at),
     );
+  const getCourseKey = (course) => `${course._planId || plan?.id}:${course.id}`;
+  const selectedKeySet = new Set(selectedCourseKeys);
+  const selectedCourses = (plan?.courses || []).filter((course) =>
+    selectedKeySet.has(getCourseKey(course)),
+  );
+  const visibleCourseKeys = visibleCourses.map(getCourseKey);
+  const allVisibleSelected =
+    visibleCourseKeys.length > 0 &&
+    visibleCourseKeys.every((courseKey) => selectedKeySet.has(courseKey));
+  const someVisibleSelected = visibleCourseKeys.some((courseKey) =>
+    selectedKeySet.has(courseKey),
+  );
+
+  React.useEffect(() => {
+    const validKeys = new Set((plan?.courses || []).map(getCourseKey));
+    setSelectedCourseKeys((current) =>
+      current.filter((courseKey) => validKeys.has(courseKey)),
+    );
+  }, [plan]);
+
+  const toggleCourseSelection = (course) => {
+    const courseKey = getCourseKey(course);
+    setSelectedCourseKeys((current) =>
+      current.includes(courseKey)
+        ? current.filter((item) => item !== courseKey)
+        : [...current, courseKey],
+    );
+  };
+
+  const toggleAllVisibleCourses = () => {
+    setSelectedCourseKeys((current) => {
+      const currentKeys = new Set(current);
+      if (allVisibleSelected) {
+        visibleCourseKeys.forEach((courseKey) => currentKeys.delete(courseKey));
+      } else {
+        visibleCourseKeys.forEach((courseKey) => currentKeys.add(courseKey));
+      }
+      return [...currentKeys];
+    });
+  };
+
+  const updateSelectedCourses = async (updater) => {
+    if (!selectedCourses.length || bulkUpdating) return;
+    setBulkUpdating(true);
+    setBulkError("");
+    try {
+      for (const course of selectedCourses) {
+        const response = await updater(course, course._planId || plan.id);
+        if (response?.plan) dispatch(updatePlan(response.plan));
+      }
+    } catch (error) {
+      setBulkError(error.message || "Unable to update the selected courses.");
+    } finally {
+      setBulkUpdating(false);
+    }
+  };
+
+  const applyBulkCourseAction = async () => {
+    if (bulkAction.startsWith("label:")) {
+      const label = bulkAction.slice("label:".length);
+      await updateSelectedCourses((course, ownerPlanId) =>
+        course.labels?.includes(label)
+          ? null
+          : updateCourseLabels(ownerPlanId, course.id, [...(course.labels || []), label]),
+      );
+      return;
+    }
+    if (bulkAction === "custom_label") {
+      const label = bulkCustomLabel.trim();
+      if (!label) return;
+      await updateSelectedCourses((course, ownerPlanId) =>
+        course.labels?.includes(label)
+          ? null
+          : updateCourseLabels(ownerPlanId, course.id, [...(course.labels || []), label]),
+      );
+      setBulkCustomLabel("");
+      return;
+    }
+    if (bulkAction === "clear_labels") {
+      await updateSelectedCourses((course, ownerPlanId) =>
+        course.labels?.length
+          ? updateCourseLabels(ownerPlanId, course.id, [])
+          : null,
+      );
+      return;
+    }
+    if (bulkAction === "update_logo") {
+      const logoUrl = bulkLogoUrl.trim();
+      if (!logoUrl) return;
+      await updateSelectedCourses((course, ownerPlanId) =>
+        updateCourseMetadata(ownerPlanId, course.id, { logo_url: logoUrl }),
+      );
+      setBulkLogoUrl("");
+    }
+  };
   const courseViewOptions = standardCourseTabs.map((tab) => ({
     ...tab,
     count:
@@ -529,6 +762,27 @@ export default function PlanOverview() {
       >
         <WorkspaceIcon name="info" />
       </button>}
+
+      
+      {!isAllPlans && <div className="add-course-group">
+        <button className="btn btn-secondary btn-sm" onClick={() => setShowManual(true)}>
+          <WorkspaceIcon name="manual" />
+          Manual course
+        </button>
+        <button className="btn btn-secondary btn-sm" onClick={() => setShowAi(true)}>
+          <WorkspaceIcon name="ai" />
+          AI suggested Course
+        </button>
+      </div>}
+
+      {!isAllPlans && <button
+        className="btn btn-secondary btn-sm ai-request-status-button"
+        onClick={() => navigate(`/plans/${planId}/ai-requests`)}
+      >
+        <WorkspaceIcon name="progress" />
+        <span>AI Request Status</span>
+      </button>}
+
       <input
         value={query}
         onChange={(event) => updatePageState({ query: event.target.value })}
@@ -537,29 +791,13 @@ export default function PlanOverview() {
       />
       <button
         className={`btn btn-secondary btn-sm icon-button ${labelFilters.length ? "active" : ""}`}
-        title="Sort and filter courses"
+        title="Sort and Filter ourses"
         aria-label="Sort and filter courses"
         onClick={() => setShowSortFilter(true)}
       >
         <WorkspaceIcon name="sort" />
       </button>
-      {!isAllPlans && <button
-        className="btn btn-secondary btn-sm ai-request-status-button"
-        onClick={() => navigate(`/plans/${planId}/ai-requests`)}
-      >
-        <WorkspaceIcon name="progress" />
-        <span>AI Request Status</span>
-      </button>}
-      {!isAllPlans && <div className="add-course-group">
-        <button className="btn btn-secondary btn-sm" onClick={() => setShowManual(true)}>
-          <WorkspaceIcon name="manual" />
-          Manual
-        </button>
-        <button className="btn btn-secondary btn-sm" onClick={() => setShowAi(true)}>
-          <WorkspaceIcon name="ai" />
-          AI
-        </button>
-      </div>}
+
     </div>
   );
 
@@ -616,12 +854,125 @@ export default function PlanOverview() {
             </button>
           </div>
         )}
+        <section
+          className={`course-bulk-panel ${selectedCourses.length > 0 ? "open" : ""}`}
+          aria-label="Selected course actions"
+          aria-hidden={selectedCourses.length === 0}
+        >
+          <div className="course-bulk-panel-inner">
+            <div className="course-bulk-selection">
+              <span className="course-bulk-count">{selectedCourses.length}</span>
+              <div>
+                <strong>course{selectedCourses.length === 1 ? "" : "s"} selected</strong>
+                <button type="button" onClick={() => setSelectedCourseKeys([])} disabled={!selectedCourses.length || bulkUpdating}>
+                  Clear selection
+                </button>
+              </div>
+            </div>
+            <div className="course-bulk-field">
+              <BulkActionDropdown
+                value={bulkAction}
+                onChange={(value) => {
+                  setBulkAction(value);
+                  setBulkError("");
+                }}
+                disabled={!selectedCourses.length || bulkUpdating}
+              />
+            </div>
+            {bulkAction === "custom_label" && (
+              <label className="course-bulk-field course-bulk-value-field">
+                <span>Label name</span>
+                <input
+                  value={bulkCustomLabel}
+                  onChange={(event) => setBulkCustomLabel(event.target.value)}
+                  placeholder="Enter custom label"
+                  disabled={!selectedCourses.length || bulkUpdating}
+                />
+              </label>
+            )}
+            {bulkAction === "update_logo" && (
+              <label className="course-bulk-field course-bulk-value-field">
+                <span>Logo URL</span>
+                <input
+                  type="url"
+                  value={bulkLogoUrl}
+                  onChange={(event) => setBulkLogoUrl(event.target.value)}
+                  placeholder="https://…"
+                  disabled={!selectedCourses.length || bulkUpdating}
+                />
+              </label>
+            )}
+            <button
+              type="button"
+              className={`btn btn-sm ${bulkAction === "clear_labels" ? "btn-danger" : "btn-primary"} course-bulk-apply`}
+              onClick={applyBulkCourseAction}
+              disabled={
+                !selectedCourses.length ||
+                bulkUpdating ||
+                (bulkAction === "custom_label" && !bulkCustomLabel.trim()) ||
+                (bulkAction === "update_logo" && !bulkLogoUrl.trim())
+              }
+            >
+              {bulkUpdating ? <><span className="spinner" /> Updating…</> : "Apply"}
+            </button>
+          </div>
+          {bulkUpdating && <span className="course-bulk-running-bar" role="status" aria-live="polite"><i /></span>}
+        </section>
         <div className="page-header course-toolbar">
-          <h4>
-            Courses{" "}
-            <span className="badge badge-green">{plan.courses?.length || 0}</span>
-          </h4>
+          <div className="course-toolbar-title">
+            <h4>
+              Courses{" "}
+              <span className="badge badge-green">{plan.courses?.length || 0}</span>
+            </h4>
+            {labelFilters.length > 0 && <div className="course-toolbar-filter-tags" aria-label="Selected custom labels">
+              {labelFilters.map((label) => {
+                const labelCourseCount = (plan.courses || []).filter((course) =>
+                  course.labels?.includes(label),
+                ).length;
+                return (
+                  <button
+                    type="button"
+                    key={label}
+                    title={`Remove ${label} filter`}
+                    onClick={() =>
+                      updatePageState({
+                        labelFilters: labelFilters.filter((item) => item !== label),
+                      })
+                    }
+                  >
+                    <span>{label}</span>
+                    <em aria-label={`${labelCourseCount} courses`}>{labelCourseCount}</em>
+                    <b aria-hidden="true">×</b>
+                  </button>
+                );
+              })}
+            </div>}
+          </div>
+          <div className="course-toolbar-options">
+            <label className="course-progress-switch">
+              <input
+                type="checkbox"
+                checked={showCourseProgress}
+                onChange={(event) => updatePageState({ showCourseProgress: event.target.checked })}
+              />
+              <span className="course-progress-switch-track" aria-hidden="true" />
+              <span>Show progress</span>
+            </label>
+            <label className="course-select-all">
+              <input
+                type="checkbox"
+                checked={allVisibleSelected}
+                ref={(input) => {
+                  if (input) input.indeterminate = someVisibleSelected && !allVisibleSelected;
+                }}
+                onChange={toggleAllVisibleCourses}
+                disabled={!visibleCourses.length || bulkUpdating}
+              />
+              <span>Select all visible</span>
+            </label>
+          </div>
         </div>
+        {bulkError && <div className="alert alert-error course-bulk-error">{bulkError}</div>}
         <div className="plan-course-list">
         {visibleCourses.length ? (
           visibleCourses.map((course) => {
@@ -641,27 +992,35 @@ export default function PlanOverview() {
             const logoUrl = course.logo_url || course.logo;
             return (
               <article
-                className={`card catalog-tile ${course.labels?.includes("refresh_needed") ? "refresh-needed-course" : ""}`}
-                key={`${course._planId || plan.id}:${course.id}`}
+                className={`card catalog-tile course-card-modern ${showCourseProgress ? "showing-progress" : "progress-hidden"} ${selectedKeySet.has(getCourseKey(course)) ? "course-card-selected" : ""} ${course.labels?.includes("refresh_needed") ? "refresh-needed-course" : ""}`}
+                key={getCourseKey(course)}
                 onClick={() =>
                   navigate(`/plans/${course._planId || plan.id}/courses/${course.id}/learn`)
                 }
               >
+                <label
+                  className="course-card-selector"
+                  title={`Select ${course.title}`}
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedKeySet.has(getCourseKey(course))}
+                    onChange={() => toggleCourseSelection(course)}
+                    disabled={bulkUpdating}
+                    aria-label={`Select ${course.title}`}
+                  />
+                  <span aria-hidden="true" />
+                </label>
+                <CourseThumbnail logoUrl={logoUrl} title={course.title} />
                 <header className="catalog-tile-header">
-                  {logoUrl ? (
-                    <img src={logoUrl} alt="" className="tile-logo" />
-                  ) : (
-                    <div className="tile-logo tile-logo-fallback">
-                      {course.title?.charAt(0).toUpperCase() || "?"}
-                    </div>
-                  )}
                   <div>
                     <h3>{course.title}</h3>
                     {course._planName && <small className="course-owner-plan">{course._planName}</small>}
                     <p>{course.description || "No description provided."}</p>
                   </div>
                 </header>
-                <section className="course-card-progress">
+                {showCourseProgress && <section className="course-card-progress">
                   <div className="plan-progress-heading">
                     <span>Learning progress</span>
                     <strong>{progress}%</strong>
@@ -691,7 +1050,7 @@ export default function PlanOverview() {
                         : "—"}
                     </span>
                   </div>
-                </section>
+                </section>}
                 <section className="plan-card-labels">
                   {course.labels?.length ? (
                     course.labels.map((label) => (
@@ -757,8 +1116,11 @@ export default function PlanOverview() {
           <div className="drawer-overlay mobile-page-actions-overlay" onClick={() => setShowMobileActions(false)} />
           <aside className="drawer mobile-page-actions-drawer">
             <div className="drawer-header">
-              <h2>Plan actions</h2>
-              <button className="btn btn-secondary btn-sm" onClick={() => setShowMobileActions(false)} aria-label="Close">×</button>
+              <div className="mobile-action-drawer-heading">
+                <span className="mobile-action-drawer-icon"><WorkspaceIcon name="menu" /></span>
+                <div><small>Learning plan</small><h2>Plan actions</h2></div>
+              </div>
+              <button className="mobile-action-drawer-close" onClick={() => setShowMobileActions(false)} aria-label="Close"><CloseIcon /></button>
             </div>
             <div className="drawer-body">{renderCourseActions("mobile-drawer-actions")}</div>
           </aside>
@@ -792,41 +1154,16 @@ export default function PlanOverview() {
             className="drawer-overlay"
             onClick={() => setShowSortFilter(false)}
           />
-          <aside className="drawer">
+          <aside className="drawer course-sort-filter-drawer">
             <div className="drawer-header">
-              <h2>Sort and filter courses</h2>
+              <h2>COURSES - SORT AND FILTER</h2>
               <button
                 className="btn btn-secondary btn-sm"
                 onClick={() => setShowSortFilter(false)}
-              >
-                ×
-              </button>
+              ><CloseIcon /></button>
             </div>
-            <div className="drawer-body">
-              <section className="workspace-filter-section">
-                <label>Filter by custom labels</label>
-                {customCourseLabels.length ? (
-                  customCourseLabels.map((label) => (
-                    <label className="filter-checkbox" key={label}>
-                      <input
-                        type="checkbox"
-                        checked={labelFilters.includes(label)}
-                        onChange={() =>
-                          updatePageState({
-                            labelFilters: labelFilters.includes(label)
-                              ? labelFilters.filter((item) => item !== label)
-                              : [...labelFilters, label],
-                          })
-                        }
-                      />
-                      {label}
-                    </label>
-                  ))
-                ) : (
-                  <p className="tile-date">No custom course labels yet.</p>
-                )}
-              </section>
-              <div className="material-select">
+            <div className="drawer-body course-sort-filter-body">
+              <section className="material-select course-sort-section">
                 <label>Sort courses</label>
                 <div
                   className="sort-toggle"
@@ -846,13 +1183,46 @@ export default function PlanOverview() {
                     Name
                   </button>
                 </div>
-              </div>
+              </section>
+
+              <section className="workspace-filter-section course-label-filter-section">
+                <label>Filter by custom labels</label>
+                <label className="course-label-search">
+                  <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5" /><path d="m10.5 10.5 3 3" /></svg>
+                  <input type="search" value={labelSearch} onChange={(event) => setLabelSearch(event.target.value)} placeholder="Search labels..." aria-label="Search custom course labels" />
+                </label>
+                <div className="course-label-filter-list">
+                {visibleCustomCourseLabels.length ? (
+                  visibleCustomCourseLabels.map((label) => (
+                    <label className="filter-checkbox" key={label}>
+                      <input
+                        type="checkbox"
+                        checked={labelFilters.includes(label)}
+                        onChange={() =>
+                          updatePageState({
+                            labelFilters: labelFilters.includes(label)
+                              ? labelFilters.filter((item) => item !== label)
+                              : [...labelFilters, label],
+                          })
+                        }
+                      />
+                      {label}
+                    </label>
+                  ))
+                ) : customCourseLabels.length ? (
+                  <p className="tile-date">No labels match “{labelSearch}”.</p>
+                ) : (
+                  <p className="tile-date">No custom course labels yet.</p>
+                )}
+                </div>
+              </section>
             </div>
             <div className="drawer-footer">
               <button
                 className="btn btn-secondary"
                 onClick={() => {
                   updatePageState({ labelFilters: [], sortBy: "updated" });
+                  setLabelSearch("");
                 }}
               >
                 Reset
