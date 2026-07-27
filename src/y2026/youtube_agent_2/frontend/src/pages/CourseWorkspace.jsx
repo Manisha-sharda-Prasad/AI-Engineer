@@ -3,17 +3,19 @@ import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate, useParams } from 'react-router-dom'
 import PlanDetail from '../components/PlanDetail'
 import { WorkspaceIcon } from '../components/Icons'
-import LearningPathNav from '../components/LearningPathNav'
+import { LearningPlanDropdown, CourseViewDropdown, CourseDropdown } from '../components/LearningPathNav'
 import { submitCourseRefreshFeed } from '../api/client'
 import { updatePlan } from '../store/plansSlice'
-import { rememberLearningLocation, selectWorkspaceState } from '../store/learningUiSlice'
+import { rememberLearningLocation, selectPlanPageState, selectWorkspaceState, updatePlanPage } from '../store/learningUiSlice'
 
 export default function CourseWorkspace() {
   const { planId, courseId } = useParams()
   const navigate = useNavigate()
   const dispatch = useDispatch()
+  const allPlans = useSelector(state => state.plans.items)
   const plan = useSelector(state => state.plans.items.find(item => item.id === planId))
   const rememberedWorkspace = useSelector(state => selectWorkspaceState(state, planId, courseId))
+  const { courseLabelTab } = useSelector(state => selectPlanPageState(state, planId))
   const syncMetadata = useSelector(state => state.sources.syncMetadata)
   const [showOverview, setShowOverview] = React.useState(false)
   const [isCourseEditing, setIsCourseEditing] = React.useState(false)
@@ -23,6 +25,7 @@ export default function CourseWorkspace() {
   const [feedReviewTab, setFeedReviewTab] = React.useState('visual')
   const [feedReviewSearch, setFeedReviewSearch] = React.useState('')
   const [feedReviewSort, setFeedReviewSort] = React.useState('name')
+  const [showMobileActions, setShowMobileActions] = React.useState(false)
 
   React.useEffect(() => {
     setShowOverview(false)
@@ -72,8 +75,60 @@ export default function CourseWorkspace() {
     }
   }
 
+  const standardCourseTabs = [
+    { id: "ALL", label: "All courses", shortLabel: "All Courses" },
+    { id: "bookmarked", label: "Bookmarked" },
+    { id: "watched", label: "Watched" },
+    { id: "mark_for_delete", label: "Marked for delete" },
+    { id: "refresh_needed", label: "Refresh needed" },
+  ];
+  const courseViewOptions = standardCourseTabs.map((tab) => ({
+    ...tab,
+    count:
+      tab.id === "ALL"
+        ? plan?.courses?.length || 0
+        : plan?.courses?.filter((course) => course.labels?.includes(tab.id)).length || 0,
+  }));
+
+  const renderCourseActions = (className = "") => (
+    <div className={`workspace-action-panel ${className}`}>
+      <button className={`btn btn-secondary btn-sm icon-button ${refreshNeeded ? 'refresh-needed' : ''}`} title={refreshNeeded ? 'Course refresh needed' : 'Course overview'} aria-label="Course overview" onClick={() => setShowOverview(true)}><WorkspaceIcon name="info" /></button>
+    </div>
+  );
+
   return <div className="course-workspace-page">
-    <LearningPathNav className="workspace-detail-breadcrumb" plan={plan} course={course} mode="learn" showHome={false} actions={<div id="workspace-actions" className="workspace-action-panel"><button className={`btn btn-secondary btn-sm icon-button ${refreshNeeded ? 'refresh-needed' : ''}`} title={refreshNeeded ? 'Course refresh needed' : 'Course overview'} aria-label="Course overview" onClick={() => setShowOverview(true)}><WorkspaceIcon name="info" /></button></div>} />
+    <nav className="plan-detail-breadcrumb" aria-label="Plan and course filter">
+      <div className="plan-detail-breadcrumb-path">
+        <LearningPlanDropdown
+          plans={allPlans}
+          selectedPlan={plan}
+          includeAll
+          onSelect={(selectedPlan) => {
+            if (selectedPlan) {
+              navigate(`/plans/${selectedPlan.id}/courses/${selectedPlan.courses?.[0]?.id || ''}/learn`);
+            } else {
+              navigate(`/plans/all`);
+            }
+          }}
+        />
+        <span className="learning-path-separator" aria-hidden="true">/</span>
+        <CourseViewDropdown
+          options={courseViewOptions}
+          value={courseLabelTab}
+          onSelect={(value) => dispatch(updatePlanPage({ planId, changes: { courseLabelTab: value } }))}
+        />
+        <span className="learning-path-separator" aria-hidden="true">/</span>
+        <CourseDropdown
+          plan={plan}
+          course={course}
+          onSelect={(selectedCourse) => {
+            navigate(`/plans/${planId}/courses/${selectedCourse.id}/learn`);
+          }}
+        />
+      </div>
+      <button type="button" className="mobile-page-menu-button" aria-label="Open course actions" aria-expanded={showMobileActions} onClick={() => setShowMobileActions(true)}><WorkspaceIcon name="menu" /></button>
+      {renderCourseActions("desktop-page-actions breadcrumb-actions")}
+    </nav>
     <PlanDetail key={`${planId}:${courseId}`} plan={plan} workspaceCourseId={courseId} isCourseEditing={isCourseEditing} onToggleCourseEditing={() => setIsCourseEditing(value => !value)} onUpdate={updated => dispatch(updatePlan(updated))} onDelete={() => {}} />
     {showOverview && <><div className="drawer-overlay" onClick={() => setShowOverview(false)} /><aside className="drawer"><div className="drawer-header course-overview-drawer-header"><div><h2>{course.title}</h2>{course.description && <p>{course.description}</p>}</div><button className="btn btn-secondary btn-sm" onClick={() => setShowOverview(false)}>×</button></div><div className="drawer-body">
       {refreshError && <div className="alert alert-error">{refreshError}</div>}
@@ -82,5 +137,17 @@ export default function CourseWorkspace() {
       <section className="workspace-source-section"><div className="source-section-heading"><h3>Content sources</h3></div><p className="course-source-meta">Last sync: {syncMetadata?.updated_at ? new Date(syncMetadata.updated_at).toLocaleString() : 'Not synced yet'}</p>{course.source_channels?.length ? <div className="course-source-list">{course.source_channels.map(channel => { const logo = channel.thumbnail || channel.logo || channel.logo_url; return <div className="course-source-item" key={channel.channel_id}>{logo ? <img src={logo} alt="" className="course-source-logo" /> : <div className="course-source-logo course-source-logo-fallback">{channel.title?.charAt(0).toUpperCase() || '?'}</div>}<div className="course-source-details"><div className="course-source-title">{channel.url ? <a href={channel.url} target="_blank" rel="noreferrer">{channel.title}</a> : channel.title}</div><div className="course-source-meta">{channel.videos_count ?? channel.video_count ?? 0} videos</div><div className="course-source-playlists"><strong>Playlists</strong>{channel.playlists?.length ? channel.playlists.map(playlist => <div className="course-source-playlist" key={playlist.id || playlist.playlist_id}>{playlist.thumbnail && <img src={playlist.thumbnail} alt="" />}<span>{playlist.title}</span></div>) : <span className="course-source-meta">All channel videos</span>}</div></div></div> })}</div> : <p>No sources recorded.</p>}</section>
     </div></aside></>}
     {showFeedReview && <><div className="drawer-overlay" onClick={() => setShowFeedReview(false)} /><aside className="drawer left-refresh-feed-drawer"><div className="drawer-header"><h2>Review new video feed</h2><button className="btn btn-secondary btn-sm" onClick={() => setShowFeedReview(false)}>×</button></div><div className="refresh-feed-tabs"><button className={feedReviewTab === 'visual' ? 'active' : ''} onClick={() => setFeedReviewTab('visual')}>Visual</button><button className={feedReviewTab === 'json' ? 'active' : ''} onClick={() => setFeedReviewTab('json')}>Raw JSON</button></div><div className="refresh-feed-dialog-body">{feedReviewTab === 'visual' ? <><div className="refresh-feed-toolbar"><input value={feedReviewSearch} onChange={event => setFeedReviewSearch(event.target.value)} placeholder="Search new videos..." /><div className="picker-sort-toggle"><button className={feedReviewSort === 'name' ? 'active' : ''} onClick={() => setFeedReviewSort('name')}>Name</button><button className={feedReviewSort === 'date' ? 'active' : ''} onClick={() => setFeedReviewSort('date')}>Date</button></div></div><div className="refresh-feed-visual-list">{reviewVideos.map(video => <article className="refresh-feed-video-card" key={video.video_id}>{video.thumbnail ? <img src={video.thumbnail} alt="" /> : <div className="refresh-feed-video-thumb" />}<div><strong><em>{video.sequence || '—'}.</em> {video.title || 'Untitled video'}</strong><span>{video.feed.playlist_id ? `Playlist: ${video.feed.playlist_id}` : 'Channel feed'} · {video.published_at ? new Date(video.published_at).toLocaleDateString() : 'Date unavailable'} · {formatDuration(video.duration_secs)}</span>{video.description && <p>{video.description}</p>}</div></article>)}{reviewVideos.length === 0 && <p className="refresh-feed-empty">No videos match this search.</p>}</div></> : <pre className="refresh-feed-json">{JSON.stringify(stagedFeeds, null, 2)}</pre>}</div><div className="drawer-footer"><button className="btn btn-secondary" onClick={() => setShowFeedReview(false)}>Cancel</button><button className="btn btn-success" disabled={refreshLoading} onClick={submitRefresh}>{refreshLoading ? 'Submitting…' : 'Submit to course'}</button></div></aside></>}
+    {showMobileActions && (
+      <>
+        <div className="drawer-overlay mobile-page-actions-overlay" onClick={() => setShowMobileActions(false)} />
+        <aside className="drawer mobile-page-actions-drawer">
+          <div className="drawer-header">
+            <h2>Course actions</h2>
+            <button className="btn btn-secondary btn-sm" onClick={() => setShowMobileActions(false)} aria-label="Close">×</button>
+          </div>
+          <div className="drawer-body">{renderCourseActions("mobile-drawer-actions")}</div>
+        </aside>
+      </>
+    )}
   </div>
 }
