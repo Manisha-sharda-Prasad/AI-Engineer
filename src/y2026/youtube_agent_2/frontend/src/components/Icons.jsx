@@ -13,6 +13,13 @@ export function RefreshIcon() {
     </svg>
   );
 }
+export function CloseIcon() {
+  return (
+    <svg className="close-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M6 6l12 12M18 6 6 18" />
+    </svg>
+  );
+}
 export function LabelIcon({ label }) {
   return label === "watched" ? (
     <svg viewBox="0 0 24 24">
@@ -38,6 +45,9 @@ export function WorkspaceIcon({ name }) {
     edit: "M4 20h4L19 9l-4-4L4 16v4ZM13 7l4 4",
     expand: "M8 14l4-4 4 4M8 10l4-4 4 4",
     collapse: "M8 6l4 4 4-4M8 14l4 4 4-4",
+    selectAll: "M5 4h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Zm3 8 2.5 2.5L16 9",
+    deselectAll: "M5 4h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Zm3 8h8",
+    outline: "M5 5h4v4H5V5Zm7 1h7M5 13h4v4H5v-4Zm7 1h7M7 9v4",
     menu: "M4 6h16M4 12h16M4 18h16",
     settings: "M12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Zm7.4 3.5a7.8 7.8 0 0 0-.1-1l2-1.5-2-3.4-2.4 1a8 8 0 0 0-1.8-1L14.8 3h-4l-.4 3.1a8 8 0 0 0-1.8 1l-2.4-1-2 3.4 2 1.5a7.8 7.8 0 0 0 0 2l-2 1.5 2 3.4 2.4-1a8 8 0 0 0 1.8 1l.4 3.1h4l.4-3.1a8 8 0 0 0 1.8-1l2.4 1 2-3.4-2-1.5a7.8 7.8 0 0 0 .1-1Z",
     progress: "M21 12a9 9 0 1 1-2.64-6.36M21 3v6h-6",

@@ -5,7 +5,7 @@ import AddCourseModal from './AddCourseModal'
 import AiCourseModal from './AiCourseModal'
 import DismissibleError from './DismissibleError'
 import { deleteCourses, getPlan, reorderCourseVideos, updateCourseLabels, updateCourseMetadata, updateModuleLabels, updateVideoLabels, updateVideoPlayback } from '../api/client'
-import { LabelIcon, WorkspaceIcon } from './Icons'
+import { CloseIcon, LabelIcon, WorkspaceIcon } from './Icons'
 import {
   DEFAULT_WORKSPACE_STATE,
   rememberLearningLocation,
@@ -15,7 +15,7 @@ import {
 
 function WorkspaceFilterDrawer({ modules, videoLabels, moduleIds, setVideoLabels, setModuleIds, deletedVideoVisibility, setDeletedVideoVisibility, onClose }) {
   const toggle = (values, value, setter) => setter(values.includes(value) ? values.filter(item => item !== value) : [...values, value])
-  return <><div className="drawer-overlay workspace-filter-overlay" onClick={onClose} /><aside className="drawer workspace-filter-drawer"><div className="drawer-header"><h2>Filters</h2><button className="btn btn-secondary btn-sm" onClick={onClose}>×</button></div><div className="drawer-body"><section className="workspace-filter-section"><label>Deleted videos</label><div className="sort-toggle"><button className={deletedVideoVisibility === 'hide' ? 'active' : ''} onClick={() => setDeletedVideoVisibility('hide')}>Hide</button><button className={deletedVideoVisibility === 'include' ? 'active' : ''} onClick={() => setDeletedVideoVisibility('include')}>Include</button><button className={deletedVideoVisibility === 'only' ? 'active' : ''} onClick={() => setDeletedVideoVisibility('only')}>Only marked</button></div></section><section className="workspace-filter-section"><label>Filter by video label</label>{[['watched', 'Watched'], ['bookmarked', 'Bookmarked']].map(([value, text]) => <label className="filter-checkbox" key={value}><input type="checkbox" checked={videoLabels.includes(value)} onChange={() => toggle(videoLabels, value, setVideoLabels)} />{text}</label>)}</section><section className="workspace-filter-section workspace-module-filter"><label>Filter by modules</label>{modules.map((module, index) => <label className="filter-checkbox" key={module.id}><input type="checkbox" checked={moduleIds.includes(module.id)} onChange={() => toggle(moduleIds, module.id, setModuleIds)} /><span className="module-filter-label"><small>Module {module.sequence || index + 1}</small>{module.title}</span></label>)}</section></div><div className="drawer-footer"><button className="btn btn-secondary" onClick={() => { setVideoLabels([]); setModuleIds([]); setDeletedVideoVisibility('hide') }}>Clear</button><button className="btn btn-primary" onClick={onClose}>Apply</button></div></aside></>
+  return <><div className="drawer-overlay workspace-filter-overlay" onClick={onClose} /><aside className="drawer workspace-filter-drawer"><div className="drawer-header"><h2>Filters</h2><button className="btn btn-secondary btn-sm" onClick={onClose}><CloseIcon /></button></div><div className="drawer-body"><section className="workspace-filter-section"><label>Deleted videos</label><div className="sort-toggle"><button className={deletedVideoVisibility === 'hide' ? 'active' : ''} onClick={() => setDeletedVideoVisibility('hide')}>Hide</button><button className={deletedVideoVisibility === 'include' ? 'active' : ''} onClick={() => setDeletedVideoVisibility('include')}>Include</button><button className={deletedVideoVisibility === 'only' ? 'active' : ''} onClick={() => setDeletedVideoVisibility('only')}>Only marked</button></div></section><section className="workspace-filter-section"><label>Filter by video label</label>{[['watched', 'Watched'], ['bookmarked', 'Bookmarked']].map(([value, text]) => <label className="filter-checkbox" key={value}><input type="checkbox" checked={videoLabels.includes(value)} onChange={() => toggle(videoLabels, value, setVideoLabels)} />{text}</label>)}</section><section className="workspace-filter-section workspace-module-filter"><label>Filter by modules</label>{modules.map((module, index) => <label className="filter-checkbox" key={module.id}><input type="checkbox" checked={moduleIds.includes(module.id)} onChange={() => toggle(moduleIds, module.id, setModuleIds)} /><span className="module-filter-label"><small>Module {module.sequence || index + 1}</small>{module.title}</span></label>)}</section></div><div className="drawer-footer"><button className="btn btn-secondary" onClick={() => { setVideoLabels([]); setModuleIds([]); setDeletedVideoVisibility('hide') }}>Clear</button><button className="btn btn-primary" onClick={onClose}>Apply</button></div></aside></>
 }
 
 let youtubeApiPromise
@@ -58,7 +58,7 @@ function YouTubePlayer({ videoId, startSeconds = 0, onPause, onComplete }) {
   return <div ref={hostRef} className="youtube-player-host" />
 }
 
-export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId, isCourseEditing = false, onToggleCourseEditing, onActiveModuleChange, onActiveVideoChange }) {
+export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId, workspaceActionHost, isCourseEditing = false, onToggleCourseEditing, onActiveModuleChange, onActiveVideoChange }) {
   const dispatch = useDispatch()
   const rememberedWorkspace = useSelector(state => workspaceCourseId
     ? selectWorkspaceState(state, plan.id, workspaceCourseId)
@@ -74,6 +74,7 @@ export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId
     .find(video => video.video_id === rememberedWorkspace.activeVideoId) || null)
   const [courseSearch, setCourseSearch] = useState(rememberedWorkspace.search)
   const [selectedVideoIds, setSelectedVideoIds] = useState([])
+  const [bulkVideoUpdating, setBulkVideoUpdating] = useState(false)
   const [labelError, setLabelError] = useState('')
   const [videoLabelFilters, setVideoLabelFilters] = useState(rememberedWorkspace.videoLabelFilters)
   const [deletedVideoVisibility, setDeletedVideoVisibility] = useState(rememberedWorkspace.deletedVideoVisibility)
@@ -126,6 +127,11 @@ export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId
       return { ...module, videos: matchingVideos }
     })
     .filter(module => module.videos?.length > 0 && (moduleFilters.length === 0 || moduleFilters.includes(module.id))) || []
+  const visibleVideoIds = [...new Set(
+    visibleModules.flatMap(module => (module.videos || []).map(video => video.video_id))
+  )]
+  const allVisibleVideosSelected = visibleVideoIds.length > 0 &&
+    visibleVideoIds.every(videoId => selectedVideoIds.includes(videoId))
 
   function handleCourseCreated(updatedPlan) {
     onUpdate(updatedPlan)
@@ -167,8 +173,13 @@ export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId
     )
   }
 
+  function toggleAllVisibleVideos() {
+    setSelectedVideoIds(allVisibleVideosSelected ? [] : visibleVideoIds)
+  }
+
   async function applyBulkVideoLabel(label) {
-    if (selectedVideoIds.length === 0) return
+    if (selectedVideoIds.length === 0 || bulkVideoUpdating) return
+    setBulkVideoUpdating(true)
     try {
       setLabelError('')
       const selectedIds = new Set(selectedVideoIds)
@@ -185,6 +196,8 @@ export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId
       setSelectedVideoIds([])
     } catch (error) {
       setLabelError(error.message || 'Unable to update video labels')
+    } finally {
+      setBulkVideoUpdating(false)
     }
   }
 
@@ -372,12 +385,11 @@ export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId
     videoLabelFilters,
     workspaceCourseId,
   ])
-  const workspaceActionHost = typeof document !== 'undefined' ? document.getElementById('workspace-actions') : null
   const allModulesExpanded = Boolean(activeCourse?.modules?.length) && activeCourse.modules.every(module => expandedModules[module.id])
-  const workspaceActions = activeCourse && <><button className="btn btn-secondary btn-sm icon-button workspace-module-tree-button" title="Open modules and chapters" aria-label="Open modules and chapters" aria-expanded={showModuleTree} onClick={() => setShowModuleTree(true)}><WorkspaceIcon name="menu" /></button><button className="btn btn-secondary btn-sm icon-button" title="Filter videos" aria-label="Filter videos" onClick={() => setShowVideoFilter(true)}><WorkspaceIcon name="filter" /></button></>
+  const workspaceActions = activeCourse && <><button className="btn btn-secondary btn-sm icon-button workspace-module-tree-button" title="Open video and module list" aria-label="Open video and module list" aria-expanded={showModuleTree} disabled={bulkVideoUpdating} onClick={() => setShowModuleTree(true)}><WorkspaceIcon name="outline" /></button><button className="btn btn-secondary btn-sm icon-button" title="Filter videos" aria-label="Filter videos" disabled={bulkVideoUpdating} onClick={() => setShowVideoFilter(true)}><WorkspaceIcon name="filter" /></button></>
 
   return (
-    <div>{workspaceCourseId && workspaceActionHost && createPortal(workspaceActions, workspaceActionHost)}{showDescriptionDrawer && activeVideo && <><div className="drawer-overlay" onClick={() => setShowDescriptionDrawer(false)} /><aside className="drawer left-description-drawer"><div className="drawer-header"><h2>{activeVideo.title}</h2><button className="btn btn-secondary btn-sm" onClick={() => setShowDescriptionDrawer(false)}>×</button></div><div className="drawer-body"><p className="full-video-description">{activeVideo.description || 'No description provided.'}</p></div></aside></>}{showVideoFilter && <><div className="drawer-overlay" onClick={() => setShowVideoFilter(false)} /><aside className="drawer"><div className="drawer-header"><h2>Filters</h2><button className="btn btn-secondary btn-sm" onClick={() => setShowVideoFilter(false)}>×</button></div><div className="drawer-body"><section className="workspace-filter-section"><label>Deleted videos</label><div className="sort-toggle"><button className={deletedVideoVisibility === 'hide' ? 'active' : ''} onClick={() => setDeletedVideoVisibility('hide')}>Hide</button><button className={deletedVideoVisibility === 'include' ? 'active' : ''} onClick={() => setDeletedVideoVisibility('include')}>Include</button><button className={deletedVideoVisibility === 'only' ? 'active' : ''} onClick={() => setDeletedVideoVisibility('only')}>Only marked</button></div></section><div className="material-select"><label>Filter by video label</label><select multiple value={videoLabelFilters} onChange={event => setVideoLabelFilters([...event.target.selectedOptions].map(option => option.value))}><option value="watched">Watched</option><option value="bookmarked">Bookmarked</option></select></div><div className="material-select"><label>Filter by modules</label><select multiple value={moduleFilters} onChange={event => setModuleFilters([...event.target.selectedOptions].map(option => option.value))}>{activeCourse?.modules?.map(module => <option key={module.id} value={module.id}>{module.title}</option>)}</select></div></div><div className="drawer-footer"><button className="btn btn-secondary" onClick={() => { setVideoLabelFilters([]); setModuleFilters([]); setDeletedVideoVisibility('hide') }}>Clear</button><button className="btn btn-primary" onClick={() => setShowVideoFilter(false)}>Apply</button></div></aside></>}{pendingVideoMove && <><div className="drawer-overlay" onClick={() => setPendingVideoMove(null)} /><div className="confirm-dialog"><h2>Move video to another module?</h2><p>“{pendingVideoMove.video.title}” will be moved to a different module.</p><div className="confirm-actions"><button className="btn btn-secondary" onClick={() => setPendingVideoMove(null)}>Cancel</button><button className="btn btn-primary" onClick={() => persistVideoMove(pendingVideoMove)}>Move video</button></div></div></>}
+    <div>{workspaceCourseId && workspaceActionHost && createPortal(workspaceActions, workspaceActionHost)}{showDescriptionDrawer && activeVideo && <><div className="drawer-overlay" onClick={() => setShowDescriptionDrawer(false)} /><aside className="drawer left-description-drawer"><div className="drawer-header"><h2>{activeVideo.title}</h2><button className="btn btn-secondary btn-sm" onClick={() => setShowDescriptionDrawer(false)}><CloseIcon /></button></div><div className="drawer-body"><p className="full-video-description">{activeVideo.description || 'No description provided.'}</p></div></aside></>}{showVideoFilter && <><div className="drawer-overlay" onClick={() => setShowVideoFilter(false)} /><aside className="drawer"><div className="drawer-header"><h2>Filters</h2><button className="btn btn-secondary btn-sm" onClick={() => setShowVideoFilter(false)}><CloseIcon /></button></div><div className="drawer-body"><section className="workspace-filter-section"><label>Deleted videos</label><div className="sort-toggle"><button className={deletedVideoVisibility === 'hide' ? 'active' : ''} onClick={() => setDeletedVideoVisibility('hide')}>Hide</button><button className={deletedVideoVisibility === 'include' ? 'active' : ''} onClick={() => setDeletedVideoVisibility('include')}>Include</button><button className={deletedVideoVisibility === 'only' ? 'active' : ''} onClick={() => setDeletedVideoVisibility('only')}>Only marked</button></div></section><div className="material-select"><label>Filter by video label</label><select multiple value={videoLabelFilters} onChange={event => setVideoLabelFilters([...event.target.selectedOptions].map(option => option.value))}><option value="watched">Watched</option><option value="bookmarked">Bookmarked</option></select></div><div className="material-select"><label>Filter by modules</label><select multiple value={moduleFilters} onChange={event => setModuleFilters([...event.target.selectedOptions].map(option => option.value))}>{activeCourse?.modules?.map(module => <option key={module.id} value={module.id}>{module.title}</option>)}</select></div></div><div className="drawer-footer"><button className="btn btn-secondary" onClick={() => { setVideoLabelFilters([]); setModuleFilters([]); setDeletedVideoVisibility('hide') }}>Clear</button><button className="btn btn-primary" onClick={() => setShowVideoFilter(false)}>Apply</button></div></aside></>}{pendingVideoMove && <><div className="drawer-overlay" onClick={() => setPendingVideoMove(null)} /><div className="confirm-dialog"><h2>Move video to another module?</h2><p>“{pendingVideoMove.video.title}” will be moved to a different module.</p><div className="confirm-actions"><button className="btn btn-secondary" onClick={() => setPendingVideoMove(null)}>Cancel</button><button className="btn btn-primary" onClick={() => persistVideoMove(pendingVideoMove)}>Move video</button></div></div></>}
       {/* Tab bar: Overview + per-course tabs */}
       {!workspaceCourseId && <div className="plan-tab-bar" style={{ overflowX: 'auto' }}>
         {tabs.map(tab => (
@@ -566,12 +578,14 @@ export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId
 
           {/* Right panel: Course modules with expandable videos */}
           {workspaceCourseId && showModuleTree && <button type="button" className="workspace-module-tree-overlay" aria-label="Close modules and chapters" onClick={() => setShowModuleTree(false)} />}
-          <div className={`course-right ${workspaceCourseId ? 'workspace-module-tree' : ''} ${showModuleTree ? 'mobile-open' : ''} ${isCourseEditing ? 'editing' : ''}`}>
-            {workspaceCourseId && <div className="workspace-module-tree-header"><div><span>Course outline</span><strong>{activeCourse.title}</strong></div><button type="button" className="btn btn-secondary btn-sm icon-button" aria-label="Close modules and chapters" onClick={() => setShowModuleTree(false)}>×</button></div>}
+          <div className={`course-right ${workspaceCourseId ? 'workspace-module-tree' : ''} ${showModuleTree ? 'mobile-open' : ''} ${isCourseEditing ? 'editing' : ''} ${bulkVideoUpdating ? 'bulk-updating' : ''}`} aria-busy={bulkVideoUpdating}>
+            {workspaceCourseId && <div className="workspace-module-tree-header"><div><span>Course outline</span><strong>{activeCourse.title}</strong></div><button type="button" className="btn btn-secondary btn-sm icon-button" aria-label="Close modules and chapters" onClick={() => setShowModuleTree(false)}><CloseIcon /></button></div>}
             {workspaceCourseId && <div className="workspace-tree-toolbar">
-              <div className="workspace-module-search"><input type="search" value={courseSearch} onChange={event => setCourseSearch(event.target.value)} placeholder="Search modules or videos..." aria-label="Search modules or videos" /></div>
-              <button type="button" className={`btn btn-secondary btn-sm icon-button ${isCourseEditing ? 'active' : ''}`} title={isCourseEditing ? 'Finish editing course order' : 'Edit course order'} aria-label={isCourseEditing ? 'Finish editing course order' : 'Edit course order'} aria-pressed={isCourseEditing} onClick={onToggleCourseEditing}><WorkspaceIcon name="edit" /></button>
-              <button type="button" className="btn btn-secondary btn-sm icon-button" title={allModulesExpanded ? 'Collapse all modules' : 'Expand all modules'} aria-label={allModulesExpanded ? 'Collapse all modules' : 'Expand all modules'} onClick={allModulesExpanded ? collapseAllModules : expandAllModules}><WorkspaceIcon name={allModulesExpanded ? 'collapse' : 'expand'} /></button>
+              <div className="workspace-module-search"><input type="search" value={courseSearch} onChange={event => setCourseSearch(event.target.value)} placeholder="Search modules or videos..." aria-label="Search modules or videos" disabled={bulkVideoUpdating} /></div>
+              <div className="workspace-tree-actions">
+                <button type="button" className={`btn btn-secondary btn-sm icon-button ${isCourseEditing ? 'active' : ''}`} title={isCourseEditing ? 'Exit video multi-select' : 'Select and organize videos'} aria-label={isCourseEditing ? 'Exit video multi-select' : 'Select and organize videos'} aria-pressed={isCourseEditing} disabled={bulkVideoUpdating} onClick={onToggleCourseEditing}><WorkspaceIcon name="edit" /></button>
+                <button type="button" className="btn btn-secondary btn-sm icon-button" title={allModulesExpanded ? 'Collapse all modules' : 'Expand all modules'} aria-label={allModulesExpanded ? 'Collapse all modules' : 'Expand all modules'} disabled={bulkVideoUpdating} onClick={allModulesExpanded ? collapseAllModules : expandAllModules}><WorkspaceIcon name={allModulesExpanded ? 'collapse' : 'expand'} /></button>
+              </div>
             </div>}
             {!workspaceCourseId && <div className="course-module-search">
               <input
@@ -592,16 +606,20 @@ export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId
             </div>}
             {isCourseEditing && (
               <div className="bulk-video-actions">
-                <span>{selectedVideoIds.length} selected</span>
-                <button className="btn btn-secondary btn-sm" disabled={selectedVideoIds.length === 0} onClick={() => applyBulkVideoLabel('bookmarked')}>
+                <span>{bulkVideoUpdating ? `Updating ${selectedVideoIds.length} video${selectedVideoIds.length === 1 ? '' : 's'}…` : `${selectedVideoIds.length} selected`}</span>
+                <button className="btn btn-secondary btn-sm" disabled={!visibleVideoIds.length || bulkVideoUpdating} onClick={toggleAllVisibleVideos} title={allVisibleVideosSelected ? 'Deselect all videos' : 'Select all visible videos'}>
+                  <WorkspaceIcon name={allVisibleVideosSelected ? 'deselectAll' : 'selectAll'} /><span>{allVisibleVideosSelected ? 'Deselect all' : 'Select all'}</span>
+                </button>
+                <button className="btn btn-secondary btn-sm" disabled={selectedVideoIds.length === 0 || bulkVideoUpdating} onClick={() => applyBulkVideoLabel('bookmarked')}>
                   <LabelIcon label="bookmarked" /><span>Bookmark</span>
                 </button>
-                <button className="btn btn-success btn-sm" disabled={selectedVideoIds.length === 0} onClick={() => applyBulkVideoLabel('watched')}>
+                <button className="btn btn-success btn-sm" disabled={selectedVideoIds.length === 0 || bulkVideoUpdating} onClick={() => applyBulkVideoLabel('watched')}>
                   <LabelIcon label="watched" /><span>Mark complete</span>
                 </button>
-                <button className="btn btn-danger btn-sm" disabled={selectedVideoIds.length === 0} onClick={() => applyBulkVideoLabel('mark_for_delete')}>
+                <button className="btn btn-danger btn-sm" disabled={selectedVideoIds.length === 0 || bulkVideoUpdating} onClick={() => applyBulkVideoLabel('mark_for_delete')}>
                   <LabelIcon label="mark_for_delete" /><span>Mark for delete</span>
                 </button>
+                {bulkVideoUpdating && <span className="bulk-video-running-bar" role="status" aria-live="polite"><i /></span>}
               </div>
             )}
             {visibleModules.map((module, moduleIndex) => {
@@ -632,17 +650,18 @@ export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId
                         key={video.video_id}
                         className={`module-video-item ${activeVideo?.video_id === video.video_id ? 'active' : ''} ${video.labels?.includes('mark_for_delete') ? 'marked-for-delete' : video.labels?.includes('bookmarked') ? 'bookmarked-video' : video.labels?.includes('watched') ? 'watched-video' : ''}`}
                         onClick={() => handleVideoSelect(video)}
-                        draggable={isCourseEditing}
-                        onDragStart={isCourseEditing ? event => handleVideoDragStart(event, module.id, video) : undefined}
-                        onDragEnd={isCourseEditing ? () => setDraggedVideo(null) : undefined}
-                        onDragOver={isCourseEditing ? event => event.preventDefault() : undefined}
-                        onDrop={isCourseEditing ? event => handleVideoDrop(event, module.id, videoIndex) : undefined}
+                        draggable={isCourseEditing && !bulkVideoUpdating}
+                        onDragStart={isCourseEditing && !bulkVideoUpdating ? event => handleVideoDragStart(event, module.id, video) : undefined}
+                        onDragEnd={isCourseEditing && !bulkVideoUpdating ? () => setDraggedVideo(null) : undefined}
+                        onDragOver={isCourseEditing && !bulkVideoUpdating ? event => event.preventDefault() : undefined}
+                        onDrop={isCourseEditing && !bulkVideoUpdating ? event => handleVideoDrop(event, module.id, videoIndex) : undefined}
                       >
                         {isCourseEditing && <input
                           type="checkbox"
                           checked={selectedVideoIds.includes(video.video_id)}
                           onClick={event => event.stopPropagation()}
                           onChange={() => toggleVideoSelection(video.video_id)}
+                          disabled={bulkVideoUpdating}
                           aria-label={`Select ${video.title}`}
                           style={{ flexShrink: 0 }}
                         />}

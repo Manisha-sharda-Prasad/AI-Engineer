@@ -11,6 +11,7 @@ export const DEFAULT_PLAN_PAGE_STATE = {
   sortBy: 'updated',
   labelFilters: [],
   courseLabelTab: 'ALL',
+  showCourseProgress: false,
 }
 
 export const DEFAULT_WORKSPACE_STATE = {

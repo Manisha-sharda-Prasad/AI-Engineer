@@ -25,6 +25,10 @@ function CourseViewIcon({ id }) {
   return <WorkspaceIcon name={id === 'refresh_needed' ? 'progress' : 'menu'} />
 }
 
+function courseViewIconClass(id) {
+  return `learning-path-view-icon is-${String(id || 'all').toLowerCase().replaceAll('_', '-')}`
+}
+
 function sortItems(items, sort, nameField) {
   return [...items].sort((left, right) => {
     if (sort === 'created') {
@@ -121,7 +125,7 @@ export function CourseViewDropdown({ options, value, onSelect }) {
   return (
     <div className="learning-path-picker course-view-picker" ref={pickerRef}>
       <button type="button" className="learning-path-trigger current-course" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(current => !current)}>
-        <span className="learning-path-view-icon"><CourseViewIcon id={selected.id} /></span>
+        <span className={courseViewIconClass(selected.id)}><CourseViewIcon id={selected.id} /></span>
         <span>{selected.shortLabel || selected.label}</span>
         <ChevronIcon />
       </button>
@@ -129,7 +133,7 @@ export function CourseViewDropdown({ options, value, onSelect }) {
         <strong>Show courses</strong>
         {options.map(option => <button type="button" role="menuitemradio" aria-checked={option.id === selected.id} className={`learning-path-menu-item-with-logo ${option.id === selected.id ? 'active' : ''}`} key={option.id} onClick={() => choose(option.id)}>
           <span className="learning-path-menu-check">{option.id === selected.id && <CheckIcon />}</span>
-          <span className="learning-path-view-icon"><CourseViewIcon id={option.id} /></span>
+          <span className={courseViewIconClass(option.id)}><CourseViewIcon id={option.id} /></span>
           <span><b>{option.label}</b><small>{option.count} {option.count === 1 ? 'course' : 'courses'}</small></span>
         </button>)}
       </div>}

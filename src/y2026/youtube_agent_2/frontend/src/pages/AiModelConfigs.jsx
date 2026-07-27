@@ -1,6 +1,6 @@
 import React from 'react'
 import { createAiModelConfig, deleteAiModelConfig, getAiModelConfigs, getAiModelProviders, testAiModelConfig, updateAiModelConfig } from '../api/client'
-import { EditIcon, WorkspaceIcon } from '../components/Icons'
+import { CloseIcon, EditIcon, WorkspaceIcon } from '../components/Icons'
 
 const EMPTY = {
   name: '',
@@ -226,7 +226,7 @@ export default function AiModelConfigs() {
 
   return (
     <div className="ai-model-config-page">
-      {notification && <div key={notification.key} className={`ai-model-toast ${notification.type}`} role={notification.type === 'error' ? 'alert' : 'status'}><span>{notification.message}</span><button type="button" onClick={() => setNotification(null)} aria-label="Dismiss notification">×</button></div>}
+      {notification && <div key={notification.key} className={`ai-model-toast ${notification.type}`} role={notification.type === 'error' ? 'alert' : 'status'}><span>{notification.message}</span><button type="button" onClick={() => setNotification(null)} aria-label="Dismiss notification"><CloseIcon /></button></div>}
 
       <div className="page-header plan-overview-header">
         <div><h1>AI Model Configurations</h1><p className="ai-model-page-description">Configure hosted providers. API keys remain in server environment variables.</p></div>
@@ -252,7 +252,7 @@ export default function AiModelConfigs() {
 
       {drawerMode && (
         <><div className="drawer-overlay" onClick={closeDrawer} /><aside className="drawer ai-model-drawer" role="dialog" aria-modal="true" aria-labelledby="ai-model-drawer-title">
-          <div className="drawer-header course-overview-drawer-header"><div><h2 id="ai-model-drawer-title">{drawerTitle}</h2><p>{drawerSubtitle}</p></div><button className="btn btn-secondary btn-sm" onClick={closeDrawer} disabled={actionLoading} aria-label="Close">×</button></div>
+          <div className="drawer-header course-overview-drawer-header"><div><h2 id="ai-model-drawer-title">{drawerTitle}</h2><p>{drawerSubtitle}</p></div><button className="btn btn-secondary btn-sm" onClick={closeDrawer} disabled={actionLoading} aria-label="Close"><CloseIcon /></button></div>
           {drawerMode === 'view' ? <div className="drawer-body ai-model-detail-body"><div className="ai-model-detail-tabs" role="tablist" aria-label="AI model configuration detail format"><button type="button" role="tab" aria-selected={detailTab === 'visual'} className={detailTab === 'visual' ? 'active' : ''} onClick={() => setDetailTab('visual')}>Visual</button><button type="button" role="tab" aria-selected={detailTab === 'json'} className={detailTab === 'json' ? 'active' : ''} onClick={() => setDetailTab('json')}>Raw JSON</button></div>{detailTab === 'visual' ? <ModelDetails model={selectedModel} items={items} providers={providers} /> : <pre className="ai-model-raw-json">{JSON.stringify(selectedModel, null, 2)}</pre>}</div> : <form id="ai-model-config-form" className="drawer-body ai-model-config-form" onSubmit={save}><ModelForm form={form} items={items} providers={providers} currentId={selectedModel?.id} onChange={change} /></form>}
           <div className={`drawer-footer ${drawerMode === 'edit' ? 'ai-model-edit-footer' : ''}`}>
             {drawerMode === 'view' && <><button className="btn btn-secondary" onClick={() => openEdit(selectedModel)} disabled={actionLoading}>Edit</button><button className="btn btn-primary" onClick={() => test()} disabled={actionLoading}>{actionLoading ? <><span className="spinner" /> Testing...</> : 'Test connection'}</button></>}

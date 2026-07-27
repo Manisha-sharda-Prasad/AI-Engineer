@@ -1,6 +1,7 @@
 import React from 'react'
 import { getAiModelConfigs } from '../api/client'
 import DismissibleError from './DismissibleError'
+import { CloseIcon } from './Icons'
 
 function formatDuration(seconds) {
   if (!seconds) return 'Duration unavailable'
@@ -187,7 +188,7 @@ export default function SourceFeedPreviewDialog({
           <h2 id="source-feed-preview-title">Preview new feed</h2>
           <p>{preview.title} · {preview.videos.length} new video{preview.videos.length === 1 ? '' : 's'}</p>
         </div>
-        <button className="btn btn-secondary btn-sm" disabled={loading || aiLoading} onClick={onClose} aria-label="Close">×</button>
+        <button className="btn btn-secondary btn-sm" disabled={loading || aiLoading} onClick={onClose} aria-label="Close"><CloseIcon /></button>
       </header>
 
       <div className="source-feed-preview-body">
