@@ -406,7 +406,13 @@ export default function PlanOverview() {
   const [courseToEdit, setCourseToEdit] = React.useState(null);
   const [showOverview, setShowOverview] = React.useState(false);
   const [showSortFilter, setShowSortFilter] = React.useState(false);
+  const [labelSearch, setLabelSearch] = React.useState("");
   const [showMobileActions, setShowMobileActions] = React.useState(false);
+  const [selectedCourseKeys, setSelectedCourseKeys] = React.useState([]);
+  const [bulkBuiltInLabel, setBulkBuiltInLabel] = React.useState("mark_for_delete");
+  const [bulkCustomLabel, setBulkCustomLabel] = React.useState("");
+  const [bulkUpdating, setBulkUpdating] = React.useState(false);
+  const [bulkError, setBulkError] = React.useState("");
   const { query, sortBy, labelFilters, courseLabelTab } = useSelector((state) =>
     selectPlanPageState(state, planId),
   );
@@ -428,6 +434,9 @@ export default function PlanOverview() {
   const customCourseLabels = [
     ...new Set((plan?.courses || []).flatMap((course) => course.labels || [])),
   ].filter((label) => !standardCourseLabelIds.includes(label));
+  const visibleCustomCourseLabels = customCourseLabels
+    .filter((label) => label.toLowerCase().includes(labelSearch.trim().toLowerCase()))
+    .sort((left, right) => left.localeCompare(right));
   const visibleCourses = [...(plan?.courses || [])]
     .filter(
       (course) =>
@@ -443,6 +452,69 @@ export default function PlanOverview() {
         ? a.title.localeCompare(b.title)
         : new Date(b.updated_at) - new Date(a.updated_at),
     );
+  const getCourseKey = (course) => `${course._planId || plan?.id}:${course.id}`;
+  const selectedKeySet = new Set(selectedCourseKeys);
+  const selectedCourses = (plan?.courses || []).filter((course) =>
+    selectedKeySet.has(getCourseKey(course)),
+  );
+  const visibleCourseKeys = visibleCourses.map(getCourseKey);
+  const allVisibleSelected =
+    visibleCourseKeys.length > 0 &&
+    visibleCourseKeys.every((courseKey) => selectedKeySet.has(courseKey));
+  const someVisibleSelected = visibleCourseKeys.some((courseKey) =>
+    selectedKeySet.has(courseKey),
+  );
+
+  React.useEffect(() => {
+    const validKeys = new Set((plan?.courses || []).map(getCourseKey));
+    setSelectedCourseKeys((current) =>
+      current.filter((courseKey) => validKeys.has(courseKey)),
+    );
+  }, [plan]);
+
+  const toggleCourseSelection = (course) => {
+    const courseKey = getCourseKey(course);
+    setSelectedCourseKeys((current) =>
+      current.includes(courseKey)
+        ? current.filter((item) => item !== courseKey)
+        : [...current, courseKey],
+    );
+  };
+
+  const toggleAllVisibleCourses = () => {
+    setSelectedCourseKeys((current) => {
+      const currentKeys = new Set(current);
+      if (allVisibleSelected) {
+        visibleCourseKeys.forEach((courseKey) => currentKeys.delete(courseKey));
+      } else {
+        visibleCourseKeys.forEach((courseKey) => currentKeys.add(courseKey));
+      }
+      return [...currentKeys];
+    });
+  };
+
+  const applyLabelToSelectedCourses = async (label) => {
+    const cleanLabel = label.trim();
+    if (!cleanLabel || !selectedCourses.length || bulkUpdating) return;
+    setBulkUpdating(true);
+    setBulkError("");
+    try {
+      for (const course of selectedCourses) {
+        if (course.labels?.includes(cleanLabel)) continue;
+        const response = await updateCourseLabels(
+          course._planId || plan.id,
+          course.id,
+          [...(course.labels || []), cleanLabel],
+        );
+        dispatch(updatePlan(response.plan));
+      }
+      setBulkCustomLabel("");
+    } catch (error) {
+      setBulkError(error.message || "Unable to update the selected courses.");
+    } finally {
+      setBulkUpdating(false);
+    }
+  };
   const courseViewOptions = standardCourseTabs.map((tab) => ({
     ...tab,
     count:
@@ -524,7 +596,7 @@ export default function PlanOverview() {
       />
       <button
         className={`btn btn-secondary btn-sm icon-button ${labelFilters.length ? "active" : ""}`}
-        title="Sort and filter courses"
+        title="Sort and Filter ourses"
         aria-label="Sort and filter courses"
         onClick={() => setShowSortFilter(true)}
       >
@@ -588,11 +660,91 @@ export default function PlanOverview() {
           </div>
         )}
         <div className="page-header course-toolbar">
-          <h4>
-            Courses{" "}
-            <span className="badge badge-green">{plan.courses?.length || 0}</span>
-          </h4>
+          <div className="course-toolbar-title">
+            <h4>
+              Courses{" "}
+              <span className="badge badge-green">{plan.courses?.length || 0}</span>
+            </h4>
+            {labelFilters.length > 0 && <div className="course-toolbar-filter-tags" aria-label="Selected custom labels">
+              {labelFilters.map((label) => <button type="button" key={label} title={`Remove ${label} filter`} onClick={() => updatePageState({ labelFilters: labelFilters.filter((item) => item !== label) })}><span>{label}</span><b aria-hidden="true">×</b></button>)}
+            </div>}
+          </div>
+          <label className="course-select-all">
+            <input
+              type="checkbox"
+              checked={allVisibleSelected}
+              ref={(input) => {
+                if (input) input.indeterminate = someVisibleSelected && !allVisibleSelected;
+              }}
+              onChange={toggleAllVisibleCourses}
+              disabled={!visibleCourses.length || bulkUpdating}
+            />
+            <span>Select all visible</span>
+          </label>
         </div>
+        {selectedCourses.length > 0 && (
+          <section className="course-bulk-actions" aria-label="Selected course actions">
+            <div className="course-bulk-selection">
+              <span className="course-bulk-count">{selectedCourses.length}</span>
+              <div>
+                <strong>course{selectedCourses.length === 1 ? "" : "s"} selected</strong>
+                <button type="button" onClick={() => setSelectedCourseKeys([])} disabled={bulkUpdating}>
+                  Clear selection
+                </button>
+              </div>
+            </div>
+            <div className="course-bulk-action-group">
+              <label htmlFor="bulk-built-in-course-label">Built-in label</label>
+              <div className="course-bulk-control">
+                <select
+                  id="bulk-built-in-course-label"
+                  value={bulkBuiltInLabel}
+                  onChange={(event) => setBulkBuiltInLabel(event.target.value)}
+                  disabled={bulkUpdating}
+                >
+                  <option value="mark_for_delete">Mark for delete</option>
+                  <option value="bookmarked">Bookmark</option>
+                  <option value="watched">Mark watched</option>
+                </select>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => applyLabelToSelectedCourses(bulkBuiltInLabel)}
+                  disabled={bulkUpdating}
+                >
+                  Apply
+                </button>
+              </div>
+            </div>
+            <form
+              className="course-bulk-action-group"
+              onSubmit={(event) => {
+                event.preventDefault();
+                applyLabelToSelectedCourses(bulkCustomLabel);
+              }}
+            >
+              <label htmlFor="bulk-custom-course-label">Custom label</label>
+              <div className="course-bulk-control">
+                <input
+                  id="bulk-custom-course-label"
+                  value={bulkCustomLabel}
+                  onChange={(event) => setBulkCustomLabel(event.target.value)}
+                  placeholder="Enter label name"
+                  disabled={bulkUpdating}
+                />
+                <button
+                  type="submit"
+                  className="btn btn-primary btn-sm"
+                  disabled={!bulkCustomLabel.trim() || bulkUpdating}
+                >
+                  Add
+                </button>
+              </div>
+            </form>
+            {bulkUpdating && <span className="course-bulk-status"><span className="spinner" /> Updating…</span>}
+          </section>
+        )}
+        {bulkError && <div className="alert alert-error course-bulk-error">{bulkError}</div>}
         <div className="plan-course-list">
         {visibleCourses.length ? (
           visibleCourses.map((course) => {
@@ -612,12 +764,26 @@ export default function PlanOverview() {
             const logoUrl = course.logo_url || course.logo;
             return (
               <article
-                className={`card catalog-tile ${course.labels?.includes("refresh_needed") ? "refresh-needed-course" : ""}`}
-                key={`${course._planId || plan.id}:${course.id}`}
+                className={`card catalog-tile ${selectedKeySet.has(getCourseKey(course)) ? "course-card-selected" : ""} ${course.labels?.includes("refresh_needed") ? "refresh-needed-course" : ""}`}
+                key={getCourseKey(course)}
                 onClick={() =>
                   navigate(`/plans/${course._planId || plan.id}/courses/${course.id}/learn`)
                 }
               >
+                <label
+                  className="course-card-selector"
+                  title={`Select ${course.title}`}
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedKeySet.has(getCourseKey(course))}
+                    onChange={() => toggleCourseSelection(course)}
+                    disabled={bulkUpdating}
+                    aria-label={`Select ${course.title}`}
+                  />
+                  <span aria-hidden="true" />
+                </label>
                 <header className="catalog-tile-header">
                   {logoUrl ? (
                     <img src={logoUrl} alt="" className="tile-logo" />
@@ -728,8 +894,11 @@ export default function PlanOverview() {
           <div className="drawer-overlay mobile-page-actions-overlay" onClick={() => setShowMobileActions(false)} />
           <aside className="drawer mobile-page-actions-drawer">
             <div className="drawer-header">
-              <h2>Plan actions</h2>
-              <button className="btn btn-secondary btn-sm" onClick={() => setShowMobileActions(false)} aria-label="Close">×</button>
+              <div className="mobile-action-drawer-heading">
+                <span className="mobile-action-drawer-icon"><WorkspaceIcon name="menu" /></span>
+                <div><small>Learning plan</small><h2>Plan actions</h2></div>
+              </div>
+              <button className="mobile-action-drawer-close" onClick={() => setShowMobileActions(false)} aria-label="Close">×</button>
             </div>
             <div className="drawer-body">{renderCourseActions("mobile-drawer-actions")}</div>
           </aside>
@@ -763,9 +932,9 @@ export default function PlanOverview() {
             className="drawer-overlay"
             onClick={() => setShowSortFilter(false)}
           />
-          <aside className="drawer">
+          <aside className="drawer course-sort-filter-drawer">
             <div className="drawer-header">
-              <h2>Sort and filter courses</h2>
+              <h2>COURSES - SORT AND FILTER</h2>
               <button
                 className="btn btn-secondary btn-sm"
                 onClick={() => setShowSortFilter(false)}
@@ -773,31 +942,8 @@ export default function PlanOverview() {
                 ×
               </button>
             </div>
-            <div className="drawer-body">
-              <section className="workspace-filter-section">
-                <label>Filter by custom labels</label>
-                {customCourseLabels.length ? (
-                  customCourseLabels.map((label) => (
-                    <label className="filter-checkbox" key={label}>
-                      <input
-                        type="checkbox"
-                        checked={labelFilters.includes(label)}
-                        onChange={() =>
-                          updatePageState({
-                            labelFilters: labelFilters.includes(label)
-                              ? labelFilters.filter((item) => item !== label)
-                              : [...labelFilters, label],
-                          })
-                        }
-                      />
-                      {label}
-                    </label>
-                  ))
-                ) : (
-                  <p className="tile-date">No custom course labels yet.</p>
-                )}
-              </section>
-              <div className="material-select">
+            <div className="drawer-body course-sort-filter-body">
+              <section className="material-select course-sort-section">
                 <label>Sort courses</label>
                 <div
                   className="sort-toggle"
@@ -817,13 +963,46 @@ export default function PlanOverview() {
                     Name
                   </button>
                 </div>
-              </div>
+              </section>
+
+              <section className="workspace-filter-section course-label-filter-section">
+                <label>Filter by custom labels</label>
+                <label className="course-label-search">
+                  <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5" /><path d="m10.5 10.5 3 3" /></svg>
+                  <input type="search" value={labelSearch} onChange={(event) => setLabelSearch(event.target.value)} placeholder="Search labels..." aria-label="Search custom course labels" />
+                </label>
+                <div className="course-label-filter-list">
+                {visibleCustomCourseLabels.length ? (
+                  visibleCustomCourseLabels.map((label) => (
+                    <label className="filter-checkbox" key={label}>
+                      <input
+                        type="checkbox"
+                        checked={labelFilters.includes(label)}
+                        onChange={() =>
+                          updatePageState({
+                            labelFilters: labelFilters.includes(label)
+                              ? labelFilters.filter((item) => item !== label)
+                              : [...labelFilters, label],
+                          })
+                        }
+                      />
+                      {label}
+                    </label>
+                  ))
+                ) : customCourseLabels.length ? (
+                  <p className="tile-date">No labels match “{labelSearch}”.</p>
+                ) : (
+                  <p className="tile-date">No custom course labels yet.</p>
+                )}
+                </div>
+              </section>
             </div>
             <div className="drawer-footer">
               <button
                 className="btn btn-secondary"
                 onClick={() => {
                   updatePageState({ labelFilters: [], sortBy: "updated" });
+                  setLabelSearch("");
                 }}
               >
                 Reset

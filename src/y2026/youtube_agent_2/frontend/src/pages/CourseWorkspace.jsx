@@ -26,6 +26,7 @@ export default function CourseWorkspace() {
   const [feedReviewSearch, setFeedReviewSearch] = React.useState('')
   const [feedReviewSort, setFeedReviewSort] = React.useState('name')
   const [showMobileActions, setShowMobileActions] = React.useState(false)
+  const [workspaceActionHost, setWorkspaceActionHost] = React.useState(null)
 
   React.useEffect(() => {
     setShowOverview(false)
@@ -89,6 +90,13 @@ export default function CourseWorkspace() {
         ? plan?.courses?.length || 0
         : plan?.courses?.filter((course) => course.labels?.includes(tab.id)).length || 0,
   }));
+  const coursesForView = (value) => [...(plan?.courses || [])]
+    .filter((item) => value === "ALL" || item.labels?.includes(value))
+    .sort((left, right) => (
+      (left.sequence || 0) - (right.sequence || 0)
+      || (left.title || "").localeCompare(right.title || "")
+    ));
+  const visibleBreadcrumbCourses = coursesForView(courseLabelTab);
 
   const renderCourseActions = (className = "") => (
     <div className={`workspace-action-panel ${className}`}>
@@ -115,21 +123,30 @@ export default function CourseWorkspace() {
         <CourseViewDropdown
           options={courseViewOptions}
           value={courseLabelTab}
-          onSelect={(value) => dispatch(updatePlanPage({ planId, changes: { courseLabelTab: value } }))}
+          onSelect={(value) => {
+            dispatch(updatePlanPage({ planId, changes: { courseLabelTab: value } }));
+            const nextCourse = coursesForView(value)[0];
+            if (nextCourse && nextCourse.id !== courseId) {
+              navigate(`/plans/${planId}/courses/${nextCourse.id}/learn`);
+            }
+          }}
         />
         <span className="learning-path-separator" aria-hidden="true">/</span>
         <CourseDropdown
-          plan={plan}
+          plan={{ ...plan, courses: visibleBreadcrumbCourses }}
           course={course}
           onSelect={(selectedCourse) => {
             navigate(`/plans/${planId}/courses/${selectedCourse.id}/learn`);
           }}
         />
       </div>
-      <button type="button" className="mobile-page-menu-button" aria-label="Open course actions" aria-expanded={showMobileActions} onClick={() => setShowMobileActions(true)}><WorkspaceIcon name="menu" /></button>
+      <div className="workspace-mobile-toolbar">
+        <div className="workspace-breadcrumb-actions" ref={setWorkspaceActionHost} />
+        <button type="button" className="mobile-page-menu-button" aria-label="Open course actions" aria-expanded={showMobileActions} onClick={() => setShowMobileActions(true)}><WorkspaceIcon name="menu" /></button>
+      </div>
       {renderCourseActions("desktop-page-actions breadcrumb-actions")}
     </nav>
-    <PlanDetail key={`${planId}:${courseId}`} plan={plan} workspaceCourseId={courseId} isCourseEditing={isCourseEditing} onToggleCourseEditing={() => setIsCourseEditing(value => !value)} onUpdate={updated => dispatch(updatePlan(updated))} onDelete={() => {}} />
+    <PlanDetail key={`${planId}:${courseId}`} plan={plan} workspaceCourseId={courseId} workspaceActionHost={workspaceActionHost} isCourseEditing={isCourseEditing} onToggleCourseEditing={() => setIsCourseEditing(value => !value)} onUpdate={updated => dispatch(updatePlan(updated))} onDelete={() => {}} />
     {showOverview && <><div className="drawer-overlay" onClick={() => setShowOverview(false)} /><aside className="drawer"><div className="drawer-header course-overview-drawer-header"><div><h2>{course.title}</h2>{course.description && <p>{course.description}</p>}</div><button className="btn btn-secondary btn-sm" onClick={() => setShowOverview(false)}>×</button></div><div className="drawer-body">
       {refreshError && <div className="alert alert-error">{refreshError}</div>}
       {stagedVideoCount > 0 && <section className="refresh-review refresh-review-notification"><div><h3>⚠️ New video feed ready</h3><p>{stagedVideoCount} new video{stagedVideoCount === 1 ? '' : 's'} staged across {stagedFeeds.length} source{stagedFeeds.length === 1 ? '' : 's'}.</p></div><button className="btn btn-secondary btn-sm" onClick={() => { setFeedReviewTab('visual'); setFeedReviewSearch(''); setFeedReviewSort('name'); setShowFeedReview(true) }}>Review new videos</button></section>}
@@ -142,8 +159,11 @@ export default function CourseWorkspace() {
         <div className="drawer-overlay mobile-page-actions-overlay" onClick={() => setShowMobileActions(false)} />
         <aside className="drawer mobile-page-actions-drawer">
           <div className="drawer-header">
-            <h2>Course actions</h2>
-            <button className="btn btn-secondary btn-sm" onClick={() => setShowMobileActions(false)} aria-label="Close">×</button>
+            <div className="mobile-action-drawer-heading">
+              <span className="mobile-action-drawer-icon"><WorkspaceIcon name="menu" /></span>
+              <div><small>Learning workspace</small><h2>Course actions</h2></div>
+            </div>
+            <button className="mobile-action-drawer-close" onClick={() => setShowMobileActions(false)} aria-label="Close">×</button>
           </div>
           <div className="drawer-body">{renderCourseActions("mobile-drawer-actions")}</div>
         </aside>
