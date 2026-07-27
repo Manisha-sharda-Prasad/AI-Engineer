@@ -544,7 +544,7 @@ function AppLayout() {
         <div className="drawer-header"><h2 id="create-plan-title">Create Learning Plan</h2><button className="btn btn-secondary btn-sm" onClick={closeCreatePlanDrawer} aria-label="Close"><CloseIcon /></button></div>
         <div className="drawer-body">
           <DismissibleError message={createPlanError} />
-          <div className="form-group"><label>Plan Name *</label><input autoFocus value={createPlanForm.name} onChange={event => setCreatePlanForm(current => ({ ...current, name: event.target.value }))} placeholder="e.g. Kubernetes Deep Dive" /></div>
+          <div className="form-group"><label>Plan Name *</label><input value={createPlanForm.name} onChange={event => setCreatePlanForm(current => ({ ...current, name: event.target.value }))} placeholder="e.g. Kubernetes Deep Dive" /></div>
           <div className="form-group"><label>Description</label><textarea rows={3} value={createPlanForm.description} onChange={event => setCreatePlanForm(current => ({ ...current, description: event.target.value }))} placeholder="What will this plan cover?" /></div>
           <div className="form-group"><label>Logo URL (optional)</label><div className="logo-upload"><input value={createPlanForm.logoUrl} onChange={event => setCreatePlanForm(current => ({ ...current, logoUrl: event.target.value }))} placeholder="https://skillicons.dev/icons?i=" />{createPlanForm.logoUrl && <img src={createPlanForm.logoUrl} alt="Logo preview" className="logo-preview" />}</div></div>
         </div>

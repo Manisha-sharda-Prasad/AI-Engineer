@@ -4702,6 +4702,25 @@ svg.close-icon {
   color: #a5b4fc;
 }
 
+/*
+ * Use document scrolling for learning-plan cards on phones and tablets.
+ * This avoids iOS Safari's initially stale dynamic-viewport height placing
+ * the first content row partially beneath the sticky breadcrumb.
+ */
+@media (max-width: 900px) {
+  .plan-overview-page {
+    height: auto;
+    min-height: calc(100svh - var(--mobile-app-bar-height) - 1.5rem);
+    overflow: visible;
+  }
+
+  .plan-course-scroll-body {
+    flex: 0 0 auto;
+    overflow: visible;
+    scrollbar-gutter: auto;
+  }
+}
+
 /* Shared colorful action language */
 .btn {
   border-radius: 9px;

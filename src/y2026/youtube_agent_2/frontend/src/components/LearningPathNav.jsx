@@ -43,7 +43,7 @@ function MenuTools({ value, onChange, sort, onSortChange, label }) {
     <div className="learning-path-menu-tools">
       <label>
         <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5" /><path d="m10.5 10.5 3 3" /></svg>
-        <input autoFocus type="search" value={value} onChange={event => onChange(event.target.value)} placeholder={`Search ${label}...`} aria-label={`Search ${label}`} />
+        <input type="search" value={value} onChange={event => onChange(event.target.value)} placeholder={`Search ${label}...`} aria-label={`Search ${label}`} />
       </label>
       <div className="learning-path-sort" role="group" aria-label={`Sort ${label}`}>
         <button type="button" className={sort === 'name' ? 'active' : ''} onClick={() => onSortChange('name')}>Name</button>

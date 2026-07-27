@@ -256,7 +256,7 @@ export default function SourceFeedPreviewDialog({
                 </label>
               : <label>
                   New module name
-                  <input value={newModuleTitle} onChange={event => setNewModuleTitle(event.target.value)} placeholder="e.g. New videos" autoFocus />
+                  <input value={newModuleTitle} onChange={event => setNewModuleTitle(event.target.value)} placeholder="e.g. New videos" />
                 </label>}
           </>}
           {showManualConfirmation && selected && <section className="source-feed-manual-confirmation">
