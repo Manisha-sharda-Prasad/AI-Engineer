@@ -710,13 +710,25 @@ export default function PlanOverview() {
       setBulkLogoUrl("");
     }
   };
-  const courseViewOptions = standardCourseTabs.map((tab) => ({
-    ...tab,
-    count:
-      tab.id === "ALL"
-        ? plan?.courses?.length || 0
-        : plan?.courses?.filter((course) => course.labels?.includes(tab.id)).length || 0,
-  }));
+  const courseViewOptions = [
+    ...standardCourseTabs.map((tab) => ({
+      ...tab,
+      group: "built-in",
+      count:
+        tab.id === "ALL"
+          ? plan?.courses?.length || 0
+          : plan?.courses?.filter((course) => course.labels?.includes(tab.id)).length || 0,
+    })),
+    ...customCourseLabels
+      .sort((left, right) => left.localeCompare(right))
+      .map((label) => ({
+        id: label,
+        label: label.replaceAll("_", " "),
+        group: "custom",
+        count:
+          plan?.courses?.filter((course) => course.labels?.includes(label)).length || 0,
+      })),
+  ];
   const sourceChannels = Object.values(
     (plan?.courses || []).reduce((sources, course) => {
       const courseVideos =
@@ -822,6 +834,7 @@ export default function PlanOverview() {
             plans={allPlans}
             selectedPlan={isAllPlans ? null : plan}
             includeAll
+            showCount
             onSelect={(selectedPlan) => {
               if (selectedPlan) {
                 navigate(`/plans/${selectedPlan.id}`);

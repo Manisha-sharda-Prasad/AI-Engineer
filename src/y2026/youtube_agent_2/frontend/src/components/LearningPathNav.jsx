@@ -18,15 +18,22 @@ function ItemLogo({ item, fallback = 'A' }) {
     : <span className="learning-path-item-logo learning-path-item-logo-fallback" aria-hidden="true">{fallback}</span>
 }
 
-function CourseViewIcon({ id }) {
+function DropdownCount({ count }) {
+  return <span className="learning-path-count" aria-label={`${count} selectable items`}>{count}</span>
+}
+
+function CourseViewIcon({ id, group }) {
+  if (group === 'custom') {
+    return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h9l7 7-8 8-8-8V5Zm5 4h.01" /></svg>
+  }
   if (['bookmarked', 'watched', 'mark_for_delete'].includes(id)) {
     return <LabelIcon label={id} />
   }
   return <WorkspaceIcon name={id === 'refresh_needed' ? 'progress' : 'menu'} />
 }
 
-function courseViewIconClass(id) {
-  return `learning-path-view-icon is-${String(id || 'all').toLowerCase().replaceAll('_', '-')}`
+function courseViewIconClass(id, group) {
+  return `learning-path-view-icon ${group === 'custom' ? 'is-custom' : `is-${String(id || 'all').toLowerCase().replaceAll('_', '-')}`}`
 }
 
 function sortItems(items, sort, nameField) {
@@ -53,7 +60,7 @@ function MenuTools({ value, onChange, sort, onSortChange, label }) {
   )
 }
 
-export function LearningPlanDropdown({ plans, selectedPlan, onSelect, includeAll = false }) {
+export function LearningPlanDropdown({ plans, selectedPlan, onSelect, includeAll = false, showCount = false }) {
   const [open, setOpen] = React.useState(false)
   const [search, setSearch] = React.useState('')
   const [sort, setSort] = React.useState('name')
@@ -83,6 +90,7 @@ export function LearningPlanDropdown({ plans, selectedPlan, onSelect, includeAll
       <button type="button" className="learning-path-trigger" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(value => !value)}>
         <ItemLogo item={selectedPlan} fallback={selectedPlan?.name?.charAt(0)?.toUpperCase() || 'A'} />
         <span>{selectedPlan?.name || (includeAll ? 'ALL Plans' : 'All learning plans')}</span>
+        {showCount && <DropdownCount count={plans.length} />}
         <ChevronIcon />
       </button>
       {open && <div className="learning-path-menu" role="menu" aria-label="Select learning plan">
@@ -121,21 +129,31 @@ export function CourseViewDropdown({ options, value, onSelect }) {
     onSelect(id)
     setOpen(false)
   }
+  const builtInOptions = options.filter(option => option.group !== 'custom')
+  const customOptions = options.filter(option => option.group === 'custom')
+  const renderOption = option => (
+    <button type="button" role="menuitemradio" aria-checked={option.id === selected.id} className={`learning-path-menu-item-with-logo ${option.id === selected.id ? 'active' : ''}`} key={option.id} onClick={() => choose(option.id)}>
+      <span className="learning-path-menu-check">{option.id === selected.id && <CheckIcon />}</span>
+      <span className={courseViewIconClass(option.id, option.group)}><CourseViewIcon id={option.id} group={option.group} /></span>
+      <span><b>{option.label}</b><small>{option.count} {option.count === 1 ? 'course' : 'courses'}</small></span>
+    </button>
+  )
 
   return (
     <div className="learning-path-picker course-view-picker" ref={pickerRef}>
       <button type="button" className="learning-path-trigger current-course" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(current => !current)}>
-        <span className={courseViewIconClass(selected.id)}><CourseViewIcon id={selected.id} /></span>
+        <span className={courseViewIconClass(selected.id, selected.group)}><CourseViewIcon id={selected.id} group={selected.group} /></span>
         <span>{selected.shortLabel || selected.label}</span>
+        <DropdownCount count={options.length} />
         <ChevronIcon />
       </button>
       {open && <div className="learning-path-menu course-view-menu" role="menu" aria-label="Filter courses">
-        <strong>Show courses</strong>
-        {options.map(option => <button type="button" role="menuitemradio" aria-checked={option.id === selected.id} className={`learning-path-menu-item-with-logo ${option.id === selected.id ? 'active' : ''}`} key={option.id} onClick={() => choose(option.id)}>
-          <span className="learning-path-menu-check">{option.id === selected.id && <CheckIcon />}</span>
-          <span className={courseViewIconClass(option.id)}><CourseViewIcon id={option.id} /></span>
-          <span><b>{option.label}</b><small>{option.count} {option.count === 1 ? 'course' : 'courses'}</small></span>
-        </button>)}
+        <strong>Built-in labels</strong>
+        {builtInOptions.map(renderOption)}
+        {customOptions.length > 0 && <>
+          <div className="course-view-menu-divider" role="separator"><span>Custom labels</span></div>
+          {customOptions.map(renderOption)}
+        </>}
       </div>}
     </div>
   )
@@ -155,6 +173,10 @@ export function CourseDropdown({ plan, course, mode = 'overview', onSelect }) {
     return () => document.removeEventListener('pointerdown', close)
   }, [])
 
+  React.useEffect(() => {
+    if (!course) setOpen(false)
+  }, [course])
+
   const sortedCourses = sortItems(
     (plan.courses || []).filter(item => `${item.title || ''} ${item.description || ''}`.toLowerCase().includes(search.trim().toLowerCase())),
     sort,
@@ -170,22 +192,24 @@ export function CourseDropdown({ plan, course, mode = 'overview', onSelect }) {
     <div className="learning-path-picker" ref={pickerRef}>
       <button
         type="button"
-        className="learning-path-trigger current-course"
+        className={`learning-path-trigger current-course ${course ? '' : 'empty-course'}`.trim()}
         aria-haspopup="menu"
         aria-expanded={open}
+        disabled={!course}
         onClick={() => setOpen(current => !current)}
       >
-        <ItemLogo item={course} fallback={course.title?.charAt(0)?.toUpperCase() || '?'} />
-        <span>{course.title}</span>
-        <ChevronIcon />
+        <ItemLogo item={course} fallback={course?.title?.charAt(0)?.toUpperCase() || '—'} />
+        <span>{course?.title || 'No matching courses'}</span>
+        {course && <DropdownCount count={plan.courses?.length || 0} />}
+        {course && <ChevronIcon />}
       </button>
-      {open && (
+      {open && course && (
         <div className="learning-path-menu course-menu" role="menu" aria-label={`Switch course in ${plan.name}`}>
           <strong>Courses in {plan.name}</strong>
           <MenuTools value={search} onChange={setSearch} sort={sort} onSortChange={setSort} label="courses" />
           {sortedCourses.map(item => (
-            <button type="button" role="menuitem" className={`learning-path-menu-item-with-logo ${item.id === course.id ? 'active' : ''}`} key={item.id} onClick={() => choose(item)}>
-              <span className="learning-path-menu-check">{item.id === course.id && <CheckIcon />}</span>
+            <button type="button" role="menuitem" className={`learning-path-menu-item-with-logo ${item.id === course?.id ? 'active' : ''}`} key={item.id} onClick={() => choose(item)}>
+              <span className="learning-path-menu-check">{item.id === course?.id && <CheckIcon />}</span>
               <ItemLogo item={item} fallback={item.title?.charAt(0)?.toUpperCase() || '?'} />
               <span><b>{item.title}</b><small>{item.modules?.length || 0} modules</small></span>
             </button>
@@ -254,6 +278,7 @@ export default function LearningPathNav({ plan, course, mode = 'overview', actio
         >
           <ItemLogo item={plan} fallback={plan.name?.charAt(0)?.toUpperCase() || '?'} />
           <span>{plan.name}</span>
+          <DropdownCount count={plans.length} />
           <ChevronIcon />
         </button>
         {openMenu === 'plans' && (
@@ -284,6 +309,7 @@ export default function LearningPathNav({ plan, course, mode = 'overview', actio
         >
           <ItemLogo item={course} fallback={course.title?.charAt(0)?.toUpperCase() || '?'} />
           <span>{course.title}</span>
+          <DropdownCount count={plan.courses?.length || 0} />
           <ChevronIcon />
         </button>
         {openMenu === 'courses' && (

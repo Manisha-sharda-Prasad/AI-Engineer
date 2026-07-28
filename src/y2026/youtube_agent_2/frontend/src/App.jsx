@@ -92,6 +92,308 @@ function PlansRoute({ newPlanRequest, onRefresh, refreshing }) {
   return <Plans newPlanRequest={newPlanRequest} onRefresh={onRefresh} refreshing={refreshing} />
 }
 
+const GLOBAL_SEARCH_SCOPE_OPTIONS = [
+  { id: 'all', label: 'ALL' },
+  { id: 'plan', label: 'Plan' },
+  { id: 'course', label: 'Course' },
+  { id: 'module', label: 'Module' },
+  { id: 'videos', label: 'Videos' },
+]
+
+function includesSearchText(values, query) {
+  return values.filter(Boolean).join(' ').toLowerCase().includes(query)
+}
+
+function GlobalSearchDrawer({ plans, onClose, onNavigate }) {
+  const [query, setQuery] = React.useState('')
+  const [scopes, setScopes] = React.useState(['all'])
+  const [expandedPlans, setExpandedPlans] = React.useState({})
+  const [expandedCourses, setExpandedCourses] = React.useState({})
+  const normalizedQuery = query.trim().toLowerCase()
+  const searches = scope => scopes.includes('all') || scopes.includes(scope)
+
+  const toggleScope = scope => {
+    if (scope === 'all') {
+      setScopes(['all'])
+      return
+    }
+    setScopes(current => {
+      const selected = current.includes('all') ? [] : current
+      const next = selected.includes(scope)
+        ? selected.filter(item => item !== scope)
+        : [...selected, scope]
+      return next.length ? next : ['all']
+    })
+  }
+
+  const results = plans.map(plan => {
+    const planMatches = Boolean(
+      normalizedQuery &&
+      searches('plan') &&
+      includesSearchText([plan.name, plan.description], normalizedQuery),
+    )
+    const courses = [...(plan.courses || [])]
+      .sort((left, right) => (left.sequence || 0) - (right.sequence || 0))
+      .map(course => {
+        const courseMatches = Boolean(
+          normalizedQuery &&
+          searches('course') &&
+          includesSearchText([course.title, course.description], normalizedQuery),
+        )
+        const modules = [...(course.modules || [])]
+          .sort((left, right) => (left.sequence || 0) - (right.sequence || 0))
+          .map(module => {
+            const moduleMatches = Boolean(
+              normalizedQuery &&
+              searches('module') &&
+              includesSearchText([module.title, module.description], normalizedQuery),
+            )
+            const videos = [...(module.videos || [])]
+              .sort((left, right) => (left.sequence || 0) - (right.sequence || 0))
+              .filter(video =>
+                !normalizedQuery ||
+                (
+                  searches('videos') &&
+                  includesSearchText([video.title, video.description], normalizedQuery)
+                ),
+              )
+            return {
+              ...module,
+              _matches: moduleMatches,
+              _videos: videos,
+              _hasDescendantMatch: Boolean(normalizedQuery && videos.length),
+            }
+          })
+          .filter(module =>
+            !normalizedQuery || module._matches || module._hasDescendantMatch,
+          )
+        return {
+          ...course,
+          _matches: courseMatches,
+          _modules: modules,
+          _hasDescendantMatch: Boolean(normalizedQuery && modules.length),
+        }
+      })
+      .filter(course =>
+        !normalizedQuery || course._matches || course._hasDescendantMatch,
+      )
+    return {
+      ...plan,
+      _matches: planMatches,
+      _courses: courses,
+      _hasDescendantMatch: Boolean(normalizedQuery && courses.length),
+    }
+  }).filter(plan =>
+    !normalizedQuery || plan._matches || plan._hasDescendantMatch,
+  )
+
+  const allExpanded =
+    plans.length > 0 && plans.every(plan => expandedPlans[plan.id])
+  const toggleAllPlans = () => {
+    setExpandedPlans(
+      allExpanded ? {} : Object.fromEntries(plans.map(plan => [plan.id, true])),
+    )
+  }
+
+  return (
+    <>
+      <div className="drawer-overlay" onClick={onClose} />
+      <aside className="drawer quick-plan-drawer" role="dialog" aria-modal="true" aria-labelledby="global-search-title">
+        <div className="drawer-header">
+          <div>
+            <h2 id="global-search-title">Global search</h2>
+            <p>Find learning plans, courses, modules, and videos.</p>
+          </div>
+          <button className="btn btn-secondary btn-sm" onClick={onClose} aria-label="Close">
+            <CloseIcon />
+          </button>
+        </div>
+        <div className="drawer-body">
+          <div className="quick-plan-search-controls">
+            <div className="quick-plan-search-toolbar">
+              <label className="quick-plan-global-search-field">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <circle cx="10.5" cy="10.5" r="6.5" />
+                  <path d="m15.5 15.5 5 5" />
+                </svg>
+                <input
+                  className="quick-plan-global-search"
+                  type="search"
+                  value={query}
+                  onChange={event => setQuery(event.target.value)}
+                  placeholder="Search titles and descriptions..."
+                  aria-label="Search learning content"
+                />
+              </label>
+              <button
+                type="button"
+                className="quick-plan-tree-button"
+                title={`${allExpanded ? 'Collapse' : 'Expand'} all learning plans`}
+                aria-label={`${allExpanded ? 'Collapse' : 'Expand'} all learning plans`}
+                onClick={toggleAllPlans}
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d={allExpanded ? 'm7 9 5 5 5-5' : 'm9 6 6 6-6 6'} />
+                </svg>
+              </button>
+            </div>
+            <div className="quick-plan-search-scope" role="group" aria-label="Search scope">
+              <span>Search scope</span>
+              <div>
+                {GLOBAL_SEARCH_SCOPE_OPTIONS.map(scope => {
+                  const selected = scopes.includes(scope.id)
+                  return (
+                    <button
+                      type="button"
+                      key={scope.id}
+                      className={selected ? 'active' : ''}
+                      aria-pressed={selected}
+                      onClick={() => toggleScope(scope.id)}
+                    >
+                      {scope.label}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+            {normalizedQuery && (
+              <p className="quick-plan-result-count">
+                {results.length} matching learning plan{results.length === 1 ? '' : 's'}
+              </p>
+            )}
+          </div>
+          <div className="quick-plan-list">
+            {results.length ? results.map(plan => {
+              const planSearchExpanded = normalizedQuery && plan._hasDescendantMatch
+              const isExpanded = planSearchExpanded || Boolean(expandedPlans[plan.id])
+              const logo = plan.logo_url || plan.logo
+              return (
+                <section className={`quick-plan-accordion ${plan._matches ? 'search-match' : ''}`} key={plan.id}>
+                  <div className="quick-plan-row">
+                    <button
+                      className="quick-plan-item"
+                      onClick={() => {
+                        onNavigate(`/plans/${plan.id}`)
+                        onClose()
+                      }}
+                    >
+                      <span className="quick-plan-logo-wrap">
+                        {logo
+                          ? <img className="quick-plan-logo" src={logo} alt="" />
+                          : <span className="quick-plan-logo quick-plan-logo-fallback">{plan.name?.charAt(0).toUpperCase() || '?'}</span>}
+                      </span>
+                      <span className="quick-plan-item-copy">
+                        <strong>{plan.name}</strong>
+                        <span>{plan.courses?.length || 0} courses</span>
+                      </span>
+                    </button>
+                    <button
+                      className={`quick-plan-expand ${isExpanded ? 'expanded' : ''}`}
+                      aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${plan.name}`}
+                      title={isExpanded ? 'Collapse courses' : 'Expand courses'}
+                      onClick={() =>
+                        setExpandedPlans(current => ({
+                          ...current,
+                          [plan.id]: !isExpanded,
+                        }))
+                      }
+                    >
+                      <span>›</span>
+                    </button>
+                  </div>
+                  {isExpanded && (
+                    <div className="quick-course-list">
+                      {plan._courses.length ? plan._courses.map(course => {
+                        const courseKey = `${plan.id}:${course.id}`
+                        const courseSearchExpanded =
+                          normalizedQuery && course._hasDescendantMatch
+                        const courseExpanded =
+                          courseSearchExpanded || Boolean(expandedCourses[courseKey])
+                        return (
+                          <section className={`quick-course-accordion ${course._matches ? 'search-match' : ''}`} key={course.id}>
+                            <div className="quick-course-row">
+                              <button
+                                className="quick-course-item"
+                                onClick={() => {
+                                  onNavigate(`/plans/${plan.id}/courses/${course.id}/learn`)
+                                  onClose()
+                                }}
+                              >
+                                <span>{course.sequence || '—'}</span>
+                                <div>
+                                  <strong>{course.title}</strong>
+                                  {course.description && <small>{course.description}</small>}
+                                </div>
+                              </button>
+                              <button
+                                className={`quick-course-expand ${courseExpanded ? 'expanded' : ''}`}
+                                onClick={() =>
+                                  setExpandedCourses(current => ({
+                                    ...current,
+                                    [courseKey]: !courseExpanded,
+                                  }))
+                                }
+                                title={courseExpanded ? 'Collapse modules' : 'Expand modules'}
+                                aria-label={`${courseExpanded ? 'Collapse' : 'Expand'} ${course.title} modules`}
+                              >
+                                <span>›</span>
+                              </button>
+                            </div>
+                            {courseExpanded && (
+                              <div className="quick-module-list">
+                                {course._modules.length ? course._modules.map(module => (
+                                  <section className={`quick-module-result ${module._matches ? 'search-match' : ''}`} key={module.id}>
+                                    <div>
+                                      <span>{module.sequence || '—'}</span>
+                                      <span>
+                                        <strong>{module.title}</strong>
+                                        {module.description && <small>{module.description}</small>}
+                                      </span>
+                                    </div>
+                                    {module._videos.length > 0 && normalizedQuery && searches('videos') && (
+                                      <div className="quick-video-results">
+                                        {module._videos.map(video => (
+                                          <button
+                                            type="button"
+                                            key={video.id || video.video_id}
+                                            onClick={() => {
+                                              onNavigate(`/plans/${plan.id}/courses/${course.id}/learn`)
+                                              onClose()
+                                            }}
+                                          >
+                                            <span>{video.sequence || '•'}</span>
+                                            <span>
+                                              <strong>{video.title}</strong>
+                                              {video.description && <small>{video.description}</small>}
+                                            </span>
+                                          </button>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </section>
+                                )) : <p>No modules match this search.</p>}
+                              </div>
+                            )}
+                          </section>
+                        )
+                      }) : <p>No courses match this search.</p>}
+                    </div>
+                  )}
+                </section>
+              )
+            }) : (
+              <div className="quick-plan-no-results">
+                <strong>No matching learning content</strong>
+                <p>Try another phrase or broaden the selected search scopes.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </aside>
+    </>
+  )
+}
+
 function AppLayout() {
   const { theme, setTheme } = useTheme()
   const { fontSize, setFontSize } = useFontSize()
@@ -122,9 +424,6 @@ function AppLayout() {
   const [showPlanSwitcher, setShowPlanSwitcher] = React.useState(false)
   const [showSettingsDrawer, setShowSettingsDrawer] = React.useState(false)
   const [showAiModelDrawer, setShowAiModelDrawer] = React.useState(false)
-  const [expandedPlanIds, setExpandedPlanIds] = React.useState({})
-  const [expandedCourseIds, setExpandedCourseIds] = React.useState({})
-  const [planCourseSearches, setPlanCourseSearches] = React.useState({})
   const sourceBootstrapUserRef = React.useRef(null)
   const navigate = useNavigate()
   const location = useLocation()
@@ -133,9 +432,6 @@ function AppLayout() {
   const routedLocation = profileOpen
     ? (profileBackgroundLocation || { pathname: '/', search: '', hash: '', state: null, key: 'profile-background' })
     : location
-  const [lastAccessedCourse, setLastAccessedCourse] = React.useState(() => {
-    try { return JSON.parse(localStorage.getItem('yt_last_accessed_course') || 'null') } catch { return null }
-  })
 
   const openProfile = () => {
     if (profileOpen) return
@@ -366,137 +662,6 @@ function AppLayout() {
     }
   }
 
-  React.useEffect(() => {
-    const match = location.pathname.match(/^\/plans\/([^/]+)\/courses\/([^/]+)/)
-    if (!match) return
-    const accessedCourse = { planId: match[1], courseId: match[2] }
-    setLastAccessedCourse(accessedCourse)
-    localStorage.setItem('yt_last_accessed_course', JSON.stringify(accessedCourse))
-  }, [location.pathname])
-
-  React.useEffect(() => {
-    if (!showPlanSwitcher || !lastAccessedCourse) return
-    const courseKey = `${lastAccessedCourse.planId}:${lastAccessedCourse.courseId}`
-    setExpandedPlanIds(current => ({ ...current, [lastAccessedCourse.planId]: true }))
-    setExpandedCourseIds(current => ({ ...current, [courseKey]: true }))
-    const timer = window.setTimeout(() => {
-      const course = plans.find(plan => plan.id === lastAccessedCourse.planId)?.courses?.find(item => item.id === lastAccessedCourse.courseId)
-      const target = course && [...document.querySelectorAll('.quick-course-accordion')].find(element => element.textContent.includes(course.title))
-      if (target) {
-        target.scrollIntoView({ block: 'center', behavior: 'smooth' })
-        target.querySelector('.quick-course-item')?.focus()
-      }
-    }, 80)
-    return () => window.clearTimeout(timer)
-  }, [showPlanSwitcher, lastAccessedCourse, plans])
-
-  React.useEffect(() => {
-    if (!showPlanSwitcher) return
-    const drawerBody = document.querySelector('.quick-plan-drawer .drawer-body')
-    const planList = drawerBody?.querySelector('.quick-plan-list')
-    if (!drawerBody || !planList) return
-
-    const search = document.createElement('input')
-    search.className = 'quick-plan-global-search'
-    search.type = 'search'
-    search.placeholder = 'Search course title or description...'
-    search.setAttribute('aria-label', 'Search course title or description across all learning plans')
-    const toolbar = document.createElement('div')
-    toolbar.className = 'quick-plan-search-toolbar'
-    const toggleTree = document.createElement('button')
-    toggleTree.type = 'button'
-    toggleTree.className = 'quick-plan-tree-button'
-    const setTreeToggleIcon = expanded => {
-      const action = expanded ? 'Collapse' : 'Expand'
-      toggleTree.title = `${action} all learning plans`
-      toggleTree.setAttribute('aria-label', `${action} all learning plans`)
-      toggleTree.innerHTML = expanded
-        ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 9 5 5 5-5" /></svg>'
-        : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg>'
-    }
-    setTreeToggleIcon(plans.length > 0 && plans.every(plan => expandedPlanIds[plan.id]))
-    const togglePlans = () => setExpandedPlanIds(current => {
-      const shouldExpand = plans.some(plan => !current[plan.id])
-      setTreeToggleIcon(shouldExpand)
-      return shouldExpand ? Object.fromEntries(plans.map(plan => [plan.id, true])) : {}
-    })
-    toggleTree.addEventListener('click', togglePlans)
-    toolbar.append(search, toggleTree)
-    const filterPlans = () => {
-      const query = search.value.trim().toLowerCase()
-      drawerBody.querySelectorAll('.quick-plan-accordion').forEach((item, index) => {
-        const plan = plans[index]
-        const searchable = [
-          plan?.name,
-          plan?.description,
-          ...(plan?.courses || []).flatMap(course => [
-            course.title,
-            course.description,
-            ...(course.source_channels || []).flatMap(channel => [channel.title, ...(channel.playlists || []).map(playlist => playlist.title)]),
-          ]),
-        ].filter(Boolean).join(' ').toLowerCase()
-        const matchingCourseIds = (plan?.courses || [])
-          .filter(course => `${course.title || ''} ${course.description || ''}`.toLowerCase().includes(query))
-          .map(course => course.id)
-        item.hidden = Boolean(query && !searchable.includes(query))
-        if (query && searchable.includes(query) && plan?.id) {
-          setExpandedPlanIds(current => current[plan.id] ? current : { ...current, [plan.id]: true })
-          window.setTimeout(() => {
-            const courses = [...(plan.courses || [])].sort((a, b) => (a.sequence || 0) - (b.sequence || 0))
-            item.querySelectorAll('.quick-course-accordion').forEach((courseItem, courseIndex) => {
-              courseItem.hidden = matchingCourseIds.length > 0 && !matchingCourseIds.includes(courses[courseIndex]?.id)
-            })
-          }, 0)
-        }
-        if (!query) item.querySelectorAll('.quick-course-accordion').forEach(courseItem => { courseItem.hidden = false })
-      })
-    }
-    search.addEventListener('input', filterPlans)
-    drawerBody.insertBefore(toolbar, planList)
-    return () => {
-      search.removeEventListener('input', filterPlans)
-      toggleTree.removeEventListener('click', togglePlans)
-      toolbar.remove()
-    }
-  }, [showPlanSwitcher, plans])
-
-  React.useEffect(() => {
-    if (!showPlanSwitcher) return
-    const timer = window.setTimeout(() => {
-      document.querySelectorAll('.quick-plan-item').forEach((button, index) => {
-        const plan = plans[index]
-        if (!plan || button.querySelector('.quick-plan-logo')) return
-        const title = button.querySelector('strong')
-        const count = button.querySelector(':scope > span')
-        if (!title || !count) return
-
-        const copy = document.createElement('span')
-        copy.className = 'quick-plan-item-copy'
-        copy.append(title, count)
-        const logo = plan.logo_url || plan.logo
-        const logoElement = logo ? document.createElement('img') : document.createElement('span')
-        logoElement.className = `quick-plan-logo${logo ? '' : ' quick-plan-logo-fallback'}`
-        if (logo) {
-          logoElement.src = logo
-          logoElement.alt = ''
-          logoElement.onerror = () => {
-            const fallback = document.createElement('span')
-            fallback.className = 'quick-plan-logo quick-plan-logo-fallback'
-            fallback.textContent = plan.name?.charAt(0).toUpperCase() || '?'
-            logoElement.replaceWith(fallback)
-          }
-        } else {
-          logoElement.textContent = plan.name?.charAt(0).toUpperCase() || '?'
-        }
-        const logoWrap = document.createElement('span')
-        logoWrap.className = 'quick-plan-logo-wrap'
-        logoWrap.append(logoElement)
-        button.replaceChildren(logoWrap, copy)
-      })
-    }, 0)
-    return () => window.clearTimeout(timer)
-  }, [showPlanSwitcher, plans, expandedPlanIds])
-
   const pendingVideosForChannel = channel => (channel.new_videos?.length || 0) + (channel.playlists || []).reduce((count, playlist) => count + (playlist.new_videos?.length || 0), 0)
   const targetsForChannel = channel => (channel.target_courses?.length || 0) + (channel.playlists || []).reduce((count, playlist) => count + (playlist.target_courses?.length || 0), 0)
   const renderTargetCourses = (targets = [], label = 'target course') => {
@@ -575,7 +740,7 @@ function AppLayout() {
         </section>
       </div></aside></>}
       {sourcePreview && <SourceFeedPreviewDialog preview={sourcePreview} plans={plans} loading={sourcePushLoading} aiLoading={sourceAiLoading} error={sourcePreviewError} onClose={() => { setSourcePreview(null); setSourcePreviewError('') }} onPush={pushSourceFeeds} onOrganize={organizeSourceFeeds} onConfirmOrganization={confirmSourceOrganization} />}
-      {showPlanSwitcher && <><div className="drawer-overlay" onClick={() => setShowPlanSwitcher(false)} /><aside className="drawer quick-plan-drawer"><div className="drawer-header"><div><h2>Global search</h2><p>Find learning plans, courses, modules, and sources.</p></div><button className="btn btn-secondary btn-sm" onClick={() => setShowPlanSwitcher(false)}><CloseIcon /></button></div><div className="drawer-body"><div className="quick-plan-list">{plans.length ? plans.map(plan => { const isExpanded = Boolean(expandedPlanIds[plan.id]); const query = (planCourseSearches[plan.id] || '').toLowerCase(); const courses = [...(plan.courses || [])].sort((a, b) => (a.sequence || 0) - (b.sequence || 0)).filter(course => !query || `${course.title} ${course.description || ''} ${(course.source_channels || []).map(channel => channel.title).join(' ')}`.toLowerCase().includes(query)); return <section className="quick-plan-accordion" key={plan.id}><div className="quick-plan-row"><button className="quick-plan-item" onClick={() => { navigate(`/plans/${plan.id}`); setShowPlanSwitcher(false) }}><strong>{plan.name}</strong><span>{plan.courses?.length || 0} courses</span></button><button className={`quick-plan-expand ${isExpanded ? 'expanded' : ''}`} aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${plan.name}`} title={isExpanded ? 'Collapse courses' : 'Expand courses'} onClick={() => setExpandedPlanIds(current => ({ ...current, [plan.id]: !current[plan.id] }))}><span>›</span></button></div>{isExpanded && <div className="quick-course-list"><input className="quick-course-search" value={planCourseSearches[plan.id] || ''} onChange={event => setPlanCourseSearches(current => ({ ...current, [plan.id]: event.target.value }))} placeholder="Search courses..." aria-label={`Search courses in ${plan.name}`} />{courses.length ? courses.map(course => { const courseKey = `${plan.id}:${course.id}`; const courseExpanded = Boolean(expandedCourseIds[courseKey]); const modules = [...(course.modules || [])].sort((a, b) => (a.sequence || 0) - (b.sequence || 0)); return <section className="quick-course-accordion" key={course.id}><div className="quick-course-row"><button className="quick-course-item" onClick={() => { navigate(`/plans/${plan.id}/courses/${course.id}/learn`); setShowPlanSwitcher(false) }}><span>{course.sequence || '—'}</span><div><strong>{course.title}</strong>{course.description && <small>{course.description}</small>}{course.source_channels?.length > 0 && <em>{course.source_channels.map(channel => channel.title).join(', ')}</em>}</div></button><button className={`quick-course-expand ${courseExpanded ? 'expanded' : ''}`} onClick={() => setExpandedCourseIds(current => ({ ...current, [courseKey]: !current[courseKey] }))} title={courseExpanded ? 'Collapse modules' : 'Expand modules'} aria-label={`${courseExpanded ? 'Collapse' : 'Expand'} ${course.title} modules`}><span>›</span></button></div>{courseExpanded && <div className="quick-module-list">{modules.length ? modules.map(module => <div key={module.id}><span>{module.sequence || '—'}</span>{module.title}</div>) : <p>No modules in this course.</p>}</div>}</section> }) : <p>No courses match this search.</p>}</div>}</section> }) : <p>No learning plans yet.</p>}</div></div></aside></>}
+      {showPlanSwitcher && <GlobalSearchDrawer plans={plans} onClose={() => setShowPlanSwitcher(false)} onNavigate={navigate} />}
       <main className="main-content">
         <Routes location={routedLocation}>
           <Route path="/" element={<Dashboard onOpenAiModels={() => setShowAiModelDrawer(true)} />} />
