@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { createPlan, deletePlan as deletePlanRequest } from '../api/client'
 import { updatePlanLabels, updatePlanMetadata } from '../api/client'
 import EditMetadataDrawer from '../components/EditMetadataDrawer'
+import LoadingBar from '../components/LoadingBar'
 import { CloseIcon, EditIcon, LabelIcon, RefreshIcon, WorkspaceIcon } from '../components/Icons'
 import { addPlan, updatePlan, deletePlan, selectPlan, clearSelection } from '../store/plansSlice'
 import { rememberLearningLocation, updatePlansPage } from '../store/learningUiSlice'
@@ -92,6 +93,7 @@ export default function Plans({ newPlanRequest, onRefresh, refreshing = false })
 
   return (
     <div className="plans-page">
+      <LoadingBar active={refreshing || creating} label={creating ? 'Creating learning plan…' : 'Loading learning plans…'} />
       {error && <div className="alert alert-error">{error}</div>}
 
       {showDrawer && (
@@ -145,7 +147,7 @@ export default function Plans({ newPlanRequest, onRefresh, refreshing = false })
       <div>
           <div className="page-header course-toolbar"><h4>Learning plans <span className="badge badge-green">{plans.length}</span></h4></div>
           <div className="label-tabs" role="tablist"><button className={planLabelTab === 'ALL' ? 'active' : ''} onClick={() => dispatch(updatePlansPage({ labelTab: 'ALL' }))}>All <span>{plans.length}</span></button>{planLabels.map(label => <button key={label} className={planLabelTab === label ? 'active' : ''} onClick={() => dispatch(updatePlansPage({ labelTab: label }))}>{label.replaceAll('_', ' ')} <span>{plans.filter(plan => plan.labels?.includes(label)).length}</span></button>)}</div>
-          {plans.length === 0 && (
+          {plans.length === 0 && !refreshing && (
             <div className="card" style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '3rem' }}>
               <p style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>No learning plans yet</p>
               <p>Click "+ New Plan" to create your first learning plan.</p>

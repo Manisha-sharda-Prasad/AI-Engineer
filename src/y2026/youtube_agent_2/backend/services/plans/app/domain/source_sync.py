@@ -8,7 +8,7 @@ from fastapi import HTTPException
 
 from src.y2026.youtube_agent_2.backend.services.plans.app import config
 from src.y2026.youtube_agent_2.backend.services.plans.app.infrastructure.youtube_provider import get_source_provider
-from src.y2026.youtube_agent_2.backend.services.plans.app.models import LearningPlan, Module, NewVideoFeed, Video
+from src.y2026.youtube_agent_2.backend.services.plans.app.models import Course, LearningPlan, Module, NewVideoFeed, Video
 from src.y2026.youtube_agent_2.backend.services.plans.app.repositories import store as db
 
 
@@ -395,7 +395,8 @@ def sync_metadata(channel_id: Optional[str] = None) -> dict:
 def push_new_feeds(
     channel_id: str,
     plan_id: str,
-    course_id: str,
+    course_id: Optional[str] = None,
+    new_course_title: Optional[str] = None,
     playlist_id: Optional[str] = None,
     module_id: Optional[str] = None,
     new_module_title: Optional[str] = None,
@@ -439,7 +440,13 @@ def push_new_feeds(
             status_code=422,
             detail="One or more selected videos are no longer pending",
         )
-    if not any(
+    clean_course_title = (new_course_title or "").strip()
+    if bool(course_id) == bool(clean_course_title):
+        raise HTTPException(
+            status_code=422,
+            detail="Select one existing course or provide one new course title",
+        )
+    if course_id and not any(
         target.get("plan_id") == plan_id and target.get("course_id") == course_id
         for target in scope.get("target_courses", [])
     ):
@@ -456,9 +463,43 @@ def push_new_feeds(
     if not stored:
         raise HTTPException(status_code=404, detail="Learning plan not found")
     plan = LearningPlan.model_validate(stored)
-    course = next((item for item in plan.courses if item.id == course_id), None)
-    if not course:
-        raise HTTPException(status_code=404, detail="Target course not found")
+    if clean_course_title:
+        if module_id:
+            raise HTTPException(
+                status_code=422, detail="A new course requires a new module"
+            )
+        source_playlist = []
+        if playlist_id:
+            source_playlist = [{
+                "id": playlist_id,
+                "playlist_id": playlist_id,
+                "title": scope.get("title") or "YouTube playlist",
+                "thumbnail": scope.get("thumbnail") or "",
+                "videos_count": scope.get("videos_count") or 0,
+            }]
+        course = Course(
+            title=clean_course_title,
+            sequence=max((item.sequence for item in plan.courses), default=0) + 1,
+            description=f"Created from {scope.get('title') or channel.get('title') or 'source feed'}",
+            logo_url=scope.get("thumbnail") or channel.get("thumbnail") or "",
+            source_channels=[{
+                "channel_id": channel_id,
+                "title": channel.get("title") or "YouTube channel",
+                "url": channel.get("url") or "",
+                "video_count": channel.get("video_count") or channel.get("videos_count") or 0,
+                "videos_count": channel.get("videos_count") or channel.get("video_count") or 0,
+                "thumbnail": channel.get("thumbnail") or "",
+                "playlists": source_playlist,
+            }],
+        )
+        plan.courses.append(course)
+        course_id = course.id
+        targets = scope.setdefault("target_courses", [])
+        targets.append({"plan_id": plan_id, "course_id": course_id})
+    else:
+        course = next((item for item in plan.courses if item.id == course_id), None)
+        if not course:
+            raise HTTPException(status_code=404, detail="Target course not found")
 
     if module_id:
         module = next((item for item in course.modules if item.id == module_id), None)

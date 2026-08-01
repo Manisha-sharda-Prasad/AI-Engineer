@@ -44,7 +44,7 @@ function YouTubePlayer({ videoId, startSeconds = 0, onPause, onComplete }) {
       if (disposed || !hostRef.current) return
       player = new YT.Player(hostRef.current, {
         videoId,
-        playerVars: { autoplay: 1, start: Math.floor(startSeconds), enablejsapi: 1, origin: window.location.origin },
+        playerVars: { autoplay: 0, start: Math.floor(startSeconds), enablejsapi: 1, origin: window.location.origin },
         events: {
           onStateChange: event => {
             if (event.data === YT.PlayerState.PAUSED) onPause?.(event.target.getCurrentTime())
@@ -56,6 +56,40 @@ function YouTubePlayer({ videoId, startSeconds = 0, onPause, onComplete }) {
     return () => { disposed = true; player?.destroy() }
   }, [videoId])
   return <div ref={hostRef} className="youtube-player-host" />
+}
+
+function CollapsedVideoDescription({ description, onShowMore }) {
+  const descriptionRef = useRef(null)
+  const [isOverflowing, setIsOverflowing] = useState(false)
+
+  useEffect(() => {
+    const element = descriptionRef.current
+    if (!element) {
+      setIsOverflowing(false)
+      return undefined
+    }
+
+    const measureOverflow = () => {
+      setIsOverflowing(element.scrollHeight > element.clientHeight + 1)
+    }
+    const animationFrame = window.requestAnimationFrame(measureOverflow)
+    const resizeObserver = typeof ResizeObserver === 'undefined'
+      ? null
+      : new ResizeObserver(measureOverflow)
+    resizeObserver?.observe(element)
+
+    return () => {
+      window.cancelAnimationFrame(animationFrame)
+      resizeObserver?.disconnect()
+    }
+  }, [description])
+
+  if (!description) return null
+
+  return <>
+    <p ref={descriptionRef}>{description}</p>
+    {isOverflowing && <button className="video-description-more" onClick={onShowMore}>Show more</button>}
+  </>
 }
 
 export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId, workspaceActionHost, isCourseEditing = false, onToggleCourseEditing, onActiveModuleChange, onActiveVideoChange }) {
@@ -560,8 +594,10 @@ export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId
                     {activeVideo?.url && <a href={activeVideo.url} target="_blank" rel="noopener noreferrer">YouTube ↗</a>}
                   </div>}
                   <h3>{activeVideo?.title}</h3>
-                  <p>{activeVideo?.description || ''}</p>
-                  {activeVideo?.description && <button className="video-description-more" onClick={() => setShowDescriptionDrawer(true)}>Show more</button>}
+                  <CollapsedVideoDescription
+                    description={activeVideo?.description}
+                    onShowMore={() => setShowDescriptionDrawer(true)}
+                  />
                 </div>
               </div>
             ) : (

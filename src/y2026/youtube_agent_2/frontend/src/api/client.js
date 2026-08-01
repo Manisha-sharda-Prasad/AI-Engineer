@@ -69,14 +69,15 @@ export function syncSourceMetadata({ channelId } = {}) {
   const query = params.toString()
   return request(`/api/sources/sync-metadata${query ? `?${query}` : ''}`, { method: 'POST' })
 }
-export function pushNewSourceFeeds({ channelId, playlistId, planId, courseId, moduleId, newModuleTitle, videoIds }) {
+export function pushNewSourceFeeds({ channelId, playlistId, planId, courseId, newCourseTitle, moduleId, newModuleTitle, videoIds }) {
   return request('/api/sources/sync-metadata/push-new-feeds', {
     method: 'POST',
     body: JSON.stringify({
       channel_id: channelId,
       playlist_id: playlistId || null,
       plan_id: planId,
-      course_id: courseId,
+      course_id: courseId || null,
+      new_course_title: newCourseTitle || null,
       module_id: moduleId || null,
       new_module_title: newModuleTitle || null,
       video_ids: videoIds,

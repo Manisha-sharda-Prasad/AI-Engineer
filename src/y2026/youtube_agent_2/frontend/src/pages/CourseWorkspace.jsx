@@ -83,13 +83,31 @@ export default function CourseWorkspace() {
     { id: "mark_for_delete", label: "Marked for delete" },
     { id: "refresh_needed", label: "Refresh needed" },
   ];
-  const courseViewOptions = standardCourseTabs.map((tab) => ({
-    ...tab,
-    count:
-      tab.id === "ALL"
-        ? plan?.courses?.length || 0
-        : plan?.courses?.filter((course) => course.labels?.includes(tab.id)).length || 0,
-  }));
+  const standardCourseLabelIds = standardCourseTabs
+    .map(tab => tab.id)
+    .filter(id => id !== "ALL");
+  const customCourseLabels = [
+    ...new Set((plan?.courses || []).flatMap(course => course.labels || [])),
+  ]
+    .filter(label => !standardCourseLabelIds.includes(label))
+    .sort((left, right) => left.localeCompare(right));
+  const courseViewOptions = [
+    ...standardCourseTabs.map((tab) => ({
+      ...tab,
+      group: "built-in",
+      count:
+        tab.id === "ALL"
+          ? plan?.courses?.length || 0
+          : plan?.courses?.filter((course) => course.labels?.includes(tab.id)).length || 0,
+    })),
+    ...customCourseLabels.map(label => ({
+      id: label,
+      label: label.replaceAll("_", " "),
+      group: "custom",
+      count:
+        plan?.courses?.filter(course => course.labels?.includes(label)).length || 0,
+    })),
+  ];
   const coursesForView = (value) => [...(plan?.courses || [])]
     .filter((item) => value === "ALL" || item.labels?.includes(value))
     .sort((left, right) => (
@@ -97,6 +115,10 @@ export default function CourseWorkspace() {
       || (left.title || "").localeCompare(right.title || "")
     ));
   const visibleBreadcrumbCourses = coursesForView(courseLabelTab);
+  const selectedBreadcrumbCourse =
+    visibleBreadcrumbCourses.find(item => item.id === courseId)
+    || visibleBreadcrumbCourses[0]
+    || null;
 
   const renderCourseActions = (className = "") => (
     <div className={`workspace-action-panel ${className}`}>
@@ -111,6 +133,7 @@ export default function CourseWorkspace() {
           plans={allPlans}
           selectedPlan={plan}
           includeAll
+          showCount
           onSelect={(selectedPlan) => {
             if (selectedPlan) {
               navigate(`/plans/${selectedPlan.id}/courses/${selectedPlan.courses?.[0]?.id || ''}/learn`);
@@ -134,7 +157,7 @@ export default function CourseWorkspace() {
         <span className="learning-path-separator" aria-hidden="true">/</span>
         <CourseDropdown
           plan={{ ...plan, courses: visibleBreadcrumbCourses }}
-          course={course}
+          course={selectedBreadcrumbCourse}
           onSelect={(selectedCourse) => {
             navigate(`/plans/${planId}/courses/${selectedCourse.id}/learn`);
           }}
