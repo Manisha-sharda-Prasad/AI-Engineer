@@ -339,6 +339,57 @@ class SourceSyncTests(unittest.TestCase):
             ["video-route-later"],
         )
 
+    def test_manual_push_can_create_course_and_first_module(self):
+        metadata = {
+            "channels": [{
+                "channel_id": "channel-a",
+                "title": "Channel A",
+                "url": "https://youtube.com/channel-a",
+                "thumbnail": "https://example.com/channel-a.png",
+                "target_courses": [],
+                "new_videos": [{"video_id": "video-new", "title": "New video"}],
+                "playlists": [],
+            }]
+        }
+        plan = {"id": "plan-a", "name": "Plan A", "courses": []}
+        saved_plans = []
+        saved_metadata = []
+        with (
+            patch.object(
+                source_sync.db, "load_source_sync_metadata", return_value=metadata
+            ),
+            patch.object(source_sync.db, "load_plan", return_value=plan),
+            patch.object(
+                source_sync.db,
+                "save_plan",
+                side_effect=lambda value: saved_plans.append(value),
+            ),
+            patch.object(
+                source_sync.db,
+                "save_source_sync_metadata",
+                side_effect=lambda value: saved_metadata.append(value),
+            ),
+        ):
+            result = source_sync.push_new_feeds(
+                channel_id="channel-a",
+                plan_id="plan-a",
+                new_course_title="New Course",
+                new_module_title="New videos",
+                video_ids=["video-new"],
+            )
+
+        course = saved_plans[0]["courses"][0]
+        self.assertEqual(course["title"], "New Course")
+        self.assertEqual(course["logo_url"], "https://example.com/channel-a.png")
+        self.assertEqual(course["modules"][0]["title"], "New videos")
+        self.assertEqual(course["modules"][0]["videos"][0]["video_id"], "video-new")
+        self.assertEqual(result["destination"]["course_id"], course["id"])
+        self.assertEqual(saved_metadata[0]["channels"][0]["new_videos"], [])
+        self.assertEqual(
+            saved_metadata[0]["channels"][0]["target_courses"],
+            [{"plan_id": "plan-a", "course_id": course["id"]}],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

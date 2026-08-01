@@ -10,8 +10,10 @@ import {
   updateCourseLabels,
   updateCourseMetadata,
   updatePlanLabels,
+  updatePlanMetadata,
 } from "../api/client";
 import EditMetadataDrawer from "../components/EditMetadataDrawer";
+import LoadingBar from "../components/LoadingBar";
 import { CloseIcon, EditIcon, LabelIcon, WorkspaceIcon } from "../components/Icons";
 import {
   CourseViewDropdown,
@@ -204,6 +206,7 @@ function LearningPlanOverviewDrawer({
   plan,
   sourceChannels,
   onClose,
+  onEdit,
   onPlanUpdated,
 }) {
   const [tab, setTab] = React.useState("visual");
@@ -350,7 +353,10 @@ function LearningPlanOverviewDrawer({
       <aside className="drawer learning-plan-overview-drawer">
         <div className="drawer-header">
           <h2>Plan information</h2>
-          <button className="btn btn-secondary btn-sm" onClick={onClose}><CloseIcon /></button>
+          <div className="plan-info-drawer-actions">
+            <button className="btn btn-secondary btn-sm" onClick={onEdit}><EditIcon /> Edit plan</button>
+            <button className="btn btn-secondary btn-sm" onClick={onClose} aria-label="Close plan information"><CloseIcon /></button>
+          </div>
         </div>
         <div className="refresh-feed-tabs">
           <button
@@ -540,7 +546,7 @@ function LearningPlanOverviewDrawer({
   );
 }
 
-export default function PlanOverview() {
+export default function PlanOverview({ loading = false }) {
   const { planId } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -567,6 +573,7 @@ export default function PlanOverview() {
   const [submittedAiRequest, setSubmittedAiRequest] = React.useState(null);
   const [courseToEdit, setCourseToEdit] = React.useState(null);
   const [showOverview, setShowOverview] = React.useState(false);
+  const [showPlanEdit, setShowPlanEdit] = React.useState(false);
   const [showSortFilter, setShowSortFilter] = React.useState(false);
   const [labelSearch, setLabelSearch] = React.useState("");
   const [showMobileActions, setShowMobileActions] = React.useState(false);
@@ -813,6 +820,9 @@ export default function PlanOverview() {
     </div>
   );
 
+  if (!plan && loading)
+    return <div className="plan-overview-page"><LoadingBar active label="Loading learning plans…" /></div>;
+
   if (!plan)
     return (
       <div className="alert alert-info">
@@ -854,6 +864,7 @@ export default function PlanOverview() {
         <button type="button" className="mobile-page-menu-button" aria-label="Open course actions" aria-expanded={showMobileActions} onClick={() => setShowMobileActions(true)}><WorkspaceIcon name="menu" /></button>
         {renderCourseActions("desktop-page-actions breadcrumb-actions")}
       </nav>
+      <LoadingBar active={loading} label="Refreshing learning plans…" />
       <div className="plan-course-scroll-body">
         {submittedAiRequest && (
           <div className="alert alert-info">
@@ -1158,7 +1169,28 @@ export default function PlanOverview() {
           plan={plan}
           sourceChannels={sourceChannels}
           onClose={() => setShowOverview(false)}
+          onEdit={() => {
+            setShowOverview(false);
+            setShowPlanEdit(true);
+          }}
           onPlanUpdated={(updated) => dispatch(updatePlan(updated))}
+        />
+      )}
+      {!isAllPlans && showPlanEdit && (
+        <EditMetadataDrawer
+          item={plan}
+          type="plan"
+          onClose={() => setShowPlanEdit(false)}
+          onSave={async (form) => {
+            await updatePlanMetadata(plan.id, {
+              name: form.name,
+              description: form.description,
+              logo_url: form.logo_url,
+            });
+            const response = await updatePlanLabels(plan.id, form.labels);
+            dispatch(updatePlan(response.plan));
+            setShowPlanEdit(false);
+          }}
         />
       )}
       {showSortFilter && (

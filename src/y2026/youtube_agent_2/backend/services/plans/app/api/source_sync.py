@@ -17,7 +17,8 @@ router = APIRouter(tags=["source-sync"])
 class ManualFeedPushRequest(BaseModel):
     channel_id: str
     plan_id: str
-    course_id: str
+    course_id: Optional[str] = None
+    new_course_title: Optional[str] = None
     playlist_id: Optional[str] = None
     module_id: Optional[str] = None
     new_module_title: Optional[str] = None
@@ -56,6 +57,7 @@ def push_new_source_feeds(request: ManualFeedPushRequest):
         playlist_id=request.playlist_id,
         plan_id=request.plan_id,
         course_id=request.course_id,
+        new_course_title=request.new_course_title,
         module_id=request.module_id,
         new_module_title=request.new_module_title,
         video_ids=request.video_ids,

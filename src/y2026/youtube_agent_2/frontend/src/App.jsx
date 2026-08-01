@@ -14,6 +14,7 @@ import { CloseIcon, WorkspaceIcon } from './components/Icons'
 import SourceFeedPreviewDialog from './components/SourceFeedPreviewDialog'
 import AiModelConfigDrawer from './components/AiModelConfigDrawer'
 import DismissibleError from './components/DismissibleError'
+import LoadingBar from './components/LoadingBar'
 import { confirmSourceFeedOrganization, createPlan, getPlans, getSourceSyncMetadata, organizeNewSourceFeeds, pushNewSourceFeeds, setAccessTokenProvider, syncSourceMetadata } from './api/client'
 import { addPlan, setPlans } from './store/plansSlice'
 import { setSourceSyncMetadata } from './store/sourcesSlice'
@@ -676,6 +677,13 @@ function AppLayout() {
     return <span className={`source-sync-target-tooltip ${count ? 'has-targets' : ''}`}><span className="source-sync-target-trigger">{count} {label}{count === 1 ? '' : 's'}</span>{count > 0 && <span className="source-sync-target-tooltip-content" role="tooltip"><strong>Targets</strong>{names.map(name => <span key={name}>• {name}</span>)}</span>}</span>
   }
   const sourceSyncPendingCount = (syncMetadata?.channels || []).reduce((count, channel) => count + pendingVideosForChannel(channel), 0)
+  const sourceChannelPulling = Object.values(sourcePullingChannelIds).some(Boolean)
+  const sourceInboxLoading = !sourceMetadataLoaded || sourceSyncBootstrapping || sourceChannelPulling
+  const sourceInboxLoadingLabel = sourceChannelPulling
+    ? 'Pulling new course feeds…'
+    : sourceSyncBootstrapping
+      ? 'Preparing your course feed inbox…'
+      : 'Loading course feed inbox…'
   const sourceSyncChannels = [...(syncMetadata?.channels || [])]
     .filter(channel => `${channel.title || ''} ${(channel.playlists || []).map(playlist => playlist.title || '').join(' ')}`.toLowerCase().includes(sourceSyncSearch.trim().toLowerCase()))
     .filter(channel => sourceSyncFilter === 'all' || pendingVideosForChannel(channel) > 0)
@@ -717,11 +725,11 @@ function AppLayout() {
       </aside></>}
       {showAiModelDrawer && <AiModelConfigDrawer onClose={() => setShowAiModelDrawer(false)} />}
       {showSettingsDrawer && <><div className="drawer-overlay" onClick={() => setShowSettingsDrawer(false)} /><aside className="drawer settings-drawer" role="dialog" aria-modal="true" aria-labelledby="settings-drawer-title"><div className="drawer-header"><div><h2 id="settings-drawer-title">Settings</h2><p>Personalize your learning workspace.</p></div><button className="btn btn-secondary btn-sm" onClick={() => setShowSettingsDrawer(false)} aria-label="Close"><CloseIcon /></button></div><div className="drawer-body settings-drawer-body"><section className="settings-section"><div><h3>Font size</h3><p>Adjust text sizing across the application.</p></div><div className="settings-option-grid" role="group" aria-label="Global font size">{[['small', 'Small', 'Aa'], ['medium', 'Medium', 'Aa'], ['large', 'Large', 'Aa']].map(([size, label, sample]) => <button type="button" key={size} className={fontSize === size ? 'active' : ''} onClick={() => setFontSize(size)} aria-pressed={fontSize === size}><span className={`settings-font-sample ${size}`}>{sample}</span><strong>{label}</strong></button>)}</div></section><section className="settings-section"><div><h3>Theme</h3><p>Choose the color theme used throughout the application.</p></div><div className="settings-option-grid" role="group" aria-label="Theme">{['light', 'pale', 'dark'].map(value => <button type="button" key={value} className={theme === value ? 'active' : ''} onClick={() => setTheme(value)} aria-pressed={theme === value}><span className={`settings-theme-preview ${value}`}><ThemeIcon theme={value} /></span><strong>{value}</strong></button>)}</div></section></div><div className="drawer-footer"><button className="btn btn-primary" onClick={() => setShowSettingsDrawer(false)}>Done</button></div></aside></>}
-      {showSourceSyncDrawer && <><div className="drawer-overlay" onClick={() => setShowSourceSyncDrawer(false)} /><aside className="drawer source-sync-drawer"><div className="drawer-header"><div><h2>Source feed inbox</h2><p>Pull new YouTube feeds, then route them to a course for review.</p></div><button className="btn btn-secondary btn-sm" onClick={() => setShowSourceSyncDrawer(false)} aria-label="Close"><CloseIcon /></button></div><div className="drawer-body source-sync-body">
+      {showSourceSyncDrawer && <><div className="drawer-overlay" onClick={() => setShowSourceSyncDrawer(false)} /><aside className="drawer source-sync-drawer"><div className="drawer-header"><div><h2>Source feed inbox</h2><p>Pull new YouTube feeds, then route them to a course for review.</p></div><button className="btn btn-secondary btn-sm" onClick={() => setShowSourceSyncDrawer(false)} aria-label="Close"><CloseIcon /></button></div><LoadingBar active={sourceInboxLoading} label={sourceInboxLoadingLabel} className="drawer-loading-wait-bar" /><div className="drawer-body source-sync-body">
         <DismissibleError message={sourceSyncError} />
         <section className="source-sync-channel-section">
           <div className="source-sync-channel-controls"><input value={sourceSyncSearch} onChange={event => setSourceSyncSearch(event.target.value)} placeholder="Search channels or playlists..." aria-label="Search content sources" /><div className="picker-sort-toggle"><button className={sourceSyncFilter === 'all' ? 'active' : ''} onClick={() => setSourceSyncFilter('all')}>All ({syncMetadata?.channels?.length || 0})</button><button className={sourceSyncFilter === 'pending' ? 'active' : ''} onClick={() => setSourceSyncFilter('pending')}>Pending ({sourceSyncPendingCount})</button></div><label className="source-sync-target-switch"><input type="checkbox" checked={sourceSyncTargetsOnly} onChange={event => setSourceSyncTargetsOnly(event.target.checked)} /><span className="source-sync-target-switch-track" aria-hidden="true" /><span>Targets only</span></label><div className="picker-sort-toggle"><button className={sourceSyncSort === 'name' ? 'active' : ''} onClick={() => setSourceSyncSort('name')}>Name</button><button className={sourceSyncSort === 'date' ? 'active' : ''} onClick={() => setSourceSyncSort('date')}>Last sync</button></div></div>
-          <div className="source-sync-channel-list">{sourceSyncBootstrapping ? <p className="source-sync-empty">Loading subscribed channels…</p> : sourceSyncChannels.length ? sourceSyncChannels.map(channel => {
+          <div className="source-sync-channel-list">{(!sourceMetadataLoaded || sourceSyncBootstrapping) ? <div className="source-sync-loading-placeholder" aria-hidden="true" /> : sourceSyncChannels.length ? sourceSyncChannels.map(channel => {
             const expanded = Boolean(expandedSyncChannels[channel.channel_id])
             const channelNewCount = channel.new_videos?.length || 0
             const pendingCount = pendingVideosForChannel(channel)
@@ -746,7 +754,7 @@ function AppLayout() {
           <Route path="/" element={<Dashboard onOpenAiModels={() => setShowAiModelDrawer(true)} />} />
           <Route path="/plans" element={<PlansRoute newPlanRequest={0} onRefresh={loadPlans} refreshing={plansLoading} />} />
           <Route path="/ai-model-configs" element={<Navigate to="/" replace />} />
-          <Route path="/plans/:planId" element={<PlanOverview />} />
+          <Route path="/plans/:planId" element={<PlanOverview loading={plansLoading} />} />
           <Route path="/plans/:planId/ai-requests" element={<AiRequests />} />
           <Route path="/plans/:planId/courses/:courseId" element={<CourseOverview />} />
           <Route path="/plans/:planId/courses/:courseId/learn" element={<CourseWorkspace />} />
