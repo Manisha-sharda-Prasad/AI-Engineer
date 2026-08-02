@@ -45,6 +45,4 @@ STORAGE_BACKEND=sqlite
 > openai/gpt-oss-20b | models/gemini-3.6-flash
 
 **Future Deployment**
-- [deploy-to-render.md](deployment/render/README.md) | [render-microservices.yaml](deployment/render/render-microservices.yaml)
-- [deployment/kubernetes/README.md](deployment/kubernetes/README.md)
-- [deployment/helm/README.md](deployment/helm/README.md)
+- [deployment](deployment)
