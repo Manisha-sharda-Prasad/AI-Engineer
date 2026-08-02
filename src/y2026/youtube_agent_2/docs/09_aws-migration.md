@@ -70,22 +70,28 @@ Do not store a complete learning plan in one item; DynamoDB items are limited to
 |---|---|---|
 | `USER#uid` | `PLAN#planId` | Plan |
 | `USER#uid` | `PLAN#planId#COURSE#courseId` | Course |
-| `USER#uid` | `PLAN#planId#MODULE#moduleId` | Module |
-| `USER#uid` | `PLAN#planId#VIDEO#videoId` | Video and playback state |
+| `USER#uid` | `PLAN#planId#COURSE#courseId#MODULE#moduleId` | Module |
+| `USER#uid` | `PLAN#planId#COURSE#courseId#MODULE#moduleId#VIDEO#videoId` | Video and playback state |
 | `USER#uid` | `SYNC#CHANNEL#channelId` | Channel checkpoint |
-| `USER#uid` | `SYNC#PLAYLIST#playlistId` | Playlist checkpoint |
-| `USER#uid` | `FEED#channelId#videoId` | New feed item |
+| `USER#uid` | `SYNC#CHANNEL#channelId#PLAYLIST#playlistId` | Playlist checkpoint |
+| `USER#uid` | `SYNC#CHANNEL#channelId#...#NEW#videoId` | Pending feed video |
+| `RATE#uid` | `MINUTE#epochMinute` | Atomic rate counter with TTL |
 
-Use conditional writes with a `version` attribute to prevent lost updates.
+The repository decomposes nested modules, videos, source playlists, and pending
+feeds into separate items. Mutations currently retain the existing
+last-write-wins behavior; add an API version contract before introducing
+optimistic concurrency.
 
 ## Lambda conversion
 
-The current images start Uvicorn and cannot run on Lambda unchanged. Each service needs:
+Each service now provides:
 
-- An AWS Lambda Python base image.
+- A `Dockerfile.lambda` based on the AWS Lambda Python image.
 - A Mangum ASGI adapter and Lambda handler as the container `CMD`.
 - Temporary writes restricted to `/tmp`.
-- Idempotent client retries for cold or inactive container starts; use provisioned concurrency only if immediate first-response latency becomes necessary.
+
+Build the images for `linux/arm64`. Use provisioned concurrency only if
+immediate first-response latency becomes necessary.
 
 ## Estimated monthly cost
 
@@ -97,7 +103,7 @@ Assumptions: `us-west-2`, 30 days, no free-tier credits, 1,000 calls per day to 
 | Lambda requests | 90,000 invocations | `$0.02` |
 | Lambda compute | 45,000-90,000 GB-seconds | `$0.75-$1.50` |
 | DynamoDB requests | 30,000 reads + 60,000 writes | `< $0.05` |
-| DynamoDB storage and PITR | About 1 GB | `$0.45` |
+| DynamoDB storage (PITR disabled) | About 1 GB | About `$0.25` |
 | ECR | About 3 GB of images | `$0.30` |
 | SSM Parameter Store | Standard `SecureString` parameters | `$0.00` plus negligible KMS requests |
 | CloudWatch | About 1 GB of logs | `$0.50-$1.00` |
@@ -120,3 +126,5 @@ Plans Lambda -> SQS -> AI Worker Lambda -> DynamoDB job status
 ```
 
 Lambda executions are limited to 15 minutes, so large AI requests must be divided into durable batches.
+The AWS Render blueprint sets `VITE_ENABLE_AI=false`, and the DynamoDB Plans
+Lambda does not register the legacy AI/job routes.

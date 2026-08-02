@@ -25,6 +25,8 @@ import {
   updatePlanPage,
 } from "../store/learningUiSlice";
 
+const AI_ENABLED = import.meta.env.VITE_ENABLE_AI === "true";
+
 function JsonActionIcon({ name }) {
   const paths = {
     download: "M12 3v12m0 0 4-4m-4 4-4-4M5 20h14",
@@ -788,13 +790,13 @@ export default function PlanOverview({ loading = false }) {
           <WorkspaceIcon name="manual" />
           Manual course
         </button>
-        <button className="btn btn-secondary btn-sm" onClick={() => setShowAi(true)}>
+        {AI_ENABLED && <button className="btn btn-secondary btn-sm" onClick={() => setShowAi(true)}>
           <WorkspaceIcon name="ai" />
           AI suggested Course
-        </button>
+        </button>}
       </div>}
 
-      {!isAllPlans && <button
+      {AI_ENABLED && !isAllPlans && <button
         className="btn btn-secondary btn-sm ai-request-status-button"
         onClick={() => navigate(`/plans/${planId}/ai-requests`)}
       >
@@ -866,7 +868,7 @@ export default function PlanOverview({ loading = false }) {
       </nav>
       <LoadingBar active={loading} label="Refreshing learning plans…" />
       <div className="plan-course-scroll-body">
-        {submittedAiRequest && (
+        {AI_ENABLED && submittedAiRequest && (
           <div className="alert alert-info">
             AI request <strong>{submittedAiRequest.request_id}</strong> was
             queued.{" "}
@@ -1157,7 +1159,7 @@ export default function PlanOverview({ loading = false }) {
           onCourseCreated={(updated) => dispatch(updatePlan(updated))}
         />
       )}
-      {!isAllPlans && showAi && (
+      {AI_ENABLED && !isAllPlans && showAi && (
         <AiCourseModal
           plan={plan}
           onClose={() => setShowAi(false)}

@@ -19,17 +19,13 @@ To eliminate ECR completely, change the application to ZIP-based Lambda packages
 
 Use a new immutable `image_tag` such as a Git commit SHA for every release. Re-pushing the same tag does not change Terraform's `image_uri`, so Terraform would not trigger a Lambda code update.
 
-## Application prerequisites
+## Application runtime
 
-The infrastructure is ready for the target design, but the current application images still require code changes before deployment:
-
-- Replace the Uvicorn container entrypoint with a Lambda handler and Mangum ASGI adapter.
-- Add `dynamodb` to the supported storage backends and implement the DynamoDB repository.
-- Change Gateway downstream HTTP proxying to IAM-authorized `lambda:InvokeFunction` calls.
-- Load required `SecureString` values from the `SSM_PARAMETER_PREFIX` path.
-- Build Linux `arm64` images, matching the Terraform Lambda architecture.
-
-Do not apply with `deploy_lambdas=true` until Lambda-compatible images exist in ECR.
+The three services include Mangum handlers and `Dockerfile.lambda` images. The
+Gateway verifies Firebase identity, rate-limits through DynamoDB, and invokes
+the private YouTube and Plans functions through IAM. Plans and source-sync data
+use the normalized DynamoDB repository. Build Linux `arm64` images to match the
+Terraform architecture.
 
 ## Secrets Manager replacement
 
@@ -44,9 +40,9 @@ Standard parameters have no parameter-storage charge and use the AWS-managed `al
 Do not put secret values in `.tfvars` or Lambda environment-variable maps. Terraform state can retain those values. Create or update SecureString parameters independently through the AWS console, an approved CI secret store, or `aws ssm put-parameter`. Suggested names include:
 
 ```text
-/youtube-agent/dev1/firebase-service-account-json
-/youtube-agent/dev1/ai/groq-api-key
-/youtube-agent/dev1/ai/openai-api-key
+/youtube-agent/dev1/FIREBASE_SERVICE_ACCOUNT_JSON
+/youtube-agent/dev1/GROQ_API_KEY
+/youtube-agent/dev1/OPENAI_API_KEY
 ```
 
 Only create parameters actually used by the enabled features.
@@ -62,7 +58,15 @@ terraform init
 terraform apply -var="deploy_lambdas=false"
 ```
 
-3. Build and publish the three Lambda-compatible images to Docker Hub using the `linux/arm64` platform. Log in to ECR, then mirror them into the deployment repositories. Obtain source and destination maps with:
+3. From the repository root, build and publish the three Lambda-compatible images to Docker Hub using the `linux/arm64` platform and each service's `Dockerfile.lambda`:
+
+```powershell
+docker buildx build --platform linux/arm64 -f src/y2026/youtube_agent_2/backend/services/gateway/Dockerfile.lambda -t <dockerhub-user>/youtube-agent-gateway:<image-tag> --push .
+docker buildx build --platform linux/arm64 -f src/y2026/youtube_agent_2/backend/services/youtube/Dockerfile.lambda -t <dockerhub-user>/youtube-agent-youtube:<image-tag> --push .
+docker buildx build --platform linux/arm64 -f src/y2026/youtube_agent_2/backend/services/plans/Dockerfile.lambda -t <dockerhub-user>/youtube-agent-plans:<image-tag> --push .
+```
+
+Log in to ECR, then mirror them into the deployment repositories. Obtain source and destination maps with:
 
 ```powershell
 terraform output -json dockerhub_source_images

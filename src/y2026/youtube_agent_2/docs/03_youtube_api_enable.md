@@ -15,5 +15,5 @@
     - APIs & Services → Credentials → + Create Credentials → OAuth client ID.
     - Application type: choose “Web application”.
     - Name: e.g., “youtube-learning-ui”.
-    - Authorized JavaScript origins: (if needed) e.g., http://localhost:5173 , UI URL
-    - Authorized redirect URIs:  http://localhost:8001/auth/google/callback , backend api URL
+    - Authorized JavaScript origins: `http://localhost:5173` and the Render UI origin.
+    - No backend redirect URI or Google client secret is used. The UI uses Google Identity Services token flow and keeps the access token in memory.

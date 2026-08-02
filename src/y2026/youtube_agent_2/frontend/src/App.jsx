@@ -22,6 +22,8 @@ import { loadAiModels } from './store/aiModelsSlice'
 import { firebaseAuth } from './firebase'
 import appLogo from '../app-logo.png'
 
+const AI_ENABLED = import.meta.env.VITE_ENABLE_AI === 'true'
+
 function useTheme() {
   const [theme, setTheme] = React.useState(() => localStorage.getItem('yt_theme') || 'light')
 
@@ -500,11 +502,11 @@ function AppLayout() {
   }, [auth?.uid])
 
   React.useEffect(() => {
-    if (auth) dispatch(loadAiModels())
+    if (AI_ENABLED && auth) dispatch(loadAiModels())
   }, [auth?.uid, dispatch])
 
   React.useEffect(() => {
-    if (location.pathname !== '/ai-model-configs') return
+    if (!AI_ENABLED || location.pathname !== '/ai-model-configs') return
     setShowAiModelDrawer(true)
     navigate('/', { replace: true })
   }, [location.pathname, navigate])
@@ -706,7 +708,7 @@ function AppLayout() {
           <button type="button" className="quick-plan-button nav-color-search" onClick={() => setShowPlanSwitcher(true)} aria-label="Open global search" title="Global search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m15.5 15.5 5 5" /></svg></button>
           </div>
           <div className="right-nav-bottom">
-          <button type="button" className={`home-nav-button nav-color-ai ${showAiModelDrawer ? 'active' : ''}`} title="AI model configurations" aria-label="AI model configurations" onClick={() => setShowAiModelDrawer(true)}>AI</button>
+          {AI_ENABLED && <button type="button" className={`home-nav-button nav-color-ai ${showAiModelDrawer ? 'active' : ''}`} title="AI model configurations" aria-label="AI model configurations" onClick={() => setShowAiModelDrawer(true)}>AI</button>}
           <button type="button" className="home-nav-button settings-nav-button nav-color-settings" title="Settings" aria-label="Settings" onClick={() => setShowSettingsDrawer(true)}><WorkspaceIcon name="settings" /></button>
           <button type="button" className={`profile-nav-button ${profileOpen ? 'active' : ''}`} title={auth?.displayName || auth?.email || 'Profile'} aria-label="Profile" aria-expanded={profileOpen} onClick={openProfile}>{auth?.photoURL ? <img src={auth.photoURL} alt="" /> : <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></svg>}</button>
           </div>
@@ -723,7 +725,7 @@ function AppLayout() {
         </div>
         <div className="drawer-footer"><button className="btn btn-secondary" onClick={closeCreatePlanDrawer} disabled={creatingPlan}>Cancel</button><button className="btn btn-primary" onClick={submitNewPlan} disabled={creatingPlan}>{creatingPlan ? <><span className="spinner" /> Creating...</> : 'Create Plan'}</button></div>
       </aside></>}
-      {showAiModelDrawer && <AiModelConfigDrawer onClose={() => setShowAiModelDrawer(false)} />}
+      {AI_ENABLED && showAiModelDrawer && <AiModelConfigDrawer onClose={() => setShowAiModelDrawer(false)} />}
       {showSettingsDrawer && <><div className="drawer-overlay" onClick={() => setShowSettingsDrawer(false)} /><aside className="drawer settings-drawer" role="dialog" aria-modal="true" aria-labelledby="settings-drawer-title"><div className="drawer-header"><div><h2 id="settings-drawer-title">Settings</h2><p>Personalize your learning workspace.</p></div><button className="btn btn-secondary btn-sm" onClick={() => setShowSettingsDrawer(false)} aria-label="Close"><CloseIcon /></button></div><div className="drawer-body settings-drawer-body"><section className="settings-section"><div><h3>Font size</h3><p>Adjust text sizing across the application.</p></div><div className="settings-option-grid" role="group" aria-label="Global font size">{[['small', 'Small', 'Aa'], ['medium', 'Medium', 'Aa'], ['large', 'Large', 'Aa']].map(([size, label, sample]) => <button type="button" key={size} className={fontSize === size ? 'active' : ''} onClick={() => setFontSize(size)} aria-pressed={fontSize === size}><span className={`settings-font-sample ${size}`}>{sample}</span><strong>{label}</strong></button>)}</div></section><section className="settings-section"><div><h3>Theme</h3><p>Choose the color theme used throughout the application.</p></div><div className="settings-option-grid" role="group" aria-label="Theme">{['light', 'pale', 'dark'].map(value => <button type="button" key={value} className={theme === value ? 'active' : ''} onClick={() => setTheme(value)} aria-pressed={theme === value}><span className={`settings-theme-preview ${value}`}><ThemeIcon theme={value} /></span><strong>{value}</strong></button>)}</div></section></div><div className="drawer-footer"><button className="btn btn-primary" onClick={() => setShowSettingsDrawer(false)}>Done</button></div></aside></>}
       {showSourceSyncDrawer && <><div className="drawer-overlay" onClick={() => setShowSourceSyncDrawer(false)} /><aside className="drawer source-sync-drawer"><div className="drawer-header"><div><h2>Source feed inbox</h2><p>Pull new YouTube feeds, then route them to a course for review.</p></div><button className="btn btn-secondary btn-sm" onClick={() => setShowSourceSyncDrawer(false)} aria-label="Close"><CloseIcon /></button></div><LoadingBar active={sourceInboxLoading} label={sourceInboxLoadingLabel} className="drawer-loading-wait-bar" /><div className="drawer-body source-sync-body">
         <DismissibleError message={sourceSyncError} />
@@ -747,15 +749,15 @@ function AppLayout() {
           }) : <p className="source-sync-empty">{syncMetadata?.channels?.length ? 'No channels match this filter.' : 'No subscribed-channel metadata is stored yet. Pull new feeds from YouTube to start.'}</p>}</div>
         </section>
       </div></aside></>}
-      {sourcePreview && <SourceFeedPreviewDialog preview={sourcePreview} plans={plans} loading={sourcePushLoading} aiLoading={sourceAiLoading} error={sourcePreviewError} onClose={() => { setSourcePreview(null); setSourcePreviewError('') }} onPush={pushSourceFeeds} onOrganize={organizeSourceFeeds} onConfirmOrganization={confirmSourceOrganization} />}
+      {sourcePreview && <SourceFeedPreviewDialog preview={sourcePreview} plans={plans} loading={sourcePushLoading} aiLoading={sourceAiLoading} aiEnabled={AI_ENABLED} error={sourcePreviewError} onClose={() => { setSourcePreview(null); setSourcePreviewError('') }} onPush={pushSourceFeeds} onOrganize={organizeSourceFeeds} onConfirmOrganization={confirmSourceOrganization} />}
       {showPlanSwitcher && <GlobalSearchDrawer plans={plans} onClose={() => setShowPlanSwitcher(false)} onNavigate={navigate} />}
       <main className="main-content">
         <Routes location={routedLocation}>
-          <Route path="/" element={<Dashboard onOpenAiModels={() => setShowAiModelDrawer(true)} />} />
+          <Route path="/" element={<Dashboard aiEnabled={AI_ENABLED} onOpenAiModels={() => setShowAiModelDrawer(true)} />} />
           <Route path="/plans" element={<PlansRoute newPlanRequest={0} onRefresh={loadPlans} refreshing={plansLoading} />} />
           <Route path="/ai-model-configs" element={<Navigate to="/" replace />} />
           <Route path="/plans/:planId" element={<PlanOverview loading={plansLoading} />} />
-          <Route path="/plans/:planId/ai-requests" element={<AiRequests />} />
+          {AI_ENABLED && <Route path="/plans/:planId/ai-requests" element={<AiRequests />} />}
           <Route path="/plans/:planId/courses/:courseId" element={<CourseOverview />} />
           <Route path="/plans/:planId/courses/:courseId/learn" element={<CourseWorkspace />} />
           <Route path="*" element={<Navigate to="/" replace />} />

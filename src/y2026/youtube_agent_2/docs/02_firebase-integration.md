@@ -128,6 +128,11 @@ Do not configure the final Google YouTube OAuth callback URL yet; that will be d
 
 ## Step 5 — Per-user YouTube authorization
 
+> Historical implementation note: this server-side OAuth/token-storage design
+> has been superseded by the browser-memory Google Identity Services flow in
+> [09_aws-migration.md](09_aws-migration.md). Do not configure the legacy
+> callback, client secret, refresh-token store, or Render backend services.
+
 **Status:** Complete — code is ready; OAuth client URLs and secrets must be configured before live testing.
 
 - Added Firebase-authenticated endpoints to start a YouTube connection and retrieve connection status.
@@ -157,6 +162,9 @@ Do not configure the final Google YouTube OAuth callback URL yet; that will be d
 - Support an optional Render `YOUTUBE_API_KEY` only for public-data fallback calls.
 
 ## Step 6 — Render deployment
+
+> Superseded: Render now hosts only the static UI. The three backend services
+> run in AWS Lambda; use `deployment/infra_1_aws`.
 
 **Status:** Complete — Blueprint and deployment instructions are ready; Render account actions are required to launch services.
 

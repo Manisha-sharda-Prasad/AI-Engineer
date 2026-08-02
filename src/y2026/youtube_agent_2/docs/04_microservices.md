@@ -78,9 +78,9 @@ src.y2026.youtube_agent_2.backend.services.plans.app.main:app
 ```text
 backend/
   services/
-    gateway/app/       # routing and proxy implementation
-    youtube/app/       # OAuth, catalog, YouTube client, token repository
-    plans/app/         # plans, sync workflows, models, plan repository
+    gateway/app/       # Firebase auth, rate limiting, Lambda/HTTP routing
+    youtube/app/       # request-scoped catalog and YouTube client
+    plans/app/         # plans, sync workflows, DynamoDB/local repositories
   shared/
     contracts/         # HTTP/event payload types only
     platform/          # auth identity, Firebase setup, middleware
@@ -88,10 +88,7 @@ backend/
 
 Allowed imports are `service -> shared` and imports within the same service.
 One service must not import another service's `app` package. Runtime
-communication uses HTTP contracts.
+communication uses HTTP locally and IAM-authorized Lambda invocation in AWS.
 
-A Render blueprint is available at
-`../deployment/render/render-microservices.yaml`. Configure both internal URL
-variables and set the same `INTERNAL_SERVICE_TOKEN` value on the YouTube and
-plans services before directing the UI to the gateway. Each service builds
-from the Dockerfile and requirements file inside its own folder.
+AWS deployment lives in `../deployment/infra_1_aws`. Render deploys only the
+static UI. Gateway is the sole public Lambda; YouTube and Plans remain private.

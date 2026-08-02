@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import json
+import base64
 from typing import Protocol
+from urllib.parse import urlencode
 
 import requests
 from fastapi import HTTPException
@@ -44,10 +47,14 @@ class HttpYouTubeProvider:
                 status_code=401,
                 detail="Firebase user identity is required for YouTube service calls",
             )
-        return {
+        headers = {
             "X-Internal-Service-Token": config.INTERNAL_SERVICE_TOKEN,
             "X-Internal-User-ID": user_id,
         }
+        access_token = identity.current_youtube_access_token()
+        if access_token:
+            headers["X-YouTube-Access-Token"] = access_token
+        return headers
 
     def _get(self, path: str, params: dict | None = None) -> dict:
         try:
@@ -86,6 +93,50 @@ class HttpYouTubeProvider:
         return self._get("/api/videos", params).get("videos", [])
 
 
+class LambdaYouTubeProvider(HttpYouTubeProvider):
+    def __init__(self, function_name: str):
+        super().__init__("")
+        self.function_name = function_name
+        import boto3
+
+        self.client = boto3.client("lambda")
+
+    def _get(self, path: str, params: dict | None = None) -> dict:
+        user_id = identity.current_user_id()
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Firebase identity required")
+        headers = {}
+        access_token = identity.current_youtube_access_token()
+        if access_token:
+            headers["X-YouTube-Access-Token"] = access_token
+        event = {
+            "source": "youtube-agent.gateway",
+            "user_id": user_id,
+            "request": {
+                "method": "GET",
+                "path": path,
+                "query": urlencode(params or {}),
+                "headers": headers,
+            },
+        }
+        result = self.client.invoke(
+            FunctionName=self.function_name,
+            InvocationType="RequestResponse",
+            Payload=json.dumps(event).encode(),
+        )
+        payload = json.loads(result["Payload"].read())
+        if result.get("FunctionError"):
+            raise HTTPException(status_code=503, detail="YouTube service unavailable")
+        raw_body = payload.get("body") or "{}"
+        if payload.get("isBase64Encoded"):
+            raw_body = base64.b64decode(raw_body).decode("utf-8")
+        body = json.loads(raw_body)
+        status = int(payload.get("statusCode", 500))
+        if status >= 400:
+            raise HTTPException(status_code=status, detail=body.get("detail", body))
+        return body
+
+
 _provider_override: SourceProvider | None = None
 
 
@@ -96,4 +147,8 @@ def configure_source_provider(provider: SourceProvider | None) -> None:
 
 
 def get_source_provider() -> SourceProvider:
-    return _provider_override or HttpYouTubeProvider(config.YOUTUBE_SERVICE_URL)
+    if _provider_override:
+        return _provider_override
+    if config.DOWNSTREAM_INVOKE_MODE == "lambda":
+        return LambdaYouTubeProvider(config.YOUTUBE_FUNCTION_NAME)
+    return HttpYouTubeProvider(config.YOUTUBE_SERVICE_URL)

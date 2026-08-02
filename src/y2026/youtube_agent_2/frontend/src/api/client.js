@@ -8,6 +8,8 @@ export {
   isTerminalAiRequestStatus,
 } from './aiContracts'
 
+import { peekYouTubeAccessToken } from '../youtubeAuth'
+
 const BASE = import.meta.env.VITE_API_BASE_URL || ''
 let accessTokenProvider = async () => null
 
@@ -17,9 +19,9 @@ export function setAccessTokenProvider(provider) {
 
 async function request(path, options = {}) {
   const token = await accessTokenProvider()
+  const youtubeToken = peekYouTubeAccessToken()
   const res = await fetch(`${BASE}${path}`, {
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...options.headers },
+    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(youtubeToken ? { 'X-YouTube-Access-Token': youtubeToken } : {}), ...options.headers },
     ...options,
   })
   if (!res.ok) {
@@ -34,14 +36,6 @@ async function request(path, options = {}) {
     throw new Error(`HTTP ${res.status}: ${detail}`)
   }
   return res.json()
-}
-
-export function getYouTubeConnectionStatus() {
-  return request('/api/integrations/youtube/status')
-}
-
-export function startYouTubeConnection() {
-  return request('/api/integrations/youtube/connect', { method: 'POST' })
 }
 
 export function getChannels() {

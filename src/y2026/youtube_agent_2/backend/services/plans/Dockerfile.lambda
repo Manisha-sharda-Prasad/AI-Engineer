@@ -1,0 +1,7 @@
+FROM public.ecr.aws/lambda/python:3.13
+
+COPY src/y2026/youtube_agent_2/backend/services/plans/requirements.lambda.txt /tmp/requirements.txt
+RUN pip install --no-cache-dir -r /tmp/requirements.txt --target "${LAMBDA_TASK_ROOT}"
+COPY src "${LAMBDA_TASK_ROOT}/src"
+
+CMD ["src.y2026.youtube_agent_2.backend.services.plans.app.lambda_handler.handler"]

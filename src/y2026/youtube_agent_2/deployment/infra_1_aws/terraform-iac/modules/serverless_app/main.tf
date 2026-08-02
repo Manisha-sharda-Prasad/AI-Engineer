@@ -157,6 +157,17 @@ data "aws_iam_policy_document" "lambda" {
   }
 
   dynamic "statement" {
+    for_each = each.key == "plans" ? [1] : []
+    content {
+      sid     = "InvokeYouTubeService"
+      actions = ["lambda:InvokeFunction"]
+      resources = [
+        "arn:${data.aws_partition.current.partition}:lambda:${var.aws_region}:${local.aws_account_id}:function:${local.function_names["youtube"]}",
+      ]
+    }
+  }
+
+  dynamic "statement" {
     for_each = each.key == "gateway" ? [1] : []
     content {
       sid = "MaintainRateLimits"
@@ -274,6 +285,9 @@ resource "aws_lambda_function" "service" {
         DOWNSTREAM_INVOKE_MODE        = "lambda"
         GATEWAY_YOUTUBE_FUNCTION_NAME = local.function_names["youtube"]
         GATEWAY_PLANS_FUNCTION_NAME   = local.function_names["plans"]
+        } : each.key == "plans" ? {
+        DOWNSTREAM_INVOKE_MODE = "lambda"
+        YOUTUBE_FUNCTION_NAME  = local.function_names["youtube"]
       } : {},
       var.additional_environment_variables,
     )
@@ -297,7 +311,7 @@ resource "aws_lambda_function_url" "gateway" {
 
   cors {
     allow_credentials = false
-    allow_headers     = ["authorization", "content-type"]
+    allow_headers     = ["authorization", "content-type", "x-youtube-access-token"]
     allow_methods     = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
     allow_origins     = [var.frontend_url]
     expose_headers    = ["content-type"]
