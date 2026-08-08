@@ -1,11 +1,11 @@
 {
   "logo_url": "https://yt3.ggpht.com/4Zw9XifSAyf1FNmM2969egek-4QjYpCT8ELGf3m4dP5YZiq6ch_MFjywuPjJt_hyWoTsO4U5Ug=s88-c-k-c0x00ffffff-no-rj",
   "icon_key": "",
-  "id": "a5028a50-b09c-4ab3-912e-6d8b035ac1fe",
+  "id": "1459ff84-c5d8-4252-9d5d-e27355d5c13e",
   "name": "ByteMonk",
   "description": "* All videos * manually organized by ChatGPT chats",
-  "created_at": "2026-07-23 21:35:11.887211+00:00",
-  "updated_at": "2026-07-27 20:59:26.595155+00:00",
+  "created_at": "2026-08-01 21:52:32.036893+00:00",
+  "updated_at": "2026-08-07 02:08:03.261652+00:00",
   "courses": [
     {
       "id": "9f895952-74bb-4951-9628-dcb63f225f19",
@@ -17,11 +17,11 @@
       "labels": [
         "system-design"
       ],
-      "last_played_video_id": "8vzPwflhqZU",
-      "last_played_position_secs": 37,
-      "last_played_at": "2026-07-27 18:05:38.926673+00:00",
+      "last_played_video_id": "1B1Hr-lM7jg",
+      "last_played_position_secs": 335,
+      "last_played_at": "2026-08-03 03:07:04.506184+00:00",
       "created_at": "2026-07-18 16:57:59+00:00",
-      "updated_at": "2026-07-27 20:35:25.132899+00:00",
+      "updated_at": "2026-08-03 03:07:04.506184+00:00",
       "modules": [
         {
           "id": "eb047eba-718d-4ebb-95bf-05ca5e18a62b",
@@ -59,10 +59,11 @@
               "recording_date": null,
               "watched": true,
               "labels": [
-                "watched"
+                "watched",
+                "mark_for_delete"
               ],
-              "last_played_position_secs": 8,
-              "last_played_at": "2026-07-25 03:53:09.270892+00:00"
+              "last_played_position_secs": 44,
+              "last_played_at": "2026-08-02 03:46:46.721099+00:00"
             },
             {
               "video_id": "8vzPwflhqZU",
@@ -86,8 +87,10 @@
               "view_count": 18961,
               "like_count": 358,
               "recording_date": null,
-              "watched": false,
-              "labels": [],
+              "watched": true,
+              "labels": [
+                "watched"
+              ],
               "last_played_position_secs": 37,
               "last_played_at": "2026-07-27 18:05:38.926673+00:00"
             },
@@ -119,8 +122,10 @@
               "view_count": 13313,
               "like_count": 389,
               "recording_date": null,
-              "watched": false,
-              "labels": [],
+              "watched": true,
+              "labels": [
+                "watched"
+              ],
               "last_played_position_secs": null,
               "last_played_at": null
             },
@@ -152,7 +157,9 @@
               "like_count": 497,
               "recording_date": null,
               "watched": false,
-              "labels": [],
+              "labels": [
+                "mark_for_delete"
+              ],
               "last_played_position_secs": 6,
               "last_played_at": "2026-07-21 05:15:22.066198+00:00"
             },
@@ -211,8 +218,10 @@
               "view_count": 12075,
               "like_count": 214,
               "recording_date": "2021-12-19 00:00:00+00:00",
-              "watched": false,
-              "labels": [],
+              "watched": true,
+              "labels": [
+                "watched"
+              ],
               "last_played_position_secs": null,
               "last_played_at": null
             },
@@ -245,7 +254,9 @@
               "like_count": 1609,
               "recording_date": null,
               "watched": false,
-              "labels": [],
+              "labels": [
+                "mark_for_delete"
+              ],
               "last_played_position_secs": null,
               "last_played_at": null
             },
@@ -272,8 +283,10 @@
               "view_count": 87250,
               "like_count": 1439,
               "recording_date": null,
-              "watched": false,
-              "labels": [],
+              "watched": true,
+              "labels": [
+                "watched"
+              ],
               "last_played_position_secs": null,
               "last_played_at": null
             },
@@ -344,7 +357,9 @@
               "like_count": 416,
               "recording_date": null,
               "watched": false,
-              "labels": [],
+              "labels": [
+                "mark_for_delete"
+              ],
               "last_played_position_secs": null,
               "last_played_at": null
             },
@@ -380,7 +395,9 @@
               "like_count": 289,
               "recording_date": null,
               "watched": false,
-              "labels": [],
+              "labels": [
+                "mark_for_delete"
+              ],
               "last_played_position_secs": null,
               "last_played_at": null
             },
@@ -442,7 +459,9 @@
               "like_count": 486,
               "recording_date": null,
               "watched": false,
-              "labels": [],
+              "labels": [
+                "mark_for_delete"
+              ],
               "last_played_position_secs": null,
               "last_played_at": null
             },
@@ -476,8 +495,10 @@
               "view_count": 363620,
               "like_count": 9174,
               "recording_date": null,
-              "watched": false,
-              "labels": [],
+              "watched": true,
+              "labels": [
+                "watched"
+              ],
               "last_played_position_secs": null,
               "last_played_at": null
             },
@@ -511,8 +532,10 @@
               "view_count": 26200,
               "like_count": 339,
               "recording_date": null,
-              "watched": false,
-              "labels": [],
+              "watched": true,
+              "labels": [
+                "watched"
+              ],
               "last_played_position_secs": null,
               "last_played_at": null
             },
@@ -544,7 +567,9 @@
               "like_count": 507,
               "recording_date": null,
               "watched": false,
-              "labels": [],
+              "labels": [
+                "mark_for_delete"
+              ],
               "last_played_position_secs": null,
               "last_played_at": null
             },
@@ -575,8 +600,10 @@
               "view_count": 13448,
               "like_count": 362,
               "recording_date": null,
-              "watched": false,
-              "labels": [],
+              "watched": true,
+              "labels": [
+                "watched"
+              ],
               "last_played_position_secs": null,
               "last_played_at": null
             },
@@ -608,8 +635,10 @@
               "view_count": 7973,
               "like_count": 223,
               "recording_date": null,
-              "watched": false,
-              "labels": [],
+              "watched": true,
+              "labels": [
+                "watched"
+              ],
               "last_played_position_secs": 16,
               "last_played_at": "2026-07-24 23:41:10.399658+00:00"
             },
@@ -877,7 +906,9 @@
               "like_count": 235,
               "recording_date": null,
               "watched": false,
-              "labels": [],
+              "labels": [
+                "mark_for_delete"
+              ],
               "last_played_position_secs": null,
               "last_played_at": null
             },
@@ -960,8 +991,10 @@
               "view_count": 105915,
               "like_count": 2472,
               "recording_date": null,
-              "watched": false,
-              "labels": [],
+              "watched": true,
+              "labels": [
+                "watched"
+              ],
               "last_played_position_secs": null,
               "last_played_at": null
             },
@@ -991,8 +1024,10 @@
               "view_count": 289911,
               "like_count": 5922,
               "recording_date": null,
-              "watched": false,
-              "labels": [],
+              "watched": true,
+              "labels": [
+                "watched"
+              ],
               "last_played_position_secs": null,
               "last_played_at": null
             },
@@ -1124,8 +1159,11 @@
               "view_count": 2142,
               "like_count": 64,
               "recording_date": null,
-              "watched": false,
-              "labels": [],
+              "watched": true,
+              "labels": [
+                "watched",
+                "mark_for_delete"
+              ],
               "last_played_position_secs": null,
               "last_played_at": null
             },
@@ -1538,7 +1576,9 @@
               "like_count": 33,
               "recording_date": null,
               "watched": false,
-              "labels": [],
+              "labels": [
+                "mark_for_delete"
+              ],
               "last_played_position_secs": null,
               "last_played_at": null
             },
@@ -1570,9 +1610,11 @@
               "like_count": 121,
               "recording_date": null,
               "watched": false,
-              "labels": [],
-              "last_played_position_secs": null,
-              "last_played_at": null
+              "labels": [
+                "mark_for_delete"
+              ],
+              "last_played_position_secs": 40,
+              "last_played_at": "2026-08-03 03:01:11.707096+00:00"
             },
             {
               "video_id": "t3HvCLYnrRY",
@@ -1644,8 +1686,10 @@
               "view_count": 11639,
               "like_count": 277,
               "recording_date": null,
-              "watched": false,
-              "labels": [],
+              "watched": true,
+              "labels": [
+                "watched"
+              ],
               "last_played_position_secs": null,
               "last_played_at": null
             },
@@ -1834,10 +1878,13 @@
               "view_count": 13659,
               "like_count": 425,
               "recording_date": null,
-              "watched": false,
-              "labels": [],
-              "last_played_position_secs": null,
-              "last_played_at": null
+              "watched": true,
+              "labels": [
+                "bookmarked",
+                "watched"
+              ],
+              "last_played_position_secs": 335,
+              "last_played_at": "2026-08-03 03:07:04.506184+00:00"
             },
             {
               "video_id": "kxKqp1HEN_8",
@@ -1867,7 +1914,9 @@
               "like_count": 31,
               "recording_date": null,
               "watched": false,
-              "labels": [],
+              "labels": [
+                "mark_for_delete"
+              ],
               "last_played_position_secs": null,
               "last_played_at": null
             },
@@ -1897,7 +1946,9 @@
               "like_count": 180,
               "recording_date": null,
               "watched": false,
-              "labels": [],
+              "labels": [
+                "mark_for_delete"
+              ],
               "last_played_position_secs": null,
               "last_played_at": null
             },
@@ -1931,7 +1982,9 @@
               "like_count": 91,
               "recording_date": null,
               "watched": false,
-              "labels": [],
+              "labels": [
+                "mark_for_delete"
+              ],
               "last_played_position_secs": null,
               "last_played_at": null
             },
@@ -3399,9 +3452,10 @@
               "view_count": 2843,
               "like_count": 135,
               "recording_date": null,
-              "watched": false,
+              "watched": true,
               "labels": [
-                "load-balancing-and-traffic-management"
+                "load-balancing-and-traffic-management",
+                "watched"
               ],
               "last_played_position_secs": null,
               "last_played_at": null
@@ -3433,9 +3487,10 @@
               "view_count": 2220,
               "like_count": 102,
               "recording_date": null,
-              "watched": false,
+              "watched": true,
               "labels": [
-                "load-balancing-and-traffic-management"
+                "load-balancing-and-traffic-management",
+                "watched"
               ],
               "last_played_position_secs": null,
               "last_played_at": null
@@ -3469,7 +3524,8 @@
               "recording_date": null,
               "watched": false,
               "labels": [
-                "load-balancing-and-traffic-management"
+                "load-balancing-and-traffic-management",
+                "mark_for_delete"
               ],
               "last_played_position_secs": null,
               "last_played_at": null
@@ -3503,9 +3559,10 @@
               "view_count": 2790,
               "like_count": 94,
               "recording_date": null,
-              "watched": false,
+              "watched": true,
               "labels": [
-                "load-balancing-and-traffic-management"
+                "load-balancing-and-traffic-management",
+                "watched"
               ],
               "last_played_position_secs": null,
               "last_played_at": null
@@ -3541,7 +3598,8 @@
               "recording_date": null,
               "watched": false,
               "labels": [
-                "load-balancing-and-traffic-management"
+                "load-balancing-and-traffic-management",
+                "mark_for_delete"
               ],
               "last_played_position_secs": null,
               "last_played_at": null
@@ -3573,9 +3631,10 @@
               "view_count": 11240,
               "like_count": 347,
               "recording_date": null,
-              "watched": false,
+              "watched": true,
               "labels": [
-                "load-balancing-and-traffic-management"
+                "load-balancing-and-traffic-management",
+                "watched"
               ],
               "last_played_position_secs": null,
               "last_played_at": null
@@ -3607,9 +3666,10 @@
               "view_count": 2991,
               "like_count": 124,
               "recording_date": null,
-              "watched": false,
+              "watched": true,
               "labels": [
-                "load-balancing-and-traffic-management"
+                "load-balancing-and-traffic-management",
+                "watched"
               ],
               "last_played_position_secs": null,
               "last_played_at": null
@@ -3816,7 +3876,8 @@
               "recording_date": null,
               "watched": false,
               "labels": [
-                "load-balancing-and-traffic-management"
+                "load-balancing-and-traffic-management",
+                "mark_for_delete"
               ],
               "last_played_position_secs": null,
               "last_played_at": null
@@ -3879,12 +3940,13 @@
               "view_count": 55309,
               "like_count": 1306,
               "recording_date": null,
-              "watched": false,
+              "watched": true,
               "labels": [
-                "load-balancing-and-traffic-management"
+                "load-balancing-and-traffic-management",
+                "watched"
               ],
-              "last_played_position_secs": null,
-              "last_played_at": null
+              "last_played_position_secs": 9,
+              "last_played_at": "2026-08-02 03:52:16.714268+00:00"
             },
             {
               "video_id": "UpZWf1tH6K0",
@@ -3913,10 +3975,11 @@
               "recording_date": null,
               "watched": false,
               "labels": [
-                "load-balancing-and-traffic-management"
+                "load-balancing-and-traffic-management",
+                "mark_for_delete"
               ],
-              "last_played_position_secs": null,
-              "last_played_at": null
+              "last_played_position_secs": 30,
+              "last_played_at": "2026-08-02 03:51:55.522968+00:00"
             }
           ]
         },
@@ -6523,13 +6586,13 @@
           "channel_id": "UCzCsyvyrq38R6TnztEzOmgg",
           "title": "ByteMonk",
           "url": "https://www.youtube.com/channel/UCzCsyvyrq38R6TnztEzOmgg",
-          "video_count": 544,
-          "videos_count": 544,
+          "video_count": 545,
+          "videos_count": 545,
           "thumbnail": "https://yt3.ggpht.com/4Zw9XifSAyf1FNmM2969egek-4QjYpCT8ELGf3m4dP5YZiq6ch_MFjywuPjJt_hyWoTsO4U5Ug=s800-c-k-c0x00ffffff-no-rj",
           "source_created_at": "2021-11-14 05:26:13.206443+00:00",
           "last_video_published_at": "2026-07-15 03:00:05+00:00",
-          "last_synced_at": "2026-07-25 20:46:25.905262+00:00",
-          "last_feed_checked_at": "2026-07-25 20:46:25.905262+00:00",
+          "last_synced_at": "2026-08-06 19:55:02.950261+00:00",
+          "last_feed_checked_at": "2026-08-06 19:55:02.950261+00:00",
           "playlists": []
         }
       ],
@@ -6542,12 +6605,14 @@
       "description": "Learn storage engines, databases, search, scaling, and data-platform architecture.",
       "logo_url": "https://api.dicebear.com/10.x/bottts-neutral/svg?seed=Felix",
       "icon_key": "databases-storage-and-data-platforms",
-      "labels": [],
+      "labels": [
+        "system-design"
+      ],
       "last_played_video_id": null,
       "last_played_position_secs": null,
       "last_played_at": null,
       "created_at": "2026-07-18 16:57:59+00:00",
-      "updated_at": "2026-07-27 20:32:46.440202+00:00",
+      "updated_at": "2026-08-01 22:32:01.308795+00:00",
       "modules": [
         {
           "id": "923a9013-32e4-47ca-b13f-daf3b59aa1b3",
@@ -7542,13 +7607,13 @@
           "channel_id": "UCzCsyvyrq38R6TnztEzOmgg",
           "title": "ByteMonk",
           "url": "https://www.youtube.com/channel/UCzCsyvyrq38R6TnztEzOmgg",
-          "video_count": 544,
-          "videos_count": 544,
+          "video_count": 545,
+          "videos_count": 545,
           "thumbnail": "https://yt3.ggpht.com/4Zw9XifSAyf1FNmM2969egek-4QjYpCT8ELGf3m4dP5YZiq6ch_MFjywuPjJt_hyWoTsO4U5Ug=s800-c-k-c0x00ffffff-no-rj",
           "source_created_at": "2021-11-14 05:26:13.206443+00:00",
           "last_video_published_at": "2026-07-15 03:00:05+00:00",
-          "last_synced_at": "2026-07-25 20:46:25.905262+00:00",
-          "last_feed_checked_at": "2026-07-25 20:46:25.905262+00:00",
+          "last_synced_at": "2026-08-06 19:55:02.950261+00:00",
+          "last_feed_checked_at": "2026-08-06 19:55:02.950261+00:00",
           "playlists": []
         }
       ],
@@ -7561,12 +7626,15 @@
       "description": "Design REST, GraphQL, gRPC, WebSocket, WebRTC, webhook, and streaming APIs.",
       "logo_url": "https://api.dicebear.com/10.x/bottts-neutral/svg?seed=Felix",
       "icon_key": "api-design-and-real-time-communication",
-      "labels": [],
-      "last_played_video_id": null,
-      "last_played_position_secs": null,
-      "last_played_at": null,
+      "labels": [
+        "system-design",
+        "watched"
+      ],
+      "last_played_video_id": "AMNWLz_f6qM",
+      "last_played_position_secs": 820,
+      "last_played_at": "2026-08-06 06:59:51.588948+00:00",
       "created_at": "2026-07-18 16:57:59+00:00",
-      "updated_at": "2026-07-27 20:32:48.014840+00:00",
+      "updated_at": "2026-08-07 02:02:55.219568+00:00",
       "modules": [
         {
           "id": "668fda57-2359-4e59-9daa-ca38e4807e49",
@@ -7603,12 +7671,13 @@
               "view_count": 30017,
               "like_count": 959,
               "recording_date": null,
-              "watched": false,
+              "watched": true,
               "labels": [
-                "rest-and-http-fundamentals"
+                "rest-and-http-fundamentals",
+                "watched"
               ],
-              "last_played_position_secs": null,
-              "last_played_at": null
+              "last_played_position_secs": 412,
+              "last_played_at": "2026-08-06 00:34:01.238662+00:00"
             },
             {
               "video_id": "pJ83mmqcvoQ",
@@ -7638,12 +7707,13 @@
               "view_count": 119008,
               "like_count": 4315,
               "recording_date": null,
-              "watched": false,
+              "watched": true,
               "labels": [
-                "rest-and-http-fundamentals"
+                "rest-and-http-fundamentals",
+                "watched"
               ],
-              "last_played_position_secs": null,
-              "last_played_at": null
+              "last_played_position_secs": 598,
+              "last_played_at": "2026-08-06 00:22:40.030129+00:00"
             },
             {
               "video_id": "HV5u-HjEFvY",
@@ -7670,12 +7740,13 @@
               "view_count": 27110,
               "like_count": 970,
               "recording_date": null,
-              "watched": false,
+              "watched": true,
               "labels": [
-                "rest-and-http-fundamentals"
+                "rest-and-http-fundamentals",
+                "watched"
               ],
-              "last_played_position_secs": null,
-              "last_played_at": null
+              "last_played_position_secs": 434,
+              "last_played_at": "2026-08-06 00:40:14.946207+00:00"
             },
             {
               "video_id": "KF-3jtGH6Yk",
@@ -7705,12 +7776,13 @@
               "view_count": 29288,
               "like_count": 910,
               "recording_date": null,
-              "watched": false,
+              "watched": true,
               "labels": [
-                "rest-and-http-fundamentals"
+                "rest-and-http-fundamentals",
+                "watched"
               ],
-              "last_played_position_secs": null,
-              "last_played_at": null
+              "last_played_position_secs": 657,
+              "last_played_at": "2026-08-06 00:44:33.926133+00:00"
             }
           ]
         },
@@ -7750,12 +7822,13 @@
               "view_count": 5215,
               "like_count": 197,
               "recording_date": null,
-              "watched": false,
+              "watched": true,
               "labels": [
-                "graphql"
+                "graphql",
+                "watched"
               ],
-              "last_played_position_secs": null,
-              "last_played_at": null
+              "last_played_position_secs": 792,
+              "last_played_at": "2026-08-06 00:54:37.436171+00:00"
             },
             {
               "video_id": "TCl1U4mqnwg",
@@ -7793,10 +7866,12 @@
               "view_count": 8357,
               "like_count": 180,
               "recording_date": null,
-              "watched": false,
+              "watched": true,
               "labels": [
                 "short",
-                "graphql"
+                "graphql",
+                "watched",
+                "mark_for_delete"
               ],
               "last_played_position_secs": null,
               "last_played_at": null
@@ -7839,12 +7914,13 @@
               "view_count": 174012,
               "like_count": 4986,
               "recording_date": null,
-              "watched": false,
+              "watched": true,
               "labels": [
-                "grpc-and-service-communication"
+                "grpc-and-service-communication",
+                "watched"
               ],
-              "last_played_position_secs": null,
-              "last_played_at": null
+              "last_played_position_secs": 820,
+              "last_played_at": "2026-08-06 06:59:51.588948+00:00"
             },
             {
               "video_id": "TFXBFh66rrk",
@@ -7879,9 +7955,11 @@
               "view_count": 10833,
               "like_count": 362,
               "recording_date": null,
-              "watched": false,
+              "watched": true,
               "labels": [
-                "grpc-and-service-communication"
+                "grpc-and-service-communication",
+                "mark_for_delete",
+                "watched"
               ],
               "last_played_position_secs": null,
               "last_played_at": null
@@ -7934,9 +8012,10 @@
               "view_count": 13546,
               "like_count": 550,
               "recording_date": null,
-              "watched": false,
+              "watched": true,
               "labels": [
-                "grpc-and-service-communication"
+                "grpc-and-service-communication",
+                "watched"
               ],
               "last_played_position_secs": null,
               "last_played_at": null
@@ -7995,12 +8074,13 @@
               "view_count": 40704,
               "like_count": 1224,
               "recording_date": null,
-              "watched": false,
+              "watched": true,
               "labels": [
-                "websockets-sse-and-streaming"
+                "websockets-sse-and-streaming",
+                "watched"
               ],
-              "last_played_position_secs": null,
-              "last_played_at": null
+              "last_played_position_secs": 8,
+              "last_played_at": "2026-08-06 04:57:49.241324+00:00"
             },
             {
               "video_id": "NvZEZ-mZsuI",
@@ -8041,9 +8121,10 @@
               "view_count": 160236,
               "like_count": 6478,
               "recording_date": null,
-              "watched": false,
+              "watched": true,
               "labels": [
-                "websockets-sse-and-streaming"
+                "websockets-sse-and-streaming",
+                "watched"
               ],
               "last_played_position_secs": null,
               "last_played_at": null
@@ -8089,9 +8170,11 @@
               "view_count": 16969,
               "like_count": 626,
               "recording_date": null,
-              "watched": false,
+              "watched": true,
               "labels": [
-                "websockets-sse-and-streaming"
+                "websockets-sse-and-streaming",
+                "mark_for_delete",
+                "watched"
               ],
               "last_played_position_secs": null,
               "last_played_at": null
@@ -8124,12 +8207,13 @@
               "view_count": 13204,
               "like_count": 538,
               "recording_date": null,
-              "watched": false,
+              "watched": true,
               "labels": [
-                "websockets-sse-and-streaming"
+                "websockets-sse-and-streaming",
+                "watched"
               ],
-              "last_played_position_secs": null,
-              "last_played_at": null
+              "last_played_position_secs": 327,
+              "last_played_at": "2026-08-06 01:49:52.163750+00:00"
             },
             {
               "video_id": "G0_e02DdH7I",
@@ -8161,12 +8245,13 @@
               "view_count": 85248,
               "like_count": 2550,
               "recording_date": null,
-              "watched": false,
+              "watched": true,
               "labels": [
-                "websockets-sse-and-streaming"
+                "websockets-sse-and-streaming",
+                "watched"
               ],
-              "last_played_position_secs": null,
-              "last_played_at": null
+              "last_played_position_secs": 612,
+              "last_played_at": "2026-08-06 01:47:31.240559+00:00"
             }
           ]
         },
@@ -8209,9 +8294,10 @@
               "view_count": 69444,
               "like_count": 1449,
               "recording_date": null,
-              "watched": false,
+              "watched": true,
               "labels": [
-                "webrtc-and-peer-to-peer"
+                "webrtc-and-peer-to-peer",
+                "watched"
               ],
               "last_played_position_secs": null,
               "last_played_at": null
@@ -8266,12 +8352,14 @@
               "view_count": 54792,
               "like_count": 2080,
               "recording_date": null,
-              "watched": false,
+              "watched": true,
               "labels": [
-                "webrtc-and-peer-to-peer"
+                "webrtc-and-peer-to-peer",
+                "bookmarked",
+                "watched"
               ],
-              "last_played_position_secs": null,
-              "last_played_at": null
+              "last_played_position_secs": 59,
+              "last_played_at": "2026-08-06 01:05:27.919724+00:00"
             }
           ]
         },
@@ -8311,12 +8399,13 @@
               "view_count": 6545,
               "like_count": 167,
               "recording_date": null,
-              "watched": false,
+              "watched": true,
               "labels": [
-                "webhooks-and-api-platforms"
+                "webhooks-and-api-platforms",
+                "watched"
               ],
-              "last_played_position_secs": null,
-              "last_played_at": null
+              "last_played_position_secs": 40,
+              "last_played_at": "2026-08-06 00:57:25.546629+00:00"
             },
             {
               "video_id": "mOF42NjRaN4",
@@ -8367,9 +8456,10 @@
               "view_count": 9890,
               "like_count": 310,
               "recording_date": null,
-              "watched": false,
+              "watched": true,
               "labels": [
-                "webhooks-and-api-platforms"
+                "webhooks-and-api-platforms",
+                "watched"
               ],
               "last_played_position_secs": null,
               "last_played_at": null
@@ -8382,13 +8472,13 @@
           "channel_id": "UCzCsyvyrq38R6TnztEzOmgg",
           "title": "ByteMonk",
           "url": "https://www.youtube.com/channel/UCzCsyvyrq38R6TnztEzOmgg",
-          "video_count": 544,
-          "videos_count": 544,
+          "video_count": 545,
+          "videos_count": 545,
           "thumbnail": "https://yt3.ggpht.com/4Zw9XifSAyf1FNmM2969egek-4QjYpCT8ELGf3m4dP5YZiq6ch_MFjywuPjJt_hyWoTsO4U5Ug=s800-c-k-c0x00ffffff-no-rj",
           "source_created_at": "2021-11-14 05:26:13.206443+00:00",
           "last_video_published_at": "2026-07-15 03:00:05+00:00",
-          "last_synced_at": "2026-07-25 20:46:25.905262+00:00",
-          "last_feed_checked_at": "2026-07-25 20:46:25.905262+00:00",
+          "last_synced_at": "2026-08-06 19:55:02.950261+00:00",
+          "last_feed_checked_at": "2026-08-06 19:55:02.950261+00:00",
           "playlists": []
         }
       ],
@@ -8401,12 +8491,14 @@
       "description": "Progress from architecture fundamentals to production microservices patterns.",
       "logo_url": "https://api.dicebear.com/10.x/bottts-neutral/svg?seed=Felix",
       "icon_key": "microservices-and-software-architecture",
-      "labels": [],
-      "last_played_video_id": null,
-      "last_played_position_secs": null,
-      "last_played_at": null,
+      "labels": [
+        "system-design"
+      ],
+      "last_played_video_id": "PLi-dO1RiFw",
+      "last_played_position_secs": 7,
+      "last_played_at": "2026-08-07 02:08:03.261652+00:00",
       "created_at": "2026-07-18 16:57:59+00:00",
-      "updated_at": "2026-07-27 20:32:49.468101+00:00",
+      "updated_at": "2026-08-07 02:08:03.261652+00:00",
       "modules": [
         {
           "id": "a30b5a63-ac19-4cc8-b5d0-47da463d74a0",
@@ -8443,12 +8535,13 @@
               "view_count": 17629,
               "like_count": 279,
               "recording_date": null,
-              "watched": false,
+              "watched": true,
               "labels": [
-                "architecture-styles-and-principles"
+                "architecture-styles-and-principles",
+                "watched"
               ],
-              "last_played_position_secs": null,
-              "last_played_at": null
+              "last_played_position_secs": 7,
+              "last_played_at": "2026-08-07 02:08:03.261652+00:00"
             },
             {
               "video_id": "ASm8uKLYXa8",
@@ -10646,13 +10739,13 @@
           "channel_id": "UCzCsyvyrq38R6TnztEzOmgg",
           "title": "ByteMonk",
           "url": "https://www.youtube.com/channel/UCzCsyvyrq38R6TnztEzOmgg",
-          "video_count": 544,
-          "videos_count": 544,
+          "video_count": 545,
+          "videos_count": 545,
           "thumbnail": "https://yt3.ggpht.com/4Zw9XifSAyf1FNmM2969egek-4QjYpCT8ELGf3m4dP5YZiq6ch_MFjywuPjJt_hyWoTsO4U5Ug=s800-c-k-c0x00ffffff-no-rj",
           "source_created_at": "2021-11-14 05:26:13.206443+00:00",
           "last_video_published_at": "2026-07-15 03:00:05+00:00",
-          "last_synced_at": "2026-07-25 20:46:25.905262+00:00",
-          "last_feed_checked_at": "2026-07-25 20:46:25.905262+00:00",
+          "last_synced_at": "2026-08-06 19:55:02.950261+00:00",
+          "last_feed_checked_at": "2026-08-06 19:55:02.950261+00:00",
           "playlists": []
         }
       ],
@@ -10665,12 +10758,14 @@
       "description": "Build and operate cloud-native systems using Docker, Kubernetes, Terraform, AWS, and CI/CD.",
       "logo_url": "https://api.dicebear.com/10.x/bottts-neutral/svg?seed=Felix",
       "icon_key": "cloud-devops-and-infrastructure",
-      "labels": [],
+      "labels": [
+        "system-design"
+      ],
       "last_played_video_id": null,
       "last_played_position_secs": null,
       "last_played_at": null,
       "created_at": "2026-07-18 16:57:59+00:00",
-      "updated_at": "2026-07-27 20:32:50.928305+00:00",
+      "updated_at": "2026-08-01 22:32:06.388279+00:00",
       "modules": [
         {
           "id": "0362306f-3ac9-4ab8-bce9-9064a645d85d",
@@ -13168,13 +13263,13 @@
           "channel_id": "UCzCsyvyrq38R6TnztEzOmgg",
           "title": "ByteMonk",
           "url": "https://www.youtube.com/channel/UCzCsyvyrq38R6TnztEzOmgg",
-          "video_count": 544,
-          "videos_count": 544,
+          "video_count": 545,
+          "videos_count": 545,
           "thumbnail": "https://yt3.ggpht.com/4Zw9XifSAyf1FNmM2969egek-4QjYpCT8ELGf3m4dP5YZiq6ch_MFjywuPjJt_hyWoTsO4U5Ug=s800-c-k-c0x00ffffff-no-rj",
           "source_created_at": "2021-11-14 05:26:13.206443+00:00",
           "last_video_published_at": "2026-07-15 03:00:05+00:00",
-          "last_synced_at": "2026-07-25 20:46:25.905262+00:00",
-          "last_feed_checked_at": "2026-07-25 20:46:25.905262+00:00",
+          "last_synced_at": "2026-08-06 19:55:02.950261+00:00",
+          "last_feed_checked_at": "2026-08-06 19:55:02.950261+00:00",
           "playlists": []
         }
       ],
@@ -13187,12 +13282,14 @@
       "description": "Understand application security, authentication, encryption, zero trust, and AI-era security.",
       "logo_url": "https://api.dicebear.com/10.x/bottts-neutral/svg?seed=Felix",
       "icon_key": "security-identity-and-trust",
-      "labels": [],
-      "last_played_video_id": null,
-      "last_played_position_secs": null,
-      "last_played_at": null,
+      "labels": [
+        "system-design"
+      ],
+      "last_played_video_id": "s-vhqtyUF4I",
+      "last_played_position_secs": 17,
+      "last_played_at": "2026-08-04 01:16:26.732644+00:00",
       "created_at": "2026-07-18 16:57:59+00:00",
-      "updated_at": "2026-07-27 20:32:52.469910+00:00",
+      "updated_at": "2026-08-04 01:16:26.732644+00:00",
       "modules": [
         {
           "id": "0cc0680b-658a-45bd-afac-ac5605e10afe",
@@ -14282,7 +14379,8 @@
               "watched": false,
               "labels": [
                 "concept",
-                "tls-certificates-and-encryption"
+                "tls-certificates-and-encryption",
+                "mark_for_delete"
               ],
               "last_played_position_secs": null,
               "last_played_at": null
@@ -14316,7 +14414,8 @@
               "watched": false,
               "labels": [
                 "concept",
-                "tls-certificates-and-encryption"
+                "tls-certificates-and-encryption",
+                "mark_for_delete"
               ],
               "last_played_position_secs": null,
               "last_played_at": null
@@ -14388,7 +14487,8 @@
               "recording_date": null,
               "watched": false,
               "labels": [
-                "tls-certificates-and-encryption"
+                "tls-certificates-and-encryption",
+                "mark_for_delete"
               ],
               "last_played_position_secs": null,
               "last_played_at": null
@@ -14425,7 +14525,8 @@
               "recording_date": null,
               "watched": false,
               "labels": [
-                "tls-certificates-and-encryption"
+                "tls-certificates-and-encryption",
+                "mark_for_delete"
               ],
               "last_played_position_secs": null,
               "last_played_at": null
@@ -14457,7 +14558,8 @@
               "recording_date": null,
               "watched": false,
               "labels": [
-                "tls-certificates-and-encryption"
+                "tls-certificates-and-encryption",
+                "mark_for_delete"
               ],
               "last_played_position_secs": null,
               "last_played_at": null
@@ -14519,8 +14621,8 @@
               "labels": [
                 "tls-certificates-and-encryption"
               ],
-              "last_played_position_secs": null,
-              "last_played_at": null
+              "last_played_position_secs": 17,
+              "last_played_at": "2026-08-04 01:16:26.732644+00:00"
             },
             {
               "video_id": "s_r8GlYpcT4",
@@ -14550,9 +14652,11 @@
               "view_count": 1194,
               "like_count": 34,
               "recording_date": null,
-              "watched": false,
+              "watched": true,
               "labels": [
-                "tls-certificates-and-encryption"
+                "tls-certificates-and-encryption",
+                "watched",
+                "mark_for_delete"
               ],
               "last_played_position_secs": null,
               "last_played_at": null
@@ -14589,7 +14693,8 @@
               "recording_date": null,
               "watched": false,
               "labels": [
-                "tls-certificates-and-encryption"
+                "tls-certificates-and-encryption",
+                "mark_for_delete"
               ],
               "last_played_position_secs": null,
               "last_played_at": null
@@ -14626,7 +14731,8 @@
               "recording_date": null,
               "watched": false,
               "labels": [
-                "tls-certificates-and-encryption"
+                "tls-certificates-and-encryption",
+                "mark_for_delete"
               ],
               "last_played_position_secs": null,
               "last_played_at": null
@@ -14660,7 +14766,8 @@
               "recording_date": null,
               "watched": false,
               "labels": [
-                "tls-certificates-and-encryption"
+                "tls-certificates-and-encryption",
+                "mark_for_delete"
               ],
               "last_played_position_secs": null,
               "last_played_at": null
@@ -15466,13 +15573,13 @@
           "channel_id": "UCzCsyvyrq38R6TnztEzOmgg",
           "title": "ByteMonk",
           "url": "https://www.youtube.com/channel/UCzCsyvyrq38R6TnztEzOmgg",
-          "video_count": 544,
-          "videos_count": 544,
+          "video_count": 545,
+          "videos_count": 545,
           "thumbnail": "https://yt3.ggpht.com/4Zw9XifSAyf1FNmM2969egek-4QjYpCT8ELGf3m4dP5YZiq6ch_MFjywuPjJt_hyWoTsO4U5Ug=s800-c-k-c0x00ffffff-no-rj",
           "source_created_at": "2021-11-14 05:26:13.206443+00:00",
           "last_video_published_at": "2026-07-15 03:00:05+00:00",
-          "last_synced_at": "2026-07-25 20:46:25.905262+00:00",
-          "last_feed_checked_at": "2026-07-25 20:46:25.905262+00:00",
+          "last_synced_at": "2026-08-06 19:55:02.950261+00:00",
+          "last_feed_checked_at": "2026-08-06 19:55:02.950261+00:00",
           "playlists": []
         }
       ],
@@ -15485,12 +15592,14 @@
       "description": "Build the mathematical and conceptual foundation for machine learning and generative AI.",
       "logo_url": "https://api.dicebear.com/10.x/bottts-neutral/svg?seed=ub9svd0t",
       "icon_key": "ai-and-machine-learning-foundations",
-      "labels": [],
+      "labels": [
+        "AI"
+      ],
       "last_played_video_id": null,
       "last_played_position_secs": null,
       "last_played_at": null,
       "created_at": "2026-07-18 16:57:59+00:00",
-      "updated_at": "2026-07-27 20:59:26.595155+00:00",
+      "updated_at": "2026-08-01 22:31:04.148678+00:00",
       "modules": [
         {
           "id": "82efbbf9-0e94-4c10-829e-ebdeb58a2419",
@@ -16986,13 +17095,13 @@
           "channel_id": "UCzCsyvyrq38R6TnztEzOmgg",
           "title": "ByteMonk",
           "url": "https://www.youtube.com/channel/UCzCsyvyrq38R6TnztEzOmgg",
-          "video_count": 544,
-          "videos_count": 544,
+          "video_count": 545,
+          "videos_count": 545,
           "thumbnail": "https://yt3.ggpht.com/4Zw9XifSAyf1FNmM2969egek-4QjYpCT8ELGf3m4dP5YZiq6ch_MFjywuPjJt_hyWoTsO4U5Ug=s800-c-k-c0x00ffffff-no-rj",
           "source_created_at": "2021-11-14 05:26:13.206443+00:00",
           "last_video_published_at": "2026-07-15 03:00:05+00:00",
-          "last_synced_at": "2026-07-25 20:46:25.905262+00:00",
-          "last_feed_checked_at": "2026-07-25 20:46:25.905262+00:00",
+          "last_synced_at": "2026-08-06 19:55:02.950261+00:00",
+          "last_feed_checked_at": "2026-08-06 19:55:02.950261+00:00",
           "playlists": []
         }
       ],
@@ -17005,12 +17114,14 @@
       "description": "Design production-grade LLM applications, RAG systems, agents, and tool integrations.",
       "logo_url": "https://api.dicebear.com/10.x/bottts-neutral/svg?seed=Felix",
       "icon_key": "generative-ai-rag-and-ai-agents",
-      "labels": [],
+      "labels": [
+        "AI"
+      ],
       "last_played_video_id": null,
       "last_played_position_secs": null,
       "last_played_at": null,
       "created_at": "2026-07-18 16:57:59+00:00",
-      "updated_at": "2026-07-27 20:32:55.372443+00:00",
+      "updated_at": "2026-08-01 22:31:06.515962+00:00",
       "modules": [
         {
           "id": "9d616c36-a62e-4778-b1f2-38d9024db9a2",
@@ -18909,13 +19020,13 @@
           "channel_id": "UCzCsyvyrq38R6TnztEzOmgg",
           "title": "ByteMonk",
           "url": "https://www.youtube.com/channel/UCzCsyvyrq38R6TnztEzOmgg",
-          "video_count": 544,
-          "videos_count": 544,
+          "video_count": 545,
+          "videos_count": 545,
           "thumbnail": "https://yt3.ggpht.com/4Zw9XifSAyf1FNmM2969egek-4QjYpCT8ELGf3m4dP5YZiq6ch_MFjywuPjJt_hyWoTsO4U5Ug=s800-c-k-c0x00ffffff-no-rj",
           "source_created_at": "2021-11-14 05:26:13.206443+00:00",
           "last_video_published_at": "2026-07-15 03:00:05+00:00",
-          "last_synced_at": "2026-07-25 20:46:25.905262+00:00",
-          "last_feed_checked_at": "2026-07-25 20:46:25.905262+00:00",
+          "last_synced_at": "2026-08-06 19:55:02.950261+00:00",
+          "last_feed_checked_at": "2026-08-06 19:55:02.950261+00:00",
           "playlists": []
         }
       ],
@@ -18928,12 +19039,14 @@
       "description": "Understand payment rails, transaction processing, fintech architecture, and tokenized finance.",
       "logo_url": "https://api.dicebear.com/10.x/bottts-neutral/svg?seed=Felix",
       "icon_key": "payments-fintech-and-blockchain",
-      "labels": [],
+      "labels": [
+        "others"
+      ],
       "last_played_video_id": null,
       "last_played_position_secs": null,
       "last_played_at": null,
       "created_at": "2026-07-18 16:57:59+00:00",
-      "updated_at": "2026-07-27 20:32:56.872926+00:00",
+      "updated_at": "2026-08-01 22:32:33.245189+00:00",
       "modules": [
         {
           "id": "4430d279-091e-4072-875e-0408e6b0f54a",
@@ -19806,13 +19919,13 @@
           "channel_id": "UCzCsyvyrq38R6TnztEzOmgg",
           "title": "ByteMonk",
           "url": "https://www.youtube.com/channel/UCzCsyvyrq38R6TnztEzOmgg",
-          "video_count": 544,
-          "videos_count": 544,
+          "video_count": 545,
+          "videos_count": 545,
           "thumbnail": "https://yt3.ggpht.com/4Zw9XifSAyf1FNmM2969egek-4QjYpCT8ELGf3m4dP5YZiq6ch_MFjywuPjJt_hyWoTsO4U5Ug=s800-c-k-c0x00ffffff-no-rj",
           "source_created_at": "2021-11-14 05:26:13.206443+00:00",
           "last_video_published_at": "2026-07-15 03:00:05+00:00",
-          "last_synced_at": "2026-07-25 20:46:25.905262+00:00",
-          "last_feed_checked_at": "2026-07-25 20:46:25.905262+00:00",
+          "last_synced_at": "2026-08-06 19:55:02.950261+00:00",
+          "last_feed_checked_at": "2026-08-06 19:55:02.950261+00:00",
           "playlists": []
         }
       ],
@@ -19825,12 +19938,14 @@
       "description": "Strengthen language, framework, concurrency, and frontend engineering fundamentals.",
       "logo_url": "https://api.dicebear.com/10.x/bottts-neutral/svg?seed=Felix",
       "icon_key": "java-spring-node-js-and-web-engineering",
-      "labels": [],
+      "labels": [
+        "others"
+      ],
       "last_played_video_id": null,
       "last_played_position_secs": null,
       "last_played_at": null,
       "created_at": "2026-07-18 16:57:59+00:00",
-      "updated_at": "2026-07-27 20:32:58.352041+00:00",
+      "updated_at": "2026-08-01 22:32:35.053700+00:00",
       "modules": [
         {
           "id": "817a4d82-4025-419c-8e2a-f94358258378",
@@ -21311,13 +21426,13 @@
           "channel_id": "UCzCsyvyrq38R6TnztEzOmgg",
           "title": "ByteMonk",
           "url": "https://www.youtube.com/channel/UCzCsyvyrq38R6TnztEzOmgg",
-          "video_count": 544,
-          "videos_count": 544,
+          "video_count": 545,
+          "videos_count": 545,
           "thumbnail": "https://yt3.ggpht.com/4Zw9XifSAyf1FNmM2969egek-4QjYpCT8ELGf3m4dP5YZiq6ch_MFjywuPjJt_hyWoTsO4U5Ug=s800-c-k-c0x00ffffff-no-rj",
           "source_created_at": "2021-11-14 05:26:13.206443+00:00",
           "last_video_published_at": "2026-07-15 03:00:05+00:00",
-          "last_synced_at": "2026-07-25 20:46:25.905262+00:00",
-          "last_feed_checked_at": "2026-07-25 20:46:25.905262+00:00",
+          "last_synced_at": "2026-08-06 19:55:02.950261+00:00",
+          "last_feed_checked_at": "2026-08-06 19:55:02.950261+00:00",
           "playlists": []
         }
       ],
@@ -21330,12 +21445,14 @@
       "description": "Develop engineering judgment through product, team, economics, and technology-industry analysis.",
       "logo_url": "https://api.dicebear.com/10.x/bottts-neutral/svg?seed=Felix",
       "icon_key": "engineering-leadership-product-and-industry-trends",
-      "labels": [],
+      "labels": [
+        "others"
+      ],
       "last_played_video_id": null,
       "last_played_position_secs": null,
       "last_played_at": null,
       "created_at": "2026-07-18 16:57:59+00:00",
-      "updated_at": "2026-07-27 20:32:59.805083+00:00",
+      "updated_at": "2026-08-01 22:32:36.710864+00:00",
       "modules": [
         {
           "id": "216fbc38-7769-401b-8e63-de6067e3a798",
@@ -22232,13 +22349,13 @@
           "channel_id": "UCzCsyvyrq38R6TnztEzOmgg",
           "title": "ByteMonk",
           "url": "https://www.youtube.com/channel/UCzCsyvyrq38R6TnztEzOmgg",
-          "video_count": 544,
-          "videos_count": 544,
+          "video_count": 545,
+          "videos_count": 545,
           "thumbnail": "https://yt3.ggpht.com/4Zw9XifSAyf1FNmM2969egek-4QjYpCT8ELGf3m4dP5YZiq6ch_MFjywuPjJt_hyWoTsO4U5Ug=s800-c-k-c0x00ffffff-no-rj",
           "source_created_at": "2021-11-14 05:26:13.206443+00:00",
           "last_video_published_at": "2026-07-15 03:00:05+00:00",
-          "last_synced_at": "2026-07-25 20:46:25.905262+00:00",
-          "last_feed_checked_at": "2026-07-25 20:46:25.905262+00:00",
+          "last_synced_at": "2026-08-06 19:55:02.950261+00:00",
+          "last_feed_checked_at": "2026-08-06 19:55:02.950261+00:00",
           "playlists": []
         }
       ],

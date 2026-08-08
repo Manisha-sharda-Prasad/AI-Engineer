@@ -24,6 +24,9 @@ import {
   selectPlanPageState,
   updatePlanPage,
 } from "../store/learningUiSlice";
+import { getProgressEligibleVideos, getVideoProgress } from "../utils/videoProgress";
+
+const AI_ENABLED = import.meta.env.VITE_ENABLE_AI === "true";
 
 function JsonActionIcon({ name }) {
   const paths = {
@@ -39,12 +42,6 @@ function JsonActionIcon({ name }) {
 }
 
 function CourseThumbnail({ logoUrl, title }) {
-  const [imageShape, setImageShape] = React.useState("emblem");
-
-  React.useEffect(() => {
-    setImageShape("emblem");
-  }, [logoUrl]);
-
   if (!logoUrl) {
     return (
       <div className="course-card-thumbnail is-empty">
@@ -56,19 +53,8 @@ function CourseThumbnail({ logoUrl, title }) {
   }
 
   return (
-    <div className={`course-card-thumbnail has-logo is-${imageShape}`}>
-      <img
-        src={logoUrl}
-        alt=""
-        onLoad={(event) => {
-          const { naturalWidth, naturalHeight } = event.currentTarget;
-          setImageShape(
-            naturalHeight > 0 && naturalWidth / naturalHeight >= 1.35
-              ? "wide"
-              : "emblem",
-          );
-        }}
-      />
+    <div className="course-card-thumbnail has-logo">
+      <img src={logoUrl} alt={`${title || "Course"} cover`} />
     </div>
   );
 }
@@ -226,19 +212,15 @@ function LearningPlanOverviewDrawer({
   }, [plan, editingJson]);
 
   const modules = plan.courses?.flatMap((course) => course.modules || []) || [];
-  const videos = modules.flatMap((module) => module.videos || []);
-  const watched = videos.filter(
-    (video) => video.watched || video.labels?.includes("watched"),
-  ).length;
-  const bookmarked = videos.filter((video) =>
+  const allVideos = modules.flatMap((module) => module.videos || []);
+  const videos = getProgressEligibleVideos(allVideos);
+  const { watched, progress } = getVideoProgress(videos);
+  const bookmarked = allVideos.filter((video) =>
     video.labels?.includes("bookmarked"),
   ).length;
-  const markedForDelete = videos.filter((video) =>
+  const markedForDelete = allVideos.filter((video) =>
     video.labels?.includes("mark_for_delete"),
   ).length;
-  const progress = videos.length
-    ? Math.round((watched / videos.length) * 100)
-    : 0;
   const togglePlanLabel = async (label) => {
     const labels = plan.labels?.includes(label)
       ? plan.labels.filter((item) => item !== label)
@@ -788,13 +770,13 @@ export default function PlanOverview({ loading = false }) {
           <WorkspaceIcon name="manual" />
           Manual course
         </button>
-        <button className="btn btn-secondary btn-sm" onClick={() => setShowAi(true)}>
+        {AI_ENABLED && <button className="btn btn-secondary btn-sm" onClick={() => setShowAi(true)}>
           <WorkspaceIcon name="ai" />
           AI suggested Course
-        </button>
+        </button>}
       </div>}
 
-      {!isAllPlans && <button
+      {AI_ENABLED && !isAllPlans && <button
         className="btn btn-secondary btn-sm ai-request-status-button"
         onClick={() => navigate(`/plans/${planId}/ai-requests`)}
       >
@@ -866,7 +848,7 @@ export default function PlanOverview({ loading = false }) {
       </nav>
       <LoadingBar active={loading} label="Refreshing learning plans…" />
       <div className="plan-course-scroll-body">
-        {submittedAiRequest && (
+        {AI_ENABLED && submittedAiRequest && (
           <div className="alert alert-info">
             AI request <strong>{submittedAiRequest.request_id}</strong> was
             queued.{" "}
@@ -1002,17 +984,13 @@ export default function PlanOverview({ loading = false }) {
           visibleCourses.map((course) => {
             const courseVideos =
               course.modules?.flatMap((module) => module.videos || []) || [];
-            const videos = courseVideos.length;
-            const watched = courseVideos.filter(
-              (video) => video.watched || video.labels?.includes("watched"),
-            ).length;
+            const { watched, total: videos, progress } = getVideoProgress(courseVideos);
             const bookmarked = courseVideos.filter((video) =>
               video.labels?.includes("bookmarked"),
             ).length;
             const markedForDelete = courseVideos.filter((video) =>
               video.labels?.includes("mark_for_delete"),
             ).length;
-            const progress = videos ? Math.round((watched / videos) * 100) : 0;
             const logoUrl = course.logo_url || course.logo;
             return (
               <article
@@ -1086,6 +1064,9 @@ export default function PlanOverview({ loading = false }) {
                     <span className="tile-date">No labels</span>
                   )}
                 </section>
+                {!showCourseProgress && <span className="course-card-compact-progress" role="progressbar" aria-label={`${course.title} progress`} aria-valuemin="0" aria-valuemax="100" aria-valuenow={progress} title={`${watched} of ${videos} videos watched · ${progress}%`}>
+                  <i style={{ width: `${progress}%` }} />
+                </span>}
                 <footer className="catalog-tile-footer course-card-actions">
                   <div className="course-label-toggle">
                     {["watched", "bookmarked", "mark_for_delete"].map(
@@ -1157,7 +1138,7 @@ export default function PlanOverview({ loading = false }) {
           onCourseCreated={(updated) => dispatch(updatePlan(updated))}
         />
       )}
-      {!isAllPlans && showAi && (
+      {AI_ENABLED && !isAllPlans && showAi && (
         <AiCourseModal
           plan={plan}
           onClose={() => setShowAi(false)}

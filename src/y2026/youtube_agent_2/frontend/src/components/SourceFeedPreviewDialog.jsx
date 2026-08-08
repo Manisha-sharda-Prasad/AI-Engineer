@@ -10,7 +10,7 @@ function formatDuration(seconds) {
   return `${minutes}:${String(remainder).padStart(2, '0')}`
 }
 
-function FeedDestinationDropdown({ label, value, options, onChange, disabled = false }) {
+export function FeedDestinationDropdown({ label, value, options, onChange, disabled = false }) {
   const [open, setOpen] = React.useState(false)
   const pickerRef = React.useRef(null)
   const selectedOption = options.find(option => option.value === value) || options[0]
@@ -69,6 +69,7 @@ export default function SourceFeedPreviewDialog({
   onClose,
   onPush,
   onOrganize,
+  aiEnabled = true,
   onConfirmOrganization,
 }) {
   const destinations = (preview.targets || []).map(target => {
@@ -92,6 +93,10 @@ export default function SourceFeedPreviewDialog({
   const [organizationMode, setOrganizationMode] = React.useState('manual')
 
   React.useEffect(() => {
+    if (!aiEnabled) {
+      setAiModelsLoading(false)
+      return undefined
+    }
     let active = true
     getAiModelConfigs({ enabled: true }).then(data => {
       if (!active) return
@@ -105,7 +110,7 @@ export default function SourceFeedPreviewDialog({
       if (active) setAiModelsLoading(false)
     })
     return () => { active = false }
-  }, [])
+  }, [aiEnabled])
 
   React.useEffect(() => {
     const first = destinations[0]
@@ -322,10 +327,10 @@ export default function SourceFeedPreviewDialog({
               <span>Manual</span>
               <small>Choose a destination</small>
             </button>
-            <button type="button" role="tab" aria-selected={organizationMode === 'ai'} className={organizationMode === 'ai' ? 'active' : ''} onClick={() => setOrganizationMode('ai')}>
+            {aiEnabled && <button type="button" role="tab" aria-selected={organizationMode === 'ai'} className={organizationMode === 'ai' ? 'active' : ''} onClick={() => setOrganizationMode('ai')}>
               <span>Organise with AI</span>
               <small>Review suggestions</small>
-            </button>
+            </button>}
           </div>
 
           {organizationMode === 'manual' ? <div className="source-feed-mode-panel" role="tabpanel">

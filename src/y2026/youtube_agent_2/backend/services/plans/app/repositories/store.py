@@ -13,10 +13,11 @@ from src.y2026.youtube_agent_2.backend.services.plans.app import config
 
 
 _firestore_store = None
-if config.STORAGE_BACKEND == "firebase_firestore":
-    from .firestore_store import FirestoreStore
+_dynamodb_store = None
+if config.STORAGE_BACKEND == "dynamodb":
+    from .dynamodb_store import DynamoDBStore
 
-    _firestore_store = FirestoreStore()
+    _dynamodb_store = DynamoDBStore(config.DYNAMODB_TABLE_NAME)
 
 
 def _active_user_id() -> str | None:
@@ -96,6 +97,8 @@ def _default_ai_model_config() -> dict:
 
 
 def init_store() -> None:
+    if _dynamodb_store:
+        return
     if _firestore_store:
         _firestore_store.ensure_default_ai_model_config(
             _default_ai_model_config()
@@ -277,6 +280,8 @@ def init_store() -> None:
 
 
 def save_plan(plan_obj: dict) -> None:
+    if _dynamodb_store:
+        return _dynamodb_store.save_plan(plan_obj, _storage_user_id())
     if _firestore_store:
         return _firestore_store.save_plan(plan_obj, _active_user_id())
     with _connect() as connection:
@@ -366,6 +371,8 @@ def update_video_fields(
 
 
 def load_plan(plan_id: str) -> Optional[dict]:
+    if _dynamodb_store:
+        return _dynamodb_store.load_plan(plan_id, _storage_user_id())
     if _firestore_store:
         return _firestore_store.load_plan(plan_id, _active_user_id())
     with _connect() as connection:
@@ -382,6 +389,8 @@ def load_plan(plan_id: str) -> Optional[dict]:
 
 
 def delete_plan(plan_id: str) -> bool:
+    if _dynamodb_store:
+        return _dynamodb_store.delete_plan(plan_id, _storage_user_id())
     if _firestore_store:
         return _firestore_store.delete_plan(plan_id, _active_user_id())
     with _connect() as connection:
@@ -398,6 +407,8 @@ def delete_plan(plan_id: str) -> bool:
 
 
 def list_plans() -> list[dict]:
+    if _dynamodb_store:
+        return _dynamodb_store.list_plans(_storage_user_id())
     if _firestore_store:
         return _firestore_store.list_plans(_active_user_id())
     with _connect() as connection:
@@ -418,6 +429,10 @@ def list_plans() -> list[dict]:
 
 
 def save_source_sync_metadata(metadata: dict) -> None:
+    if _dynamodb_store:
+        return _dynamodb_store.save_source_sync_metadata(
+            metadata, _storage_user_id()
+        )
     if _firestore_store:
         return _firestore_store.save_source_sync_metadata(
             metadata, _active_user_id()
@@ -452,6 +467,8 @@ def save_source_sync_metadata(metadata: dict) -> None:
 
 
 def load_source_sync_metadata() -> dict:
+    if _dynamodb_store:
+        return _dynamodb_store.load_source_sync_metadata(_storage_user_id())
     if _firestore_store:
         return _firestore_store.load_source_sync_metadata(_active_user_id())
     with _connect() as connection:

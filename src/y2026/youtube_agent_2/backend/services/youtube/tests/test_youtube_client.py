@@ -4,6 +4,7 @@ from unittest.mock import patch
 from src.y2026.youtube_agent_2.backend.services.youtube.app.infrastructure import (
     youtube_client,
 )
+from src.y2026.youtube_agent_2.backend.shared.platform import identity
 
 
 class FakeResponse:
@@ -68,9 +69,9 @@ class YouTubeClientTests(unittest.TestCase):
 
         with (
             patch.object(
-                youtube_client.token_store,
-                "load_latest_tokens",
-                return_value={"access_token": "token"},
+                identity,
+                "current_youtube_access_token",
+                return_value="token",
             ),
             patch.object(youtube_client.requests, "get", side_effect=fake_get),
         ):
@@ -135,9 +136,9 @@ class YouTubeClientTests(unittest.TestCase):
 
         with (
             patch.object(
-                youtube_client.token_store,
-                "load_latest_tokens",
-                return_value={"access_token": "token"},
+                identity,
+                "current_youtube_access_token",
+                return_value="token",
             ),
             patch.object(youtube_client.requests, "get", side_effect=fake_get),
         ):
@@ -153,9 +154,9 @@ class YouTubeClientTests(unittest.TestCase):
     def test_incremental_api_failure_is_not_treated_as_empty_feed(self):
         with (
             patch.object(
-                youtube_client.token_store,
-                "load_latest_tokens",
-                return_value={"access_token": "token"},
+                identity,
+                "current_youtube_access_token",
+                return_value="token",
             ),
             patch.object(
                 youtube_client.requests,
@@ -164,7 +165,7 @@ class YouTubeClientTests(unittest.TestCase):
             ),
         ):
             with self.assertRaisesRegex(
-                RuntimeError, "activities API returned 403"
+                RuntimeError, "YouTube API returned 403"
             ):
                 youtube_client.get_channel_videos(
                     "channel-a", "2026-07-20T10:00:00Z"

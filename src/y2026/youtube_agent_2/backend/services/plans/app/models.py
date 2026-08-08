@@ -109,6 +109,12 @@ class VideoReorderRequest(BaseModel):
     target_module_id: str
     target_index: int = Field(ge=0)
 
+class VideoBulkMoveRequest(BaseModel):
+    video_ids: List[str] = Field(min_length=1)
+    source_course_id: str
+    target_course_id: str
+    target_module_id: str
+
 class PlaybackUpdateRequest(BaseModel):
     position_secs: float = Field(ge=0)
 

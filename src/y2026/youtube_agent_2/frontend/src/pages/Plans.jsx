@@ -8,6 +8,7 @@ import LoadingBar from '../components/LoadingBar'
 import { CloseIcon, EditIcon, LabelIcon, RefreshIcon, WorkspaceIcon } from '../components/Icons'
 import { addPlan, updatePlan, deletePlan, selectPlan, clearSelection } from '../store/plansSlice'
 import { rememberLearningLocation, updatePlansPage } from '../store/learningUiSlice'
+import { getProgressEligibleVideos, getVideoProgress } from '../utils/videoProgress'
 import appLogo from '../../app-logo.png'
 
 export default function Plans({ newPlanRequest, onRefresh, refreshing = false }) {
@@ -156,9 +157,8 @@ export default function Plans({ newPlanRequest, onRefresh, refreshing = false })
           <div className="plan-card-list">{visiblePlans.map(plan => {
             const logoUrl = plan.logo_url || plan.logo
             const modules = plan.courses?.flatMap(course => course.modules || []) || []
-            const videos = modules.flatMap(module => module.videos || [])
-            const watchedVideos = videos.filter(video => video.watched || video.labels?.includes('watched')).length
-            const progress = videos.length ? Math.round((watchedVideos / videos.length) * 100) : 0
+            const videos = getProgressEligibleVideos(modules.flatMap(module => module.videos || []))
+            const { watched: watchedVideos, progress } = getVideoProgress(videos)
             return (
               <article className="card catalog-tile" key={plan.id} onClick={() => navigate(`/plans/${plan.id}`)}>
                 <header className="catalog-tile-header">

@@ -5,10 +5,11 @@ from typing import Optional
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
-from src.y2026.youtube_agent_2.backend.services.plans.app.domain import (
-    feed_organization,
-    source_sync as sync_service,
-)
+from src.y2026.youtube_agent_2.backend.services.plans.app import config
+from src.y2026.youtube_agent_2.backend.services.plans.app.domain import source_sync as sync_service
+
+if config.STORAGE_BACKEND != "dynamodb":
+    from src.y2026.youtube_agent_2.backend.services.plans.app.domain import feed_organization
 
 
 router = APIRouter(tags=["source-sync"])
@@ -25,19 +26,20 @@ class ManualFeedPushRequest(BaseModel):
     video_ids: list[str] = Field(min_length=1)
 
 
-class OrganizeFeedRequest(BaseModel):
-    channel_id: str
-    model_config_id: str
-    playlist_id: Optional[str] = None
-    video_ids: list[str] = Field(min_length=1)
-    user_prompt: Optional[str] = None
-    previous_suggestion: Optional[dict] = None
+if config.STORAGE_BACKEND != "dynamodb":
+    class OrganizeFeedRequest(BaseModel):
+        channel_id: str
+        model_config_id: str
+        playlist_id: Optional[str] = None
+        video_ids: list[str] = Field(min_length=1)
+        user_prompt: Optional[str] = None
+        previous_suggestion: Optional[dict] = None
 
 
-class ConfirmOrganizationRequest(BaseModel):
-    channel_id: str
-    playlist_id: Optional[str] = None
-    placements: list[feed_organization.SuggestedPlacement] = Field(min_length=1)
+    class ConfirmOrganizationRequest(BaseModel):
+        channel_id: str
+        playlist_id: Optional[str] = None
+        placements: list[feed_organization.SuggestedPlacement] = Field(min_length=1)
 
 
 @router.get("/api/sources/sync-metadata")
@@ -64,25 +66,26 @@ def push_new_source_feeds(request: ManualFeedPushRequest):
     )
 
 
-@router.post("/api/sources/sync-metadata/organize-new-feeds")
-def organize_new_source_feeds(request: OrganizeFeedRequest):
-    return feed_organization.suggest_organization(
-        channel_id=request.channel_id,
-        playlist_id=request.playlist_id,
-        video_ids=request.video_ids,
-        model_config_id=request.model_config_id,
-        user_prompt=request.user_prompt,
-        previous_suggestion=request.previous_suggestion,
-    )
+if config.STORAGE_BACKEND != "dynamodb":
+    @router.post("/api/sources/sync-metadata/organize-new-feeds")
+    def organize_new_source_feeds(request: OrganizeFeedRequest):
+        return feed_organization.suggest_organization(
+            channel_id=request.channel_id,
+            playlist_id=request.playlist_id,
+            video_ids=request.video_ids,
+            model_config_id=request.model_config_id,
+            user_prompt=request.user_prompt,
+            previous_suggestion=request.previous_suggestion,
+        )
 
 
-@router.post("/api/sources/sync-metadata/confirm-organization")
-def confirm_source_feed_organization(request: ConfirmOrganizationRequest):
-    return feed_organization.apply_organization(
-        channel_id=request.channel_id,
-        playlist_id=request.playlist_id,
-        placements=request.placements,
-    )
+    @router.post("/api/sources/sync-metadata/confirm-organization")
+    def confirm_source_feed_organization(request: ConfirmOrganizationRequest):
+        return feed_organization.apply_organization(
+            channel_id=request.channel_id,
+            playlist_id=request.playlist_id,
+            placements=request.placements,
+        )
 
 
 @router.post(

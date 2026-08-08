@@ -1959,6 +1959,11 @@ img.source-feed-picker-icon { display: block; object-fit: cover; }
 }
 .module-video-item[draggable="true"] { cursor: grab; }
 .module-video-item[draggable="true"]:active { cursor: grabbing; opacity: 0.55; }
+.video-reorder-actions { display: inline-flex; flex: 0 0 auto; flex-direction: column; gap: 2px; }
+.video-reorder-actions button { display: grid; width: 24px; height: 20px; padding: 0; place-items: center; border: 1px solid var(--border-color); border-radius: 5px; background: var(--card-bg); color: var(--text-secondary); cursor: pointer; }
+.video-reorder-actions button:hover:not(:disabled) { border-color: var(--primary); background: var(--primary-bg); color: var(--primary); }
+.video-reorder-actions button:disabled { opacity: 0.35; cursor: default; }
+.video-reorder-actions svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
 .module-videos { min-height: 0.5rem; }
 .module-video-item:hover .video-label-actions, .module-video-item:focus-within .video-label-actions { opacity: 1; pointer-events: auto; }
 .module-video-item.active { background: var(--primary-bg); color: var(--primary); font-weight: 500; }
@@ -4307,6 +4312,37 @@ img.page-brand-logo {
   gap: 0.45rem;
 }
 
+.learning-path-menu > button.learning-path-course-menu-item {
+  position: relative;
+  padding-bottom: 0.68rem;
+  overflow: hidden;
+}
+
+.learning-path-course-copy {
+  display: grid;
+  min-width: 0;
+  gap: 0.12rem;
+}
+
+.learning-path-course-progress {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--border-color) 68%, transparent);
+  pointer-events: none;
+}
+
+.learning-path-course-progress > i {
+  display: block;
+  height: 100%;
+  border-radius: 0 999px 999px 0;
+  background: linear-gradient(90deg, var(--primary), var(--success));
+  transition: width 0.2s ease;
+}
+
 .learning-path-view-icon {
   display: grid;
   width: 26px;
@@ -5086,7 +5122,7 @@ svg.close-icon {
   min-width: 0;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.55rem 0.65rem;
+  padding: 0.55rem 0.6rem 0.55rem 0.65rem;
   border-bottom: 1px solid var(--border-color);
   background: color-mix(in srgb, var(--drawer-bg) 94%, var(--primary-bg));
 }
@@ -5123,6 +5159,25 @@ svg.close-icon {
   background: var(--card-bg);
 }
 
+.workspace-tree-toolbar .course-progress-ring {
+  width: 34px;
+  height: 34px;
+  margin-left: 0;
+  flex-basis: 34px;
+  background: conic-gradient(var(--success) var(--module-progress), var(--module-ring-track) 0);
+}
+
+.workspace-tree-toolbar .course-progress-ring::before {
+  width: 26px;
+  height: 26px;
+  background: var(--drawer-bg);
+}
+
+.workspace-tree-toolbar .course-progress-ring span {
+  color: var(--text-primary);
+  font-size: 0.58rem;
+}
+
 .workspace-tree-toolbar .icon-button {
   display: inline-flex;
   width: 36px;
@@ -5150,6 +5205,21 @@ svg.close-icon {
 .workspace-tree-toolbar .icon-button svg {
   width: 16px;
   height: 16px;
+}
+
+.workspace-tree-toolbar .toolbar-expand-icon {
+  display: grid;
+  width: 18px;
+  height: 18px;
+  place-items: center;
+  color: currentColor;
+  font-size: 0.7rem;
+  line-height: 1;
+  transition: transform 0.2s ease;
+}
+
+.workspace-tree-toolbar .toolbar-expand-icon.expanded {
+  transform: rotate(90deg);
 }
 
 .workspace-tree-toolbar .icon-button.active {
@@ -5266,6 +5336,58 @@ svg.close-icon {
   stroke-linejoin: round;
 }
 
+.video-bulk-move-drawer {
+  width: min(540px, 94vw);
+}
+
+.video-bulk-move-drawer .drawer-header > div {
+  display: grid;
+  min-width: 0;
+  gap: 0.15rem;
+}
+
+.video-bulk-move-drawer .drawer-header small {
+  color: var(--text-secondary);
+  font-size: 0.64rem;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.video-bulk-move-body,
+.video-bulk-move-fields {
+  display: grid;
+  gap: 1rem;
+}
+
+.video-bulk-move-summary,
+.video-bulk-move-destination {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.85rem;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--module-bg);
+}
+
+.video-bulk-move-summary strong,
+.video-bulk-move-destination strong {
+  color: var(--text-primary);
+  font-size: 0.82rem;
+}
+
+.video-bulk-move-summary span,
+.video-bulk-move-destination span,
+.video-bulk-move-destination small {
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+}
+
+.video-bulk-move-destination {
+  border-color: color-mix(in srgb, var(--primary) 28%, var(--border-color));
+  background: color-mix(in srgb, var(--primary-bg) 58%, var(--card-bg));
+}
+
 .workspace-module-tree.editing .module-header {
   top: 109px;
 }
@@ -5315,10 +5437,14 @@ svg.close-icon {
 
   .workspace-module-tree .module-video-item:has(> input[type="checkbox"]) {
     grid-template-areas:
-      "select thumbnail content"
-      "select thumbnail actions";
-    grid-template-columns: 22px 92px minmax(0, 1fr);
+      "reorder select thumbnail content"
+      "reorder select thumbnail actions";
+    grid-template-columns: 28px 22px 82px minmax(0, 1fr);
   }
+
+  .workspace-module-tree .video-reorder-actions { grid-area: reorder; align-self: center; }
+
+  .workspace-module-tree .video-reorder-actions button { width: 28px; height: 36px; }
 
   .workspace-module-tree .module-video-item > input[type="checkbox"] {
     grid-area: select;
@@ -5574,25 +5700,12 @@ svg.close-icon {
 .course-card-thumbnail > img {
   position: relative;
   z-index: 1;
-  box-sizing: border-box;
-  object-fit: contain;
-  transition: transform 0.25s ease;
-}
-
-.course-card-thumbnail.is-emblem > img {
-  width: 106px;
-  height: 106px;
-  border: 1px solid rgba(148, 163, 184, 0.22);
-  border-radius: 20px;
-  background: #ffffff;
-  box-shadow: 0 12px 28px rgba(30, 41, 59, 0.16);
-}
-
-.course-card-thumbnail.is-wide > img {
   width: 100%;
   height: 100%;
-  padding: 0.85rem 1rem;
-  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.13));
+  box-sizing: border-box;
+  object-fit: cover;
+  object-position: center;
+  transition: transform 0.25s ease;
 }
 
 .course-card-modern:hover .course-card-thumbnail > img {
@@ -5631,6 +5744,26 @@ svg.close-icon {
 
 .course-card-modern .course-card-progress {
   animation: courseCardProgressIn 0.2s ease-out;
+}
+
+.course-card-compact-progress {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 4;
+  height: 4px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--border-color) 70%, transparent);
+  pointer-events: none;
+}
+
+.course-card-compact-progress > i {
+  display: block;
+  height: 100%;
+  border-radius: 0 999px 999px 0;
+  background: linear-gradient(90deg, var(--primary), var(--success));
+  transition: width 0.24s ease;
 }
 
 @keyframes courseCardProgressIn {

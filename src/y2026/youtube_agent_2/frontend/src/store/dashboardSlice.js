@@ -1,4 +1,5 @@
 import { createSelector, createSlice } from '@reduxjs/toolkit'
+import { getProgressEligibleVideos, getVideoProgress, isVideoWatched } from '../utils/videoProgress'
 
 const dashboardSlice = createSlice({
   name: 'dashboard',
@@ -12,8 +13,6 @@ const dashboardSlice = createSlice({
   },
 })
 
-const isWatched = video => Boolean(video.watched || video.labels?.includes('watched'))
-
 export const selectDashboardAnalytics = createSelector(
   [
     state => state.plans.items,
@@ -26,8 +25,8 @@ export const selectDashboardAnalytics = createSelector(
       : allPlans.filter(plan => plan.id === selectedPlanId)
     const courses = plans.flatMap(plan => (plan.courses || []).map(course => ({ ...course, plan })))
     const modules = courses.flatMap(course => course.modules || [])
-    const videos = modules.flatMap(module => module.videos || [])
-    const watchedVideos = videos.filter(isWatched)
+    const videos = getProgressEligibleVideos(modules.flatMap(module => module.videos || []))
+    const watchedVideos = videos.filter(isVideoWatched)
     const bookmarkedVideos = videos.filter(video => video.labels?.includes('bookmarked'))
     const durationSeconds = videos.reduce((total, video) => total + (Number(video.duration_secs) || 0), 0)
     const progress = videos.length ? Math.round((watchedVideos.length / videos.length) * 100) : 0
@@ -38,25 +37,25 @@ export const selectDashboardAnalytics = createSelector(
     ), 0)
 
     const planProgress = plans.map(plan => {
-      const planVideos = (plan.courses || []).flatMap(course => (
+      const planVideos = getProgressEligibleVideos((plan.courses || []).flatMap(course => (
         (course.modules || []).flatMap(module => module.videos || [])
-      ))
-      const watched = planVideos.filter(isWatched).length
+      )))
+      const { watched, progress: planProgressValue } = getVideoProgress(planVideos)
       return {
         id: plan.id,
         name: plan.name,
         courses: plan.courses?.length || 0,
         videos: planVideos.length,
         watched,
-        progress: planVideos.length ? Math.round((watched / planVideos.length) * 100) : 0,
+        progress: planProgressValue,
         updatedAt: plan.updated_at,
       }
     }).sort((left, right) => right.progress - left.progress || left.name.localeCompare(right.name))
 
     const continueLearning = courses.map(course => {
-      const courseVideos = (course.modules || []).flatMap(module => module.videos || [])
-      const watched = courseVideos.filter(isWatched).length
-      const nextVideo = courseVideos.find(video => !isWatched(video))
+      const courseVideos = getProgressEligibleVideos((course.modules || []).flatMap(module => module.videos || []))
+      const { watched, progress: courseProgressValue } = getVideoProgress(courseVideos)
+      const nextVideo = courseVideos.find(video => !isVideoWatched(video))
       return {
         planId: course.plan.id,
         planName: course.plan.name,
@@ -66,7 +65,7 @@ export const selectDashboardAnalytics = createSelector(
         modules: course.modules?.length || 0,
         videos: courseVideos.length,
         watched,
-        progress: courseVideos.length ? Math.round((watched / courseVideos.length) * 100) : 0,
+        progress: courseProgressValue,
         nextVideoTitle: nextVideo?.title,
         updatedAt: course.updated_at || course.plan.updated_at,
       }

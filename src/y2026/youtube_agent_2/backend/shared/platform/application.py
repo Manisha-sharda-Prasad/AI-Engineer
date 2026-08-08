@@ -27,6 +27,26 @@ def create_app(
         ):
             return await call_next(request)
 
+        # Direct Lambda events carry an IAM-protected authorizer context. Public
+        # Function URL clients cannot populate requestContext.authorizer.
+        aws_event = request.scope.get("aws.event", {})
+        lambda_identity = (
+            aws_event.get("requestContext", {})
+            .get("authorizer", {})
+            .get("lambda", {})
+            .get("userId")
+        )
+        if lambda_identity:
+            context_token = identity.set_current_user(lambda_identity)
+            youtube_token = identity.set_youtube_access_token(
+                request.headers.get("X-YouTube-Access-Token")
+            )
+            try:
+                return await call_next(request)
+            finally:
+                identity.reset_youtube_access_token(youtube_token)
+                identity.reset_current_user(context_token)
+
         internal_token = request.headers.get("X-Internal-Service-Token", "")
         if internal_token:
             if not settings.INTERNAL_SERVICE_TOKEN or not secrets.compare_digest(
@@ -43,9 +63,13 @@ def create_app(
                     content={"detail": "Internal Firebase user identity required"},
                 )
             context_token = identity.set_current_user(internal_user_id)
+            youtube_token = identity.set_youtube_access_token(
+                request.headers.get("X-YouTube-Access-Token")
+            )
             try:
                 return await call_next(request)
             finally:
+                identity.reset_youtube_access_token(youtube_token)
                 identity.reset_current_user(context_token)
 
         authorization = request.headers.get("Authorization", "")
@@ -64,6 +88,9 @@ def create_app(
             ensure_firebase_app()
             decoded = firebase_auth.verify_id_token(id_token, check_revoked=True)
             context_token = identity.set_current_user(decoded["uid"])
+            youtube_token = identity.set_youtube_access_token(
+                request.headers.get("X-YouTube-Access-Token")
+            )
         except Exception:
             return JSONResponse(
                 status_code=401,
@@ -73,6 +100,7 @@ def create_app(
         try:
             return await call_next(request)
         finally:
+            identity.reset_youtube_access_token(youtube_token)
             identity.reset_current_user(context_token)
 
     app.add_middleware(
@@ -83,7 +111,7 @@ def create_app(
             "http://127.0.0.1:5173",
         ],
         allow_origin_regex=r"^http://(localhost|127\.0\.0\.1):\d+$",
-        allow_credentials=True,
+        allow_credentials=False,
         allow_methods=["*"],
         allow_headers=["*"],
     )
