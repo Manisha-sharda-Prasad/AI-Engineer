@@ -10,6 +10,7 @@ from src.y2026.youtube_agent_2.backend.services.plans.app.models import (
     LearningPlan,
     MetadataUpdateRequest,
     PlaybackUpdateRequest,
+    VideoBulkMoveRequest,
     VideoReorderRequest,
 )
 
@@ -94,3 +95,9 @@ def update_video_playback(plan_id: str, course_id: str, module_id: str, video_id
 @router.patch("/api/plans/{plan_id}/courses/{course_id}/videos/reorder", tags=["courses"])
 def reorder_course_videos(plan_id: str, course_id: str, request: VideoReorderRequest):
     return {"plan": service.reorder_course_videos(plan_id, course_id, request)}
+
+
+@router.patch("/api/plans/{plan_id}/videos/move", tags=["courses"])
+def move_plan_videos(plan_id: str, request: VideoBulkMoveRequest):
+    plan, moved_count = service.move_plan_videos(plan_id, request)
+    return {"plan": plan, "moved_count": moved_count}

@@ -7,6 +7,7 @@ import { LearningPlanDropdown, CourseViewDropdown, CourseDropdown } from '../com
 import { submitCourseRefreshFeed } from '../api/client'
 import { updatePlan } from '../store/plansSlice'
 import { rememberLearningLocation, selectPlanPageState, selectWorkspaceState, updatePlanPage } from '../store/learningUiSlice'
+import { getVideoProgress } from '../utils/videoProgress'
 
 export default function CourseWorkspace() {
   const { planId, courseId } = useParams()
@@ -48,10 +49,9 @@ export default function CourseWorkspace() {
 
   const course = plan.courses.find(item => item.id === courseId)
   const videos = course.modules?.flatMap(module => module.videos || []) || []
-  const watched = videos.filter(video => video.labels?.includes('watched') || video.watched).length
+  const { watched, total: progressVideoCount, progress } = getVideoProgress(videos)
   const bookmarked = videos.filter(video => video.labels?.includes('bookmarked')).length
   const markedForDelete = videos.filter(video => video.labels?.includes('mark_for_delete')).length
-  const progress = videos.length ? Math.round((watched / videos.length) * 100) : 0
   const refreshNeeded = course.labels?.includes('refresh_needed')
   const stagedFeeds = course.new_video_feeds || []
   const stagedVideoCount = stagedFeeds.reduce((count, feed) => count + (feed.videos?.length || 0), 0)
@@ -148,6 +148,10 @@ export default function CourseWorkspace() {
           value={courseLabelTab}
           onSelect={(value) => {
             dispatch(updatePlanPage({ planId, changes: { courseLabelTab: value } }));
+            if (value === "ALL") {
+              navigate(`/plans/${planId}`);
+              return;
+            }
             const nextCourse = coursesForView(value)[0];
             if (nextCourse && nextCourse.id !== courseId) {
               navigate(`/plans/${planId}/courses/${nextCourse.id}/learn`);
@@ -173,7 +177,7 @@ export default function CourseWorkspace() {
     {showOverview && <><div className="drawer-overlay" onClick={() => setShowOverview(false)} /><aside className="drawer"><div className="drawer-header course-overview-drawer-header"><div><h2>{course.title}</h2>{course.description && <p>{course.description}</p>}</div><button className="btn btn-secondary btn-sm" onClick={() => setShowOverview(false)}><CloseIcon /></button></div><div className="drawer-body">
       {refreshError && <div className="alert alert-error">{refreshError}</div>}
       {stagedVideoCount > 0 && <section className="refresh-review refresh-review-notification"><div><h3>⚠️ New video feed ready</h3><p>{stagedVideoCount} new video{stagedVideoCount === 1 ? '' : 's'} staged across {stagedFeeds.length} source{stagedFeeds.length === 1 ? '' : 's'}.</p></div><button className="btn btn-secondary btn-sm" onClick={() => { setFeedReviewTab('visual'); setFeedReviewSearch(''); setFeedReviewSort('name'); setShowFeedReview(true) }}>Review new videos</button></section>}
-      <section className="overview-summary"><div className="overview-progress"><div className="plan-progress-heading"><span>Learning progress</span><strong>{progress}%</strong></div><div className="plan-progress-track"><span style={{ width: `${progress}%` }} /></div></div><div className="plan-card-counters"><span>{course.modules?.length || 0} modules</span><span>{watched}/{videos.length} watched</span><span>{bookmarked} bookmarked</span><span>{markedForDelete} marked</span></div></section>
+      <section className="overview-summary"><div className="overview-progress"><div className="plan-progress-heading"><span>Learning progress</span><strong>{progress}%</strong></div><div className="plan-progress-track"><span style={{ width: `${progress}%` }} /></div></div><div className="plan-card-counters"><span>{course.modules?.length || 0} modules</span><span>{watched}/{progressVideoCount} watched</span><span>{bookmarked} bookmarked</span><span>{markedForDelete} marked</span></div></section>
       <section className="workspace-source-section"><div className="source-section-heading"><h3>Content sources</h3></div><p className="course-source-meta">Last sync: {syncMetadata?.updated_at ? new Date(syncMetadata.updated_at).toLocaleString() : 'Not synced yet'}</p>{course.source_channels?.length ? <div className="course-source-list">{course.source_channels.map(channel => { const logo = channel.thumbnail || channel.logo || channel.logo_url; return <div className="course-source-item" key={channel.channel_id}>{logo ? <img src={logo} alt="" className="course-source-logo" /> : <div className="course-source-logo course-source-logo-fallback">{channel.title?.charAt(0).toUpperCase() || '?'}</div>}<div className="course-source-details"><div className="course-source-title">{channel.url ? <a href={channel.url} target="_blank" rel="noreferrer">{channel.title}</a> : channel.title}</div><div className="course-source-meta">{channel.videos_count ?? channel.video_count ?? 0} videos</div><div className="course-source-playlists"><strong>Playlists</strong>{channel.playlists?.length ? channel.playlists.map(playlist => <div className="course-source-playlist" key={playlist.id || playlist.playlist_id}>{playlist.thumbnail && <img src={playlist.thumbnail} alt="" />}<span>{playlist.title}</span></div>) : <span className="course-source-meta">All channel videos</span>}</div></div></div> })}</div> : <p>No sources recorded.</p>}</section>
     </div></aside></>}
     {showFeedReview && <><div className="drawer-overlay" onClick={() => setShowFeedReview(false)} /><aside className="drawer left-refresh-feed-drawer"><div className="drawer-header"><h2>Review new video feed</h2><button className="btn btn-secondary btn-sm" onClick={() => setShowFeedReview(false)}><CloseIcon /></button></div><div className="refresh-feed-tabs"><button className={feedReviewTab === 'visual' ? 'active' : ''} onClick={() => setFeedReviewTab('visual')}>Visual</button><button className={feedReviewTab === 'json' ? 'active' : ''} onClick={() => setFeedReviewTab('json')}>Raw JSON</button></div><div className="refresh-feed-dialog-body">{feedReviewTab === 'visual' ? <><div className="refresh-feed-toolbar"><input value={feedReviewSearch} onChange={event => setFeedReviewSearch(event.target.value)} placeholder="Search new videos..." /><div className="picker-sort-toggle"><button className={feedReviewSort === 'name' ? 'active' : ''} onClick={() => setFeedReviewSort('name')}>Name</button><button className={feedReviewSort === 'date' ? 'active' : ''} onClick={() => setFeedReviewSort('date')}>Date</button></div></div><div className="refresh-feed-visual-list">{reviewVideos.map(video => <article className="refresh-feed-video-card" key={video.video_id}>{video.thumbnail ? <img src={video.thumbnail} alt="" /> : <div className="refresh-feed-video-thumb" />}<div><strong><em>{video.sequence || '—'}.</em> {video.title || 'Untitled video'}</strong><span>{video.feed.playlist_id ? `Playlist: ${video.feed.playlist_id}` : 'Channel feed'} · {video.published_at ? new Date(video.published_at).toLocaleDateString() : 'Date unavailable'} · {formatDuration(video.duration_secs)}</span>{video.description && <p>{video.description}</p>}</div></article>)}{reviewVideos.length === 0 && <p className="refresh-feed-empty">No videos match this search.</p>}</div></> : <pre className="refresh-feed-json">{JSON.stringify(stagedFeeds, null, 2)}</pre>}</div><div className="drawer-footer"><button className="btn btn-secondary" onClick={() => setShowFeedReview(false)}>Cancel</button><button className="btn btn-success" disabled={refreshLoading} onClick={submitRefresh}>{refreshLoading ? 'Submitting…' : 'Submit to course'}</button></div></aside></>}

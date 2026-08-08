@@ -2,6 +2,7 @@ import React from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate, useParams } from 'react-router-dom'
 import LearningPathNav from '../components/LearningPathNav'
+import { getVideoProgress } from '../utils/videoProgress'
 import { CloseIcon, WorkspaceIcon } from '../components/Icons'
 import { rememberLearningLocation } from '../store/learningUiSlice'
 
@@ -17,13 +18,13 @@ export default function CourseOverview() {
   }, [courseId, dispatch, planId])
   if (!course) return <div className="alert alert-info">Course not found. <button className="btn btn-secondary btn-sm" onClick={() => navigate(`/plans/${planId}`)}>Back to plan</button></div>
   const videos = course.modules?.flatMap(module => module.videos || []) || []
-  const watched = videos.filter(video => video.labels?.includes('watched') || video.watched).length
+  const { watched, total: progressVideoCount } = getVideoProgress(videos)
   const bookmarked = videos.filter(video => video.labels?.includes('bookmarked')).length
   const markedForDelete = videos.filter(video => video.labels?.includes('mark_for_delete')).length
   return <div className="course-overview-page">
     <LearningPathNav plan={plan} course={course} />
     <div className="page-header mobile-page-header"><div className="mobile-page-title">{course.logo_url || course.logo ? <img src={course.logo_url || course.logo} alt="" className="page-brand-logo" /> : <span className="page-brand-logo page-brand-logo-fallback">{course.title?.charAt(0).toUpperCase() || '?'}</span>}<h1>{course.title}</h1></div><button type="button" className="mobile-page-menu-button" aria-label="Open course actions" aria-expanded={showMobileActions} onClick={() => setShowMobileActions(true)}><WorkspaceIcon name="menu" /></button><button className="btn btn-secondary btn-sm desktop-page-actions" onClick={() => navigate(`/plans/${planId}`)}>← {plan.name}</button></div>
-    <div className="card"><h3>Course overview</h3><p>{course.description || 'No description provided.'}</p><div className="metadata-row"><span>Created: {course.created_at ? new Date(course.created_at).toLocaleString() : '—'}</span><span>Updated: {course.updated_at ? new Date(course.updated_at).toLocaleString() : '—'}</span></div><div className="grid-3"><div><strong>{course.modules?.length || 0}</strong><br />Modules</div><div><strong>{videos.length}</strong><br />Total videos</div><div><strong>{watched}</strong><br />✓ Watched</div><div><strong>{bookmarked}</strong><br />🔖 Bookmarked</div><div><strong>{markedForDelete}</strong><br />🗑 Marked for delete</div><div><strong>{videos.length - watched}</strong><br />Unwatched</div></div></div>
+    <div className="card"><h3>Course overview</h3><p>{course.description || 'No description provided.'}</p><div className="metadata-row"><span>Created: {course.created_at ? new Date(course.created_at).toLocaleString() : '—'}</span><span>Updated: {course.updated_at ? new Date(course.updated_at).toLocaleString() : '—'}</span></div><div className="grid-3"><div><strong>{course.modules?.length || 0}</strong><br />Modules</div><div><strong>{progressVideoCount}</strong><br />Active videos</div><div><strong>{watched}</strong><br />✓ Watched</div><div><strong>{bookmarked}</strong><br />🔖 Bookmarked</div><div><strong>{markedForDelete}</strong><br />🗑 Marked for delete</div><div><strong>{progressVideoCount - watched}</strong><br />Unwatched</div></div></div>
     <div className="card"><h3>Content sources</h3>{course.source_channels?.length ? <div className="course-source-list">{course.source_channels.map(channel => {
       const logo = channel.thumbnail || channel.logo || channel.logo_url
       const playlists = channel.playlists || []

@@ -211,6 +211,10 @@ export function reorderCourseVideos(planId, courseId, data) {
   return request(`/api/plans/${planId}/courses/${courseId}/videos/reorder`, { method: 'PATCH', body: JSON.stringify(data) })
 }
 
+export function movePlanVideos(planId, data) {
+  return request(`/api/plans/${planId}/videos/move`, { method: 'PATCH', body: JSON.stringify(data) })
+}
+
 export function getPlan(planId) {
   return request(`/api/plans/${planId}`)
 }

@@ -10,7 +10,7 @@ function formatDuration(seconds) {
   return `${minutes}:${String(remainder).padStart(2, '0')}`
 }
 
-function FeedDestinationDropdown({ label, value, options, onChange, disabled = false }) {
+export function FeedDestinationDropdown({ label, value, options, onChange, disabled = false }) {
   const [open, setOpen] = React.useState(false)
   const pickerRef = React.useRef(null)
   const selectedOption = options.find(option => option.value === value) || options[0]

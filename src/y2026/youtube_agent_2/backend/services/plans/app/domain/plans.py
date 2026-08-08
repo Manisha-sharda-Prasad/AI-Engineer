@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from fastapi import HTTPException
 
 from src.y2026.youtube_agent_2.backend.services.plans.app.config import ALLOWED_PREBUILT_LABELS
-from src.y2026.youtube_agent_2.backend.services.plans.app.models import Course, CourseDeleteRequest, LearningPlan, MetadataUpdateRequest, PlaybackUpdateRequest, VideoReorderRequest
+from src.y2026.youtube_agent_2.backend.services.plans.app.models import Course, CourseDeleteRequest, LearningPlan, MetadataUpdateRequest, PlaybackUpdateRequest, VideoBulkMoveRequest, VideoReorderRequest
 from src.y2026.youtube_agent_2.backend.services.plans.app.repositories import store as db
 
 
@@ -270,3 +270,48 @@ def reorder_course_videos(plan_id: str, course_id: str, request: VideoReorderReq
     plan.updated_at = now
     db.save_plan(plan.model_dump())
     return plan
+
+
+def move_plan_videos(plan_id: str, request: VideoBulkMoveRequest) -> tuple[LearningPlan, int]:
+    plan = _load_plan(plan_id)
+    source_course = next((course for course in plan.courses if course.id == request.source_course_id), None)
+    target_course = next((course for course in plan.courses if course.id == request.target_course_id), None)
+    if not source_course or not target_course:
+        raise HTTPException(status_code=404, detail="Source or destination course not found")
+    target_module = next((module for module in target_course.modules if module.id == request.target_module_id), None)
+    if not target_module:
+        raise HTTPException(status_code=404, detail="Destination module not found")
+
+    requested_ids = list(dict.fromkeys(request.video_ids))
+    requested_id_set = set(requested_ids)
+    located_videos = [
+        video
+        for module in source_course.modules
+        for video in module.videos
+        if video.video_id in requested_id_set
+    ]
+    located_ids = {video.video_id for video in located_videos}
+    missing_ids = requested_id_set - located_ids
+    if missing_ids:
+        raise HTTPException(status_code=404, detail=f"Video not found in source course: {', '.join(sorted(missing_ids))}")
+
+    for module in source_course.modules:
+        module.videos = [video for video in module.videos if video.video_id not in requested_id_set]
+    target_module.videos.extend(located_videos)
+
+    affected_courses = {source_course.id, target_course.id}
+    now = _now()
+    for course in plan.courses:
+        if course.id not in affected_courses:
+            continue
+        for module in course.modules:
+            for index, video in enumerate(module.videos, start=1):
+                video.sequence = index
+        course.updated_at = now
+    if source_course.last_played_video_id in requested_id_set:
+        source_course.last_played_video_id = None
+        source_course.last_played_position_secs = None
+        source_course.last_played_at = None
+    plan.updated_at = now
+    db.save_plan(plan.model_dump())
+    return plan, len(located_videos)
