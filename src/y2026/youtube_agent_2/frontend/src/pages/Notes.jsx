@@ -19,23 +19,42 @@ function displayName(value = '') {
   return value.replace(/^\d+[_. -]*/, '').replace(/[_-]+/g, ' ').replace(/\b\w/g, character => character.toUpperCase())
 }
 
-function internalNotePath(href, note, index) {
-  if (!href || !note?.path || !index?.notes?.length || href.startsWith('#')) return ''
+function internalNotesTarget(href, note, index) {
+  if (!href || !note?.path || !index?.notes?.length || href.startsWith('#')) return null
   try {
     const resolved = new URL(href, `https://learning-notes.local/${note.path}`)
-    let candidate = ''
+    let candidate = null
     if (resolved.hostname === 'learning-notes.local') {
       candidate = decodeURIComponent(resolved.pathname.replace(/^\/+/, ''))
     } else if (resolved.hostname === 'github.com') {
       const parts = resolved.pathname.split('/').filter(Boolean)
-      if (parts[0]?.toLowerCase() === index.owner?.toLowerCase() && parts[1]?.toLowerCase() === index.repo?.toLowerCase() && parts[2] === 'blob' && parts[3] === index.branch) candidate = decodeURIComponent(parts.slice(4).join('/'))
+      if (parts[0]?.toLowerCase() === index.owner?.toLowerCase() && parts[1]?.toLowerCase() === index.repo?.toLowerCase() && ['blob', 'tree'].includes(parts[2]) && parts[3] === index.branch) candidate = decodeURIComponent(parts.slice(4).join('/'))
     } else if (resolved.hostname === 'raw.githubusercontent.com') {
       const parts = resolved.pathname.split('/').filter(Boolean)
       if (parts[0]?.toLowerCase() === index.owner?.toLowerCase() && parts[1]?.toLowerCase() === index.repo?.toLowerCase() && parts[2] === index.branch) candidate = decodeURIComponent(parts.slice(3).join('/'))
     }
-    return index.notes.find(item => item.path.toLowerCase() === candidate.toLowerCase())?.path || ''
+    if (candidate === null) return null
+    candidate = candidate.replace(/\/+$/, '')
+    const exactNote = index.notes.find(item => item.path.toLowerCase() === candidate.toLowerCase())
+    if (exactNote) return { type: 'note', note: exactNote }
+    const prefix = candidate ? `${candidate.toLowerCase()}/` : ''
+    const folderNotes = index.notes.filter(item => item.path.toLowerCase().startsWith(prefix))
+    if (!folderNotes.length) return null
+    const rankedNotes = [...folderNotes].sort((left, right) => {
+      const leftRelative = left.path.slice(candidate.length + (candidate ? 1 : 0))
+      const rightRelative = right.path.slice(candidate.length + (candidate ? 1 : 0))
+      const score = relativePath => {
+        const parts = relativePath.split('/')
+        const fileName = parts.at(-1).toLowerCase()
+        if (parts.length === 1 && /^(?:readme|index|overview)\.md$/.test(fileName)) return 0
+        if (parts.length === 1) return 1
+        return 2 + parts.length
+      }
+      return score(leftRelative) - score(rightRelative) || leftRelative.localeCompare(rightRelative, undefined, { numeric: true })
+    })
+    return { type: 'folder', folderPath: candidate, note: rankedNotes[0], noteCount: folderNotes.length }
   } catch {
-    return ''
+    return null
   }
 }
 
@@ -68,10 +87,15 @@ function youtubeEmbedUrl(videoId) {
 }
 
 function linkDescriptor(href, note, index, label = '') {
-  const notePath = internalNotePath(href, note, index)
-  if (notePath) {
-    const indexedNote = index.notes.find(item => item.path === notePath)
-    return { type: 'note', path: notePath, title: indexedNote?.title || displayName(notePath.split('/').at(-1)), url: indexedNote?.github_url || relativeUrl(href, note.raw_url), label }
+  const internalTarget = internalNotesTarget(href, note, index)
+  if (internalTarget?.type === 'note') {
+    const indexedNote = internalTarget.note
+    return { type: 'note', path: indexedNote.path, title: indexedNote.title || displayName(indexedNote.path.split('/').at(-1)), url: indexedNote.github_url || relativeUrl(href, note.raw_url), label }
+  }
+  if (internalTarget?.type === 'folder') {
+    const treePath = internalTarget.folderPath.split('/').map(encodeURIComponent).join('/')
+    const folderUrl = index.repository_url ? `${index.repository_url.replace(/\/$/, '')}/tree/${encodeURIComponent(index.branch)}/${treePath}` : relativeUrl(href, note.raw_url)
+    return { type: 'folder', path: internalTarget.note.path, folderPath: internalTarget.folderPath, noteCount: internalTarget.noteCount, title: label || displayName(internalTarget.folderPath.split('/').at(-1)) || 'Repository notes', url: folderUrl, label }
   }
   const url = relativeUrl(href, note?.raw_url)
   try {
@@ -91,7 +115,7 @@ function linkDescriptor(href, note, index, label = '') {
 }
 
 function supportsDrawerPreview(descriptor) {
-  if (['note', 'youtube'].includes(descriptor?.type)) return true
+  if (['note', 'folder', 'youtube'].includes(descriptor?.type)) return true
   const hostname = descriptor?.hostname || ''
   return READER_PREVIEW_HOSTS.some(domain => hostname === domain || hostname.endsWith(`.${domain}`))
 }
@@ -278,8 +302,9 @@ function LinkBrandIcon({ type }) {
   if (type === 'github') return <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 4a20 20 0 0 0-6.3 39c1 .2 1.4-.4 1.4-1v-3.8c-5.7 1.2-6.9-2.4-6.9-2.4-.9-2.4-2.3-3-2.3-3-1.9-1.3.1-1.3.1-1.3 2.1.1 3.2 2.2 3.2 2.2 1.9 3.2 4.9 2.3 6.1 1.8.2-1.4.7-2.3 1.3-2.8-4.6-.5-9.4-2.3-9.4-10A7.8 7.8 0 0 1 13 18a7.3 7.3 0 0 1 .2-5.7s1.6-.5 5.9 2.2a20.3 20.3 0 0 1 10.6 0c4.1-2.7 5.8-2.2 5.8-2.2a7.3 7.3 0 0 1 .2 5.7 7.8 7.8 0 0 1 2.1 5.5c0 7.7-4.8 9.4-9.4 10 .8.7 1.4 2 1.4 3.8V42c0 .6.4 1.2 1.4 1A20 20 0 0 0 24 4Z"/></svg>
   if (type === 'chatgpt') return <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M23.9 6a10 10 0 0 1 17.2 7.4 10 10 0 0 1 1 17.9 10 10 0 0 1-16.2 9.7 10 10 0 0 1-17.2-7.4 10 10 0 0 1-1-17.9A10 10 0 0 1 23.9 6Zm-8.2 10.7 8.2-4.7 8.3 4.8v9.5l-8.3 4.8-8.2-4.8v-9.6Zm8.2-4.7v9.6l8.3 4.7m-16.5-9.6 8.2 4.9-8.2 4.7"/></svg>
   if (type === 'deepseek') return <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M5 27c7-13 20-18 38-12-3 15-14 24-28 22-5-.7-8.3-4-10-10Zm10 10c3-7 8-12 16-15M27 17c1 3 3 5 7 6"/></svg>
+  if (type === 'folder') return <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M5 12h15l5 6h18v22H5V12Z"/><path d="M5 18h38M17 29h14M24 22v14"/></svg>
   if (type === 'note') return <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M8 7h23l9 9v25H8V7Z"/><path d="M30 7v10h10M15 23h18M15 29h18M15 35h12"/></svg>
-  return <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M20 28 28 20M17 12h-5a7 7 0 0 0-7 7v17a7 7 0 0 0 7 7h17a7 7 0 0 0 7-7v-5M27 5h16v16M43 5 24 24"/></svg>
+  return <svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="19"/><path d="M5 24h38M24 5c6 5.3 9 11.7 9 19s-3 13.7-9 19c-6-5.3-9-11.7-9-19s3-13.7 9-19Z"/></svg>
 }
 
 function staticReaderDocument(html, sourceUrl) {
@@ -352,8 +377,18 @@ function ExternalReaderPreview({ preview }) {
   return <iframe className="notes-external-frame" srcDoc={documentHtml} title={`Reader preview: ${preview.title || preview.hostname}`} sandbox="allow-popups allow-popups-to-escape-sandbox" />
 }
 
-function LinkPreviewDrawer({ preview, repositoryId, index, onClose, onNavigate, onPreviewLink }) {
+function FolderPreviewTree({ node, landingPath, selectedPath, onSelect, depth = 0 }) {
+  const directories = [...node.directories.values()].sort((left, right) => left.name.localeCompare(right.name, undefined, { numeric: true }))
+  const notes = [...node.notes].sort((left, right) => left.path.localeCompare(right.path, undefined, { numeric: true }))
+  return <div className="notes-folder-preview-level" style={{ '--folder-preview-depth': depth }}>
+    {directories.map(directory => <section className="notes-folder-preview-directory" key={directory.path}><div className="notes-folder-preview-folder"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h7l2 2h9v11H3V6Z"/></svg><span><b>{displayName(directory.name)}</b><small>{noteCount(directory)} notes</small></span></div><FolderPreviewTree node={directory} landingPath={landingPath} selectedPath={selectedPath} onSelect={onSelect} depth={depth + 1}/></section>)}
+    {notes.map(folderNote => <button type="button" className={`${folderNote.path === landingPath ? 'is-landing' : ''} ${folderNote.path === selectedPath ? 'is-selected' : ''}`} key={folderNote.path} onClick={() => onSelect(folderNote.path)}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l4 4v14H6V3Z"/><path d="M14 3v5h5M9 12h7M9 16h7"/></svg><span><b>{folderNote.title}</b><small>{folderNote.path.split('/').at(-1)}{folderNote.path === landingPath ? ' · Landing note' : ''}</small></span><span aria-hidden="true">›</span></button>)}
+  </div>
+}
+
+function LinkPreviewDrawer({ preview, repositoryId, index, onClose, onNavigate, onPreviewLink, canGoBack, onBack }) {
   const [previewNote, setPreviewNote] = React.useState(null)
+  const [folderSelectedPath, setFolderSelectedPath] = React.useState('')
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState('')
 
@@ -364,37 +399,48 @@ function LinkPreviewDrawer({ preview, repositoryId, index, onClose, onNavigate, 
     return () => document.removeEventListener('keydown', close)
   }, [preview, onClose])
 
+  React.useEffect(() => setFolderSelectedPath(preview?.type === 'folder' ? preview.path : ''), [preview])
+
   React.useEffect(() => {
     setPreviewNote(null); setError('')
-    if (preview?.type !== 'note') { setLoading(false); return undefined }
+    const contentPath = preview?.type === 'note' ? preview.path : preview?.type === 'folder' ? folderSelectedPath : ''
+    if (!contentPath) { setLoading(false); return undefined }
     let active = true
     setLoading(true)
-    getNoteContent(repositoryId, preview.path).then(data => active && setPreviewNote(data)).catch(fetchError => active && setError(fetchError.message || 'Unable to preview this note.')).finally(() => active && setLoading(false))
+    getNoteContent(repositoryId, contentPath).then(data => active && setPreviewNote(data)).catch(fetchError => active && setError(fetchError.message || 'Unable to preview this note.')).finally(() => active && setLoading(false))
     return () => { active = false }
-  }, [preview, repositoryId])
+  }, [preview, repositoryId, folderSelectedPath])
 
   if (!preview) return null
-  const labels = { note: 'Linked learning note', youtube: 'YouTube video', 'youtube-post': 'YouTube post', github: 'GitHub resource', chatgpt: 'ChatGPT link', deepseek: 'DeepSeek link', external: 'External resource' }
-  const description = preview.type === 'note'
-    ? preview.path
+  const labels = { note: 'Linked learning note', folder: 'Linked notes folder', youtube: 'YouTube video', 'youtube-post': 'YouTube post', github: 'GitHub resource', chatgpt: 'ChatGPT link', deepseek: 'DeepSeek link', external: 'External resource' }
+  const description = ['note', 'folder'].includes(preview.type)
+    ? (preview.folderPath || preview.path)
     : (() => { try { const value = new URL(preview.url); return `${value.hostname}${decodeURIComponent(value.pathname)}` } catch { return preview.url } })()
   const previewHeadings = previewNote ? extractHeadings(previewNote.content) : []
+  const folderPrefix = preview.type === 'folder' && preview.folderPath ? `${preview.folderPath.toLowerCase().replace(/\/$/, '')}/` : ''
+  const folderNotes = preview.type === 'folder' ? (index?.notes || []).filter(item => item.path.toLowerCase().startsWith(folderPrefix)) : []
+  const folderTree = preview.type === 'folder' ? buildTree(folderNotes, preview.folderPath) : null
 
   return <div className="notes-link-drawer-layer" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) onClose() }}>
     <aside className={`notes-link-drawer link-type-${preview.type}`} role="dialog" aria-modal="true" aria-labelledby="notes-link-preview-title">
       <header className="notes-link-drawer-header">
+        <button type="button" className="notes-link-back" onClick={onBack} disabled={!canGoBack} aria-label="Back to previous preview" title="Back to previous preview">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14.5 5-7 7 7 7M8 12h10"/></svg>
+        </button>
         <div className="notes-link-brand"><span><LinkBrandIcon type={preview.type}/></span><div><small>{labels[preview.type] || labels.external}</small><strong id="notes-link-preview-title">{preview.title || preview.hostname || 'Link preview'}</strong><p title={description}>{description}</p></div></div>
         <button type="button" className="notes-link-close" onClick={onClose} aria-label="Close link preview">×</button>
       </header>
       <div className="notes-link-drawer-body">
         {preview.type === 'note' && (loading ? <div className="note-reader-status"><span className="spinner" /> Loading linked note…</div> : error ? <DismissibleError message={error}/> : previewNote ? <article className="markdown-body notes-link-note-preview"><MarkdownContent note={previewNote} headings={previewHeadings} index={index} onOpenLink={onPreviewLink}/></article> : null)}
+        {preview.type === 'folder' && <div className="notes-folder-master-detail"><aside className="notes-folder-master"><header><span><LinkBrandIcon type="folder"/></span><div><h2>{preview.title}</h2><p>{folderNotes.length} Markdown notes</p></div></header><div className="notes-folder-master-tree">{folderTree && <FolderPreviewTree node={folderTree} landingPath={preview.path} selectedPath={folderSelectedPath} onSelect={setFolderSelectedPath}/>}</div></aside><section className="notes-folder-detail"><header><span>Note preview</span><strong>{previewNote?.title || folderNotes.find(item => item.path === folderSelectedPath)?.title || 'Select a note'}</strong><small>{folderSelectedPath}</small></header><div className="notes-folder-detail-content">{loading ? <div className="note-reader-status"><span className="spinner" /> Loading note…</div> : error ? <DismissibleError message={error}/> : previewNote ? <article className="markdown-body notes-link-note-preview"><MarkdownContent note={previewNote} headings={previewHeadings} index={index} onOpenLink={onPreviewLink}/></article> : <div className="note-reader-status">Select a note from the folder tree.</div>}</div></section></div>}
         {preview.type === 'youtube-post' && <div className="notes-youtube-post-preview"><span><LinkBrandIcon type="youtube-post"/></span><h2>Community post</h2><p>YouTube does not provide a video-player embed for Community posts. Open the post on YouTube to view its text, images, poll, and discussion.</p></div>}
         {preview.type === 'youtube' && <div className="notes-external-preview"><iframe key={preview.url} className="notes-external-frame" src={youtubeEmbedUrl(preview.videoId)} title={`${labels.youtube}: ${preview.title || preview.hostname}`} loading="eager" referrerPolicy="strict-origin-when-cross-origin" sandbox="allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-presentation allow-same-origin allow-scripts" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen/></div>}
-        {!['note', 'youtube', 'youtube-post'].includes(preview.type) && <div className="notes-external-preview"><ExternalReaderPreview preview={preview}/></div>}
+        {!['note', 'folder', 'youtube', 'youtube-post'].includes(preview.type) && <div className="notes-external-preview"><ExternalReaderPreview preview={preview}/></div>}
       </div>
       <footer className="notes-link-drawer-actions">
         <button type="button" className="btn btn-secondary" onClick={onClose}>Close preview</button>
         {preview.type === 'note' && <button type="button" className="btn btn-primary" onClick={() => onNavigate(preview.path)}>Jump to note</button>}
+        {preview.type === 'folder' && <button type="button" className="btn btn-primary" disabled={!folderSelectedPath} onClick={() => onNavigate(folderSelectedPath)}>Jump to selected note</button>}
         {preview.url && <a className="btn btn-secondary notes-link-open" href={preview.url} target="_blank" rel="noreferrer">Open in new tab ↗</a>}
       </footer>
     </aside>
@@ -410,10 +456,12 @@ function MarkdownContent({ note, headings, index, onOpenLink }) {
     return <Tag id={id} {...props}>{children}</Tag>
   }
   const components = {
-    a: ({ href, children, ...props }) => {
+    a: ({ href, children, className, ...props }) => {
       const resolved = relativeUrl(href, note.raw_url)
-      if (href?.startsWith('#')) return <a href={href} onClick={event => { event.preventDefault(); document.getElementById(href.slice(1))?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }} {...props}>{children}</a>
-      return <a href={resolved} onClick={event => { event.preventDefault(); onOpenLink?.(linkDescriptor(href, note, index, React.Children.toArray(children).join(''))) }} {...props}>{children}</a>
+      if (href?.startsWith('#')) return <a href={href} className={className} onClick={event => { event.preventDefault(); document.getElementById(href.slice(1))?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }} {...props}>{children}</a>
+      const descriptor = linkDescriptor(href, note, index, React.Children.toArray(children).join(''))
+      const linkClassName = ['notes-rich-link', `link-type-${descriptor.type}`, className].filter(Boolean).join(' ')
+      return <a href={resolved} className={linkClassName} onClick={event => { event.preventDefault(); onOpenLink?.(descriptor) }} {...props}><span className="notes-rich-link-icon"><LinkBrandIcon type={descriptor.type}/></span>{children}</a>
     },
     img: ({ src, alt, ...props }) => <img src={relativeUrl(src, note.raw_url)} alt={alt || ''} loading="lazy" {...props} />,
     h1: heading(1), h2: heading(2), h3: heading(3), h4: heading(4), h5: heading(5), h6: heading(6),
@@ -448,27 +496,28 @@ function filterHeadingTree(nodes, query) {
   })
 }
 
-function OutlineHeadingTree({ nodes, depth = 0 }) {
+function OutlineHeadingTree({ nodes, depth = 0, onNavigate }) {
   return <ol className={depth === 0 ? 'notes-outline-tree' : 'notes-outline-branch'}>{nodes.map(node => {
     return <li key={node.id}>
-      <button type="button" className={`outline-heading-level-${node.level}`} onClick={() => document.getElementById(node.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })} title={node.title}><span className="notes-outline-heading-title">{node.title}</span></button>
-      {node.children.length > 0 && <OutlineHeadingTree nodes={node.children} depth={depth + 1}/>}
+      <button type="button" className={`outline-heading-level-${node.level}`} onClick={() => { document.getElementById(node.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); onNavigate?.() }} title={node.title}><span className="notes-outline-heading-title">{node.title}</span></button>
+      {node.children.length > 0 && <OutlineHeadingTree nodes={node.children} depth={depth + 1} onNavigate={onNavigate}/>}
     </li>
   })}</ol>
 }
 
-function OnThisPage({ note, headings }) {
+function OnThisPage({ note, headings, mobileOpen = false, isMobile = false, onMobileClose }) {
   const [query, setQuery] = React.useState('')
   React.useEffect(() => setQuery(''), [note?.path])
   const normalizedQuery = query.trim().toLowerCase()
   const visibleHeadingTree = filterHeadingTree(headingTree(headings), normalizedQuery)
-  return <aside className="notes-outline" aria-label="On this page">
+  return <aside className={`notes-outline ${mobileOpen ? 'mobile-open' : ''}`} aria-label="On this page" aria-hidden={isMobile && !mobileOpen}>
     <div className="notes-outline-sticky">
+      <button type="button" className="notes-mobile-drawer-close" onClick={onMobileClose} aria-label="Close page outline">×</button>
       <span>On this page</span>
       <strong>{note?.title || 'Note outline'}</strong>
       {note?.github_url && <a className="notes-outline-source" href={note.github_url} target="_blank" rel="noreferrer" title="Edit / view on GitHub" aria-label="Edit or view this note on GitHub"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 0 0-3 17.5c.5.1.7-.2.7-.5v-1.8c-2.8.6-3.4-1.2-3.4-1.2-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 0 1.6 1.1 1.6 1.1.9 1.6 2.4 1.1 2.9.9.1-.7.4-1.1.7-1.4-2.2-.3-4.6-1.1-4.6-5A3.9 3.9 0 0 1 7 7.8 3.6 3.6 0 0 1 7.1 5s.8-.3 2.9 1.1a10 10 0 0 1 5.2 0C17.2 4.7 18 5 18 5a3.6 3.6 0 0 1 .1 2.8 3.9 3.9 0 0 1 1 2.7c0 3.9-2.4 4.7-4.6 5 .4.3.7.9.7 1.8V20c0 .3.2.6.7.5A9 9 0 0 0 12 3Z"/></svg></a>}
       <label className="notes-outline-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg><input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Find a heading…" aria-label="Search headings in this note"/></label>
-      {visibleHeadingTree.length ? <nav><OutlineHeadingTree nodes={visibleHeadingTree}/></nav> : <p>{headings.length ? 'No headings match your search.' : 'No headings in this note.'}</p>}
+      {visibleHeadingTree.length ? <nav><OutlineHeadingTree nodes={visibleHeadingTree} onNavigate={onMobileClose}/></nav> : <p>{headings.length ? 'No headings match your search.' : 'No headings in this note.'}</p>}
     </div>
   </aside>
 }
@@ -566,7 +615,10 @@ export default function Notes() {
   const [query, setQuery] = React.useState('')
   const [expanded, setExpanded] = React.useState({})
   const [showNavigation, setShowNavigation] = React.useState(true)
+  const [mobilePanel, setMobilePanel] = React.useState(null)
+  const [isMobile, setIsMobile] = React.useState(false)
   const [linkPreview, setLinkPreview] = React.useState(null)
+  const [linkPreviewHistory, setLinkPreviewHistory] = React.useState([])
   const [loadingCatalog, setLoadingCatalog] = React.useState(true)
   const [loadingIndex, setLoadingIndex] = React.useState(false)
   const [loadingNote, setLoadingNote] = React.useState(false)
@@ -585,8 +637,23 @@ export default function Notes() {
   }, [repositoryId])
 
   React.useEffect(() => {
-    if (navigationRef.current) navigationRef.current.inert = !showNavigation
-  }, [showNavigation])
+    const media = window.matchMedia('(max-width: 900px)')
+    const update = () => { setIsMobile(media.matches); if (!media.matches) setMobilePanel(null) }
+    update()
+    media.addEventListener('change', update)
+    return () => media.removeEventListener('change', update)
+  }, [])
+
+  React.useEffect(() => {
+    if (navigationRef.current) navigationRef.current.inert = !showNavigation || (isMobile && mobilePanel !== 'library')
+  }, [showNavigation, isMobile, mobilePanel])
+
+  React.useEffect(() => {
+    if (!mobilePanel) return undefined
+    const closeOnEscape = event => { if (event.key === 'Escape') setMobilePanel(null) }
+    document.addEventListener('keydown', closeOnEscape)
+    return () => document.removeEventListener('keydown', closeOnEscape)
+  }, [mobilePanel])
 
   React.useEffect(() => {
     if (!repositoryId) { setIndex(null); setNote(null); return undefined }
@@ -630,13 +697,26 @@ export default function Notes() {
 
   React.useEffect(() => { noteReaderRef.current?.scrollTo({ top: 0 }) }, [selectedPath])
 
-  const selectNote = path => setSearchParams({ repo: repositoryId, path })
-  const previewLink = descriptor => {
+  const selectNote = path => { setSearchParams({ repo: repositoryId, path }); setMobilePanel(null) }
+  const openPreviewLink = descriptor => {
     if (!descriptor?.url) return
     if (!supportsDrawerPreview(descriptor)) { openInNewTab(descriptor.url); return }
+    setLinkPreviewHistory([])
     setLinkPreview(descriptor)
   }
-  const jumpToPreviewedNote = path => { setLinkPreview(null); selectNote(path) }
+  const followPreviewLink = descriptor => {
+    if (!descriptor?.url) return
+    if (!supportsDrawerPreview(descriptor)) { openInNewTab(descriptor.url); return }
+    setLinkPreviewHistory(current => linkPreview ? [...current, linkPreview] : current)
+    setLinkPreview(descriptor)
+  }
+  const closeLinkPreview = () => { setLinkPreview(null); setLinkPreviewHistory([]) }
+  const goBackInPreview = () => {
+    if (!linkPreviewHistory.length) return
+    setLinkPreview(linkPreviewHistory[linkPreviewHistory.length - 1])
+    setLinkPreviewHistory(current => current.slice(0, -1))
+  }
+  const jumpToPreviewedNote = path => { closeLinkPreview(); selectNote(path) }
   const chooseFirst = candidates => { if (candidates.length) selectNote([...candidates].sort((a, b) => a.path.localeCompare(b.path, undefined, { numeric: true }))[0].path) }
   const selectYear = year => chooseFirst(allNotes.filter(item => taxonomy(item, index.root_path).year === year))
   const selectTopic = topic => chooseFirst(yearNotes.filter(item => taxonomy(item, index.root_path).topic === topic))
@@ -659,24 +739,26 @@ export default function Notes() {
     <header className="notes-reader-header">
       {!showNavigation && <button type="button" className="notes-nav-reveal" onClick={() => setShowNavigation(true)} aria-controls="notes-topic-navigation" title="Show topic navigation" aria-label="Show topic navigation"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M6 8h0M6 12h0"/></svg></button>}
       <Breadcrumbs index={index} selectedPath={selectedPath} onDirectory={navigateBreadcrumb} />
+      <div className="notes-mobile-header-actions"><button type="button" onClick={() => { setShowNavigation(true); setMobilePanel('library') }} aria-label="Open notes library" title="Notes library"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M6 8h0M6 12h0"/></svg></button><button type="button" onClick={() => setMobilePanel('outline')} aria-label="Open page outline" title="On this page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/></svg></button></div>
     </header>
     <DismissibleError message={error} />
     <div className="notes-layout">
-      <aside ref={navigationRef} id="notes-topic-navigation" className="notes-browser" aria-label="Repository topics" aria-hidden={!showNavigation}>
-        <div className="notes-browser-header"><RepositoryDropdown repositories={repositories} selected={currentRepository || index} onSelect={repo => setSearchParams({ repo })}/></div>
+      <aside ref={navigationRef} id="notes-topic-navigation" className={`notes-browser ${mobilePanel === 'library' ? 'mobile-open' : ''}`} aria-label="Repository topics" aria-hidden={!showNavigation || (isMobile && mobilePanel !== 'library')}>
+        <div className="notes-browser-header"><RepositoryDropdown repositories={repositories} selected={currentRepository || index} onSelect={repo => { setSearchParams({ repo }); setMobilePanel(null) }}/><button type="button" className="notes-mobile-drawer-close" onClick={() => setMobilePanel(null)} aria-label="Close notes library">×</button></div>
         <div className="notes-tree-toolbar">
           <label className="notes-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg><input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Search topics and notes…" aria-label="Search this repository" /></label>
           <YearDropdown selectedYear={selectedYear} onSelect={selectYear} options={years.map(year => ({ value: year, label: displayName(year), count: allNotes.filter(item => taxonomy(item, index.root_path).year === year).length }))}/>
-          <div className="notes-browser-actions"><button type="button" className="notes-browser-icon" onClick={() => setExpanded(Object.fromEntries(allTreePaths.map(path => [path, !allExpanded])))} title={allExpanded ? 'Collapse all subtopics' : 'Expand all subtopics'} aria-label={allExpanded ? 'Collapse all subtopics' : 'Expand all subtopics'} aria-pressed={allExpanded}><svg viewBox="0 0 24 24" aria-hidden="true">{allExpanded ? <path d="M9 9H4V4m11 5h5V4M9 15H4v5m11-5h5v5M4 9l5-5m11 5-5-5M4 15l5 5m11-5-5 5"/> : <path d="M8 3H3v5m13-5h5v5M8 21H3v-5m13 5h5v-5M3 8l5-5m13 5-5-5M3 16l5 5m13-5-5 5"/>}</svg></button>{index?.repository_url && <a className="notes-browser-icon notes-browser-github" href={index.repository_url} target="_blank" rel="noreferrer" title="View repository on GitHub" aria-label="View repository on GitHub"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 0 0-3 17.5c.5.1.7-.2.7-.5v-1.8c-2.8.6-3.4-1.2-3.4-1.2-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 0 1.6 1.1 1.6 1.1.9 1.6 2.4 1.1 2.9.9.1-.7.4-1.1.7-1.4-2.2-.3-4.6-1.1-4.6-5A3.9 3.9 0 0 1 7 7.8 3.6 3.6 0 0 1 7.1 5s.8-.3 2.9 1.1a10 10 0 0 1 5.2 0C17.2 4.7 18 5 18 5a3.6 3.6 0 0 1 .1 2.8 3.9 3.9 0 0 1 1 2.7c0 3.9-2.4 4.7-4.6 5 .4.3.7.9.7 1.8V20c0 .3.2.6.7.5A9 9 0 0 0 12 3Z"/></svg></a>}<button type="button" className="notes-browser-icon" onClick={() => setShowNavigation(false)} aria-controls="notes-topic-navigation" title="Hide topic navigation" aria-label="Hide topic navigation"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M6 8h0M6 12h0"/></svg></button></div>
+          <div className="notes-browser-actions"><button type="button" className="notes-browser-icon" onClick={() => setExpanded(Object.fromEntries(allTreePaths.map(path => [path, !allExpanded])))} title={allExpanded ? 'Collapse all subtopics' : 'Expand all subtopics'} aria-label={allExpanded ? 'Collapse all subtopics' : 'Expand all subtopics'} aria-pressed={allExpanded}><svg viewBox="0 0 24 24" aria-hidden="true">{allExpanded ? <path d="M9 9H4V4m11 5h5V4M9 15H4v5m11-5h5v5M4 9l5-5m11 5-5-5M4 15l5 5m11-5-5 5"/> : <path d="M8 3H3v5m13-5h5v5M8 21H3v-5m13 5h5v-5M3 8l5-5m13 5-5-5M3 16l5 5m13-5-5 5"/>}</svg></button>{index?.repository_url && <a className="notes-browser-icon notes-browser-github" href={index.repository_url} target="_blank" rel="noreferrer" title="View repository on GitHub" aria-label="View repository on GitHub"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 0 0-3 17.5c.5.1.7-.2.7-.5v-1.8c-2.8.6-3.4-1.2-3.4-1.2-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 0 1.6 1.1 1.6 1.1.9 1.6 2.4 1.1 2.9.9.1-.7.4-1.1.7-1.4-2.2-.3-4.6-1.1-4.6-5A3.9 3.9 0 0 1 7 7.8 3.6 3.6 0 0 1 7.1 5s.8-.3 2.9 1.1a10 10 0 0 1 5.2 0C17.2 4.7 18 5 18 5a3.6 3.6 0 0 1 .1 2.8 3.9 3.9 0 0 1 1 2.7c0 3.9-2.4 4.7-4.6 5 .4.3.7.9.7 1.8V20c0 .3.2.6.7.5A9 9 0 0 0 12 3Z"/></svg></a>}<button type="button" className="notes-browser-icon notes-desktop-nav-toggle" onClick={() => setShowNavigation(false)} aria-controls="notes-topic-navigation" title="Hide topic navigation" aria-label="Hide topic navigation"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M6 8h0M6 12h0"/></svg></button></div>
         </div>
         <div className="notes-tree-browser">
           <nav className="notes-topic-list" aria-label={`${selectedYear} topics`}><span className="notes-pane-label">Topics</span>{topics.map(topic => { const count = filteredNotes.filter(item => { const value = taxonomy(item, index.root_path); return value.year === selectedYear && value.topic === topic }).length; return <button type="button" className={topic === selectedTopic ? 'active' : ''} key={topic} onClick={() => selectTopic(topic)}><TopicIcon topic={topic}/><span className="notes-topic-name">{displayName(topic)}</span><small className="notes-count-badge">{count}</small></button> })}</nav>
           <nav className="notes-list" aria-label={`${selectedTopic} notes`}><span className="notes-pane-label">{displayName(selectedTopic)} notes</span>{!loadingIndex && <NoteTree node={tree} selectedPath={selectedPath} expanded={expanded} onToggle={path => setExpanded(current => ({ ...current, [path]: !current[path] }))} onSelect={selectNote} />}{!loadingIndex && !topicNotes.length && <p className="notes-empty">No notes match this search in {displayName(selectedTopic)}.</p>}</nav>
         </div>
       </aside>
-      <main ref={noteReaderRef} className="note-reader">{loadingNote ? <div className="note-reader-status"><span className="spinner" /> Loading note…</div> : note ? <article className="markdown-body"><MarkdownContent note={note} headings={headings} index={index} onOpenLink={previewLink} /></article> : <div className="note-reader-status">Choose a note to start reading.</div>}</main>
-      <OnThisPage note={note} headings={headings} />
+      <main ref={noteReaderRef} className="note-reader">{loadingNote ? <div className="note-reader-status"><span className="spinner" /> Loading note…</div> : note ? <article className="markdown-body"><MarkdownContent note={note} headings={headings} index={index} onOpenLink={openPreviewLink} /></article> : <div className="note-reader-status">Choose a note to start reading.</div>}</main>
+      <OnThisPage note={note} headings={headings} isMobile={isMobile} mobileOpen={mobilePanel === 'outline'} onMobileClose={() => setMobilePanel(null)} />
     </div>
-    <LinkPreviewDrawer preview={linkPreview} repositoryId={repositoryId} index={index} onClose={() => setLinkPreview(null)} onNavigate={jumpToPreviewedNote} onPreviewLink={previewLink}/>
+    {isMobile && mobilePanel && <button type="button" className="notes-mobile-backdrop" onClick={() => setMobilePanel(null)} aria-label="Close mobile navigation" />}
+    <LinkPreviewDrawer preview={linkPreview} repositoryId={repositoryId} index={index} onClose={closeLinkPreview} onNavigate={jumpToPreviewedNote} onPreviewLink={followPreviewLink} canGoBack={linkPreviewHistory.length > 0} onBack={goBackInPreview}/>
   </div>
 }
