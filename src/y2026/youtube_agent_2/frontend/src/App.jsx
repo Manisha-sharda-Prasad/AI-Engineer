@@ -10,6 +10,7 @@ import CourseOverview from './pages/CourseOverview'
 import CourseWorkspace from './pages/CourseWorkspace'
 import Profile from './pages/Profile'
 import AiRequests from './pages/AiRequests'
+import Notes from './pages/Notes'
 import { CloseIcon, WorkspaceIcon } from './components/Icons'
 import SourceFeedPreviewDialog from './components/SourceFeedPreviewDialog'
 import AiModelConfigDrawer from './components/AiModelConfigDrawer'
@@ -56,6 +57,21 @@ function ThemeIcon({ theme }) {
 
 function SourceInboxIcon() {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM4 14h5l1.5 2h3L15 14h5M12 3v8m0 0-3-3m3 3 3-3" /></svg>
+}
+
+function LearningNotesIcon() {
+  return <svg className="learning-notes-nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+    <defs>
+      <linearGradient id="learning-notes-nav-gradient" x1="4" y1="4" x2="20" y2="21" gradientUnits="userSpaceOnUse">
+        <stop stopColor="#8b5cf6" />
+        <stop offset="0.52" stopColor="#ec4899" />
+        <stop offset="1" stopColor="#f59e0b" />
+      </linearGradient>
+    </defs>
+    <path className="notes-icon-pages" d="M3.75 5.6c2.75-.95 5.5-.45 8.25 1.48 2.75-1.93 5.5-2.43 8.25-1.48v13.1c-2.75-.8-5.5-.25-8.25 1.65-2.75-1.9-5.5-2.45-8.25-1.65V5.6Z" />
+    <path className="notes-icon-fold" d="M12 7.08v13.27M6.5 9.1c1.3-.2 2.4.05 3.4.65M6.5 12.15c1.3-.2 2.4.05 3.4.65M14.1 11.2c1-.6 2.1-.85 3.4-.65M14.1 14.25c1-.6 2.1-.85 3.4-.65" />
+    <path className="notes-icon-spark" d="m18.35 2.4.43 1.18 1.18.43-1.18.43-.43 1.18-.43-1.18-1.18-.43 1.18-.43.43-1.18Z" />
+  </svg>
 }
 
 function formatRelativeAge(value) {
@@ -701,6 +717,7 @@ function AppLayout() {
           <div className="right-nav-top">
           <button type="button" className="app-logo-nav-button" title="YouTube Learning home" aria-label="YouTube Learning home" onClick={() => navigate('/')}><img src={appLogo} alt="" /></button>
           <button type="button" className={`home-nav-button nav-color-plans ${location.pathname.startsWith('/plans') ? 'active' : ''}`} title="Learning Plans" aria-label="Learning Plans" onClick={() => navigate('/plans')}><svg viewBox="0 0 24 24"><path d="M5 4h11a3 3 0 0 1 3 3v13H7a2 2 0 0 1-2-2V4Zm2 0v14a2 2 0 0 0-2-2m4-7h5m-5 4h5" /></svg></button>
+          <button type="button" className={`home-nav-button nav-color-notes ${location.pathname.startsWith('/notes') ? 'active' : ''}`} title="Learning Notes" aria-label="Learning Notes" onClick={() => navigate('/notes')}><LearningNotesIcon /></button>
           <button type="button" className="add-plan-nav-button nav-color-create" title="Create learning plan" aria-label="Create learning plan" onClick={() => { setCreatePlanError(''); setShowCreatePlanDrawer(true) }}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg></button>
           <button type="button" className="refresh-plans nav-color-inbox" onClick={() => { setSourceSyncError(''); setShowSourceSyncDrawer(true) }} aria-label="Open source feed inbox" title="Source feed inbox">
             <SourceInboxIcon />
@@ -755,6 +772,7 @@ function AppLayout() {
         <Routes location={routedLocation}>
           <Route path="/" element={<Dashboard aiEnabled={AI_ENABLED} onOpenAiModels={() => setShowAiModelDrawer(true)} />} />
           <Route path="/plans" element={<PlansRoute newPlanRequest={0} onRefresh={loadPlans} refreshing={plansLoading} />} />
+          <Route path="/notes" element={<Notes />} />
           <Route path="/ai-model-configs" element={<Navigate to="/" replace />} />
           <Route path="/plans/:planId" element={<PlanOverview loading={plansLoading} />} />
           {AI_ENABLED && <Route path="/plans/:planId/ai-requests" element={<AiRequests />} />}
