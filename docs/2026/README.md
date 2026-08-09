@@ -5,9 +5,7 @@
 - [99_Misc](99_Misc)
 
 ## POC Projects
-- **Youtube agent**: https://github.com/users/lekhrajdinkar/projects/2 
-  - [youtube_agent_1](../../src/y2026/youtube_agent_1) ... ignore
-  - [youtube_agent_2](../../src/y2026/youtube_agent_2) ... in progress
+- [YouTube_agent_2026](../../src/y2026/youtube_agent_2) | v1.0.0 `complete`
 - Java SpringAIModule https://github.com/lekhrajdinkar/microservice-java/tree/main/SpringAIModule ... in progress
 
 ## Labs
