@@ -1,6 +1,6 @@
 """HTTP routes for learning plans, courses, and workspace mutations."""
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Response
 
 from src.y2026.youtube_agent_2.backend.services.plans.app.domain import plans as service
 from src.y2026.youtube_agent_2.backend.services.plans.app.models import (
@@ -31,6 +31,45 @@ def list_plans():
 @router.get("/api/plans/{plan_id}")
 def get_plan(plan_id: str):
     return service.get_plan(plan_id)
+
+
+@router.post("/api/plans/{plan_id}/publication", tags=["publication"])
+def publish_plan(plan_id: str):
+    plan = service.publish_plan(plan_id)
+    return {
+        "share_id": plan.public_share_id,
+        "public_url": f"/public/plans/{plan.public_share_id}",
+        "published_at": plan.published_at,
+        "plan": plan,
+    }
+
+
+@router.delete("/api/plans/{plan_id}/publication", tags=["publication"])
+def unpublish_plan(plan_id: str):
+    return {"plan": service.unpublish_plan(plan_id)}
+
+
+@router.get("/public-api/plans", tags=["public-plans"])
+def list_public_plans(response: Response):
+    response.headers["Cache-Control"] = "public, max-age=60"
+    return {"plans": service.list_public_plans()}
+
+
+@router.head("/public-api/plans", tags=["public-plans"])
+def head_public_plans():
+    return Response(status_code=200, headers={"Cache-Control": "public, max-age=60"})
+
+
+@router.get("/public-api/plans/{share_id}", tags=["public-plans"])
+def get_public_plan(share_id: str, response: Response):
+    response.headers["Cache-Control"] = "public, max-age=60"
+    return service.get_public_plan(share_id)
+
+
+@router.head("/public-api/plans/{share_id}", tags=["public-plans"])
+def head_public_plan(share_id: str):
+    service.get_public_plan(share_id)
+    return Response(status_code=200, headers={"Cache-Control": "public, max-age=60"})
 
 
 @router.patch("/api/plans/{plan_id}")

@@ -6,7 +6,9 @@ import AiCourseModal from "../components/AiCourseModal";
 import { updatePlan } from "../store/plansSlice";
 import {
   deleteCourses,
+  publishPlan,
   replacePlan,
+  unpublishPlan,
   updateCourseLabels,
   updateCourseMetadata,
   updatePlanLabels,
@@ -27,6 +29,110 @@ import {
 import { getProgressEligibleVideos, getVideoProgress } from "../utils/videoProgress";
 
 const AI_ENABLED = import.meta.env.VITE_ENABLE_AI === "true";
+
+function PlanPublicationDrawer({ plan, onClose, onPlanUpdated }) {
+  const [busy, setBusy] = React.useState(false);
+  const [error, setError] = React.useState("");
+  const [copied, setCopied] = React.useState(false);
+  const isPublic = plan.visibility === "public" && plan.public_share_id;
+  const publicUrl = isPublic
+    ? `${window.location.origin}/public/plans/${encodeURIComponent(plan.public_share_id)}`
+    : "";
+
+  const publish = async () => {
+    setBusy(true);
+    setError("");
+    try {
+      const response = await publishPlan(plan.id);
+      onPlanUpdated(response.plan);
+    } catch (requestError) {
+      setError(requestError.message || "Unable to publish this learning plan.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const unpublish = async () => {
+    if (!window.confirm("Unpublish this learning plan? Its public link will stop working immediately.")) return;
+    setBusy(true);
+    setError("");
+    try {
+      const response = await unpublishPlan(plan.id);
+      onPlanUpdated(response.plan);
+    } catch (requestError) {
+      setError(requestError.message || "Unable to unpublish this learning plan.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const copyPublicUrl = async () => {
+    try {
+      await navigator.clipboard.writeText(publicUrl);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1800);
+    } catch {
+      setError("Your browser blocked clipboard access. Select and copy the link below.");
+    }
+  };
+
+  return (
+    <>
+      <div className="drawer-overlay" onClick={onClose} />
+      <aside className="drawer plan-publication-drawer" aria-label="Public learning plan settings">
+        <div className="drawer-header">
+          <div>
+            <small>READ-ONLY SHARING</small>
+            <h2>Publish learning plan</h2>
+          </div>
+          <button className="btn btn-secondary btn-sm icon-button" onClick={onClose} aria-label="Close publication settings"><CloseIcon /></button>
+        </div>
+        <div className="drawer-body">
+          <section className={`plan-publication-status ${isPublic ? "is-public" : "is-private"}`}>
+            <span className="plan-publication-status-icon"><WorkspaceIcon name="share" /></span>
+            <div>
+              <small>{isPublic ? "PUBLIC BY LINK" : "PRIVATE"}</small>
+              <h3>{plan.name}</h3>
+              <p>{isPublic
+                ? "Anyone with this link can browse the plan, courses, modules, and videos without signing in."
+                : "Only you can access this plan. Publish it when you are ready to share a read-only version."}</p>
+            </div>
+          </section>
+
+          {error && <div className="alert alert-error">{error}</div>}
+
+          {isPublic ? (
+            <>
+              <section className="plan-publication-link-section">
+                <label htmlFor="public-plan-url">Public link</label>
+                <div className="plan-publication-link-row">
+                  <input id="public-plan-url" value={publicUrl} readOnly onFocus={(event) => event.target.select()} />
+                  <button className="btn btn-primary" onClick={copyPublicUrl}>{copied ? "Copied" : "Copy"}</button>
+                </div>
+              </section>
+              <div className="plan-publication-actions">
+                <a className="btn btn-primary" href={publicUrl} target="_blank" rel="noreferrer">Open public view</a>
+                <button className="btn btn-secondary plan-unpublish-button" onClick={unpublish} disabled={busy}>{busy ? "Unpublishing…" : "Unpublish"}</button>
+              </div>
+              <p className="plan-publication-privacy-note">Learning progress, bookmarks, playback position, source feeds, and account details are never included in the public view.</p>
+            </>
+          ) : (
+            <>
+              <div className="plan-publication-benefits">
+                <strong>The public version includes</strong>
+                <span>Plan overview and course structure</span>
+                <span>Modules, video titles, descriptions, and resource links</span>
+                <span>A responsive, read-only course experience</span>
+              </div>
+              <button className="btn btn-primary plan-publish-button" onClick={publish} disabled={busy}>{busy ? "Publishing…" : "Publish and create link"}</button>
+              <p className="plan-publication-privacy-note">Private progress and account data remain private. You can unpublish at any time.</p>
+            </>
+          )}
+        </div>
+      </aside>
+    </>
+  );
+}
 
 function JsonActionIcon({ name }) {
   const paths = {
@@ -556,6 +662,7 @@ export default function PlanOverview({ loading = false }) {
   const [courseToEdit, setCourseToEdit] = React.useState(null);
   const [showOverview, setShowOverview] = React.useState(false);
   const [showPlanEdit, setShowPlanEdit] = React.useState(false);
+  const [showPublication, setShowPublication] = React.useState(false);
   const [showSortFilter, setShowSortFilter] = React.useState(false);
   const [labelSearch, setLabelSearch] = React.useState("");
   const [showMobileActions, setShowMobileActions] = React.useState(false);
@@ -752,6 +859,17 @@ export default function PlanOverview({ loading = false }) {
     ...channel,
     videos_count: videoIds.size,
   }));
+  const planModuleCount = (plan?.courses || []).reduce(
+    (count, course) => count + (course.modules?.length || 0),
+    0,
+  );
+  const planVideoCount = (plan?.courses || []).reduce(
+    (count, course) => count + (course.modules || []).reduce(
+      (moduleCount, module) => moduleCount + (module.videos?.length || 0),
+      0,
+    ),
+    0,
+  );
 
   const renderCourseActions = (className = "") => (
     <div className={`plan-action-panel ${className}`}>
@@ -762,6 +880,18 @@ export default function PlanOverview({ loading = false }) {
         onClick={() => setShowOverview(true)}
       >
         <WorkspaceIcon name="info" />
+      </button>}
+
+      {!isAllPlans && <button
+        className={`btn btn-secondary btn-sm icon-button ${plan?.visibility === "public" ? "active" : ""}`}
+        title={plan?.visibility === "public" ? "Manage public link" : "Publish learning plan"}
+        aria-label={plan?.visibility === "public" ? "Manage public link" : "Publish learning plan"}
+        onClick={() => {
+          setShowMobileActions(false);
+          setShowPublication(true);
+        }}
+      >
+        <WorkspaceIcon name="share" />
       </button>}
 
       
@@ -802,6 +932,89 @@ export default function PlanOverview({ loading = false }) {
     </div>
   );
 
+  const renderCourseSelectionControls = (className = "") => (
+    <div className={`course-toolbar-options ${className}`}>
+      <label className="course-progress-switch">
+        <input
+          type="checkbox"
+          checked={showCourseProgress}
+          onChange={(event) => updatePageState({ showCourseProgress: event.target.checked })}
+        />
+        <span className="course-progress-switch-track" aria-hidden="true" />
+        <span>Show progress</span>
+      </label>
+      <label className="course-select-all">
+        <input
+          type="checkbox"
+          checked={allVisibleSelected}
+          ref={(input) => {
+            if (input) input.indeterminate = someVisibleSelected && !allVisibleSelected;
+          }}
+          onChange={toggleAllVisibleCourses}
+          disabled={!visibleCourses.length || bulkUpdating}
+        />
+        <span>Select all visible</span>
+      </label>
+    </div>
+  );
+
+  const renderPrivatePlanHeroActions = () => (
+    <div className="desktop-page-actions private-plan-hero-actions">
+      <div className="private-plan-hero-action-top">
+        <input
+          value={query}
+          onChange={(event) => updatePageState({ query: event.target.value })}
+          placeholder="Search courses..."
+          aria-label="Search courses"
+        />
+        <button
+          className={`btn btn-secondary btn-sm icon-button ${labelFilters.length ? "active" : ""}`}
+          title="Sort and filter courses"
+          aria-label="Sort and filter courses"
+          onClick={() => setShowSortFilter(true)}
+        >
+          <WorkspaceIcon name="sort" />
+        </button>
+        <button
+          className="btn btn-secondary btn-sm icon-button"
+          title="Learning plan overview"
+          aria-label="Learning plan overview"
+          onClick={() => setShowOverview(true)}
+        >
+          <WorkspaceIcon name="info" />
+        </button>
+        <button
+          className={`btn btn-secondary btn-sm icon-button ${plan?.visibility === "public" ? "active" : ""}`}
+          title={plan?.visibility === "public" ? "Manage public link" : "Publish learning plan"}
+          aria-label={plan?.visibility === "public" ? "Manage public link" : "Publish learning plan"}
+          onClick={() => setShowPublication(true)}
+        >
+          <WorkspaceIcon name="share" />
+        </button>
+      </div>
+      <div className="private-plan-hero-action-bottom">
+        <div className="private-plan-create-actions">
+          <button className="btn btn-primary btn-sm" onClick={() => setShowManual(true)}>
+            <WorkspaceIcon name="manual" />
+            Manual course
+          </button>
+          {AI_ENABLED && <button className="btn btn-secondary btn-sm" onClick={() => setShowAi(true)}>
+            <WorkspaceIcon name="ai" />
+            AI suggested course
+          </button>}
+          {AI_ENABLED && <button
+            className="btn btn-secondary btn-sm ai-request-status-button"
+            onClick={() => navigate(`/plans/${planId}/ai-requests`)}
+          >
+            <WorkspaceIcon name="progress" />
+            <span>AI request status</span>
+          </button>}
+        </div>
+        {renderCourseSelectionControls("private-plan-course-options")}
+      </div>
+    </div>
+  );
+
   if (!plan && loading)
     return <div className="plan-overview-page"><LoadingBar active label="Loading learning plans…" /></div>;
 
@@ -819,7 +1032,7 @@ export default function PlanOverview({ loading = false }) {
     );
 
   return (
-    <div className="plan-overview-page">
+    <div className={`plan-overview-page ${!isAllPlans ? "private-plan-view" : ""}`}>
       <nav className="plan-detail-breadcrumb" aria-label="Plan and course filter">
         <div className="plan-detail-breadcrumb-path">
           <LearningPlanDropdown
@@ -844,9 +1057,39 @@ export default function PlanOverview({ loading = false }) {
           />
         </div>
         <button type="button" className="mobile-page-menu-button" aria-label="Open course actions" aria-expanded={showMobileActions} onClick={() => setShowMobileActions(true)}><WorkspaceIcon name="menu" /></button>
-        {renderCourseActions("desktop-page-actions breadcrumb-actions")}
+        {isAllPlans && renderCourseActions("desktop-page-actions breadcrumb-actions")}
       </nav>
       <LoadingBar active={loading} label="Refreshing learning plans…" />
+      {!isAllPlans && (
+        <section className="private-plan-hero" aria-labelledby="private-plan-title">
+          <div className="private-plan-hero-logo">
+            {plan.logo_url || plan.logo ? (
+              <img src={plan.logo_url || plan.logo} alt="" />
+            ) : (
+              <span>{plan.name?.charAt(0)?.toUpperCase() || "?"}</span>
+            )}
+          </div>
+          <div className="private-plan-hero-copy">
+            <span className="private-plan-hero-eyebrow">
+              Your learning plan
+              <i className={plan.visibility === "public" ? "is-public" : "is-private"}>
+                {plan.visibility === "public" ? "Published" : "Private"}
+              </i>
+            </span>
+            <h1 id="private-plan-title">{plan.name}</h1>
+            <p>{plan.description || "Organize courses, modules, and videos in this learning plan."}</p>
+            <div className="private-plan-hero-stats" aria-label="Learning plan totals">
+              <b>{plan.courses?.length || 0}<small>Courses</small></b>
+              <b>{planModuleCount}<small>Modules</small></b>
+              <b>{planVideoCount}<small>Videos</small></b>
+            </div>
+          </div>
+          <div className="private-plan-hero-controls">
+            {renderPrivatePlanHeroActions()}
+            {renderCourseSelectionControls("private-plan-course-options private-plan-mobile-course-options")}
+          </div>
+        </section>
+      )}
       <div className="plan-course-scroll-body">
         {AI_ENABLED && submittedAiRequest && (
           <div className="alert alert-info">
@@ -954,29 +1197,7 @@ export default function PlanOverview({ loading = false }) {
               })}
             </div>}
           </div>
-          <div className="course-toolbar-options">
-            <label className="course-progress-switch">
-              <input
-                type="checkbox"
-                checked={showCourseProgress}
-                onChange={(event) => updatePageState({ showCourseProgress: event.target.checked })}
-              />
-              <span className="course-progress-switch-track" aria-hidden="true" />
-              <span>Show progress</span>
-            </label>
-            <label className="course-select-all">
-              <input
-                type="checkbox"
-                checked={allVisibleSelected}
-                ref={(input) => {
-                  if (input) input.indeterminate = someVisibleSelected && !allVisibleSelected;
-                }}
-                onChange={toggleAllVisibleCourses}
-                disabled={!visibleCourses.length || bulkUpdating}
-              />
-              <span>Select all visible</span>
-            </label>
-          </div>
+          {isAllPlans && renderCourseSelectionControls()}
         </div>
         {bulkError && <div className="alert alert-error course-bulk-error">{bulkError}</div>}
         <div className="plan-course-list">
@@ -1172,6 +1393,13 @@ export default function PlanOverview({ loading = false }) {
             dispatch(updatePlan(response.plan));
             setShowPlanEdit(false);
           }}
+        />
+      )}
+      {!isAllPlans && showPublication && (
+        <PlanPublicationDrawer
+          plan={plan}
+          onClose={() => setShowPublication(false)}
+          onPlanUpdated={(updated) => dispatch(updatePlan(updated))}
         />
       )}
       {showSortFilter && (

@@ -11,6 +11,8 @@ import CourseWorkspace from './pages/CourseWorkspace'
 import Profile from './pages/Profile'
 import AiRequests from './pages/AiRequests'
 import Notes from './pages/Notes'
+import PublicPlan from './pages/PublicPlan'
+import PublicPlans from './pages/PublicPlans'
 import { CloseIcon, WorkspaceIcon } from './components/Icons'
 import SourceFeedPreviewDialog from './components/SourceFeedPreviewDialog'
 import AiModelConfigDrawer from './components/AiModelConfigDrawer'
@@ -59,6 +61,10 @@ function SourceInboxIcon() {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM4 14h5l1.5 2h3L15 14h5M12 3v8m0 0-3-3m3 3 3-3" /></svg>
 }
 
+function AiModelConfigIcon() {
+  return <svg className="ai-model-config-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="3"/><path d="M9 2v3m6-3v3M9 19v3m6-3v3M2 9h3m-3 6h3m14-6h3m-3 6h3M9 12h6M12 9v6"/><circle cx="18.5" cy="5.5" r="2.2"/></svg>
+}
+
 function LearningNotesIcon() {
   return <svg className="learning-notes-nav-icon" viewBox="0 0 24 24" aria-hidden="true">
     <defs>
@@ -71,6 +77,14 @@ function LearningNotesIcon() {
     <path className="notes-icon-pages" d="M3.75 5.6c2.75-.95 5.5-.45 8.25 1.48 2.75-1.93 5.5-2.43 8.25-1.48v13.1c-2.75-.8-5.5-.25-8.25 1.65-2.75-1.9-5.5-2.45-8.25-1.65V5.6Z" />
     <path className="notes-icon-fold" d="M12 7.08v13.27M6.5 9.1c1.3-.2 2.4.05 3.4.65M6.5 12.15c1.3-.2 2.4.05 3.4.65M14.1 11.2c1-.6 2.1-.85 3.4-.65M14.1 14.25c1-.6 2.1-.85 3.4-.65" />
     <path className="notes-icon-spark" d="m18.35 2.4.43 1.18 1.18.43-1.18.43-.43 1.18-.43-1.18-1.18-.43 1.18-.43.43-1.18Z" />
+  </svg>
+}
+
+function PublicPlansIcon() {
+  return <svg className="public-plans-nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M4.5 4.5h10A3.5 3.5 0 0 1 18 8v11H6.5a2 2 0 0 1-2-2V4.5Zm2 0V17a2 2 0 0 0-2-2" />
+    <circle cx="15.5" cy="11.5" r="5" />
+    <path d="M10.8 10h9.4m-9.4 3h9.4M15.5 6.5c1.2 1.3 1.8 3 1.8 5s-.6 3.7-1.8 5m0-10c-1.2 1.3-1.8 3-1.8 5s.6 3.7 1.8 5" />
   </svg>
 }
 
@@ -514,6 +528,13 @@ function AppLayout() {
   }, [])
 
   React.useEffect(() => {
+    if (auth) return
+    setShowCreatePlanDrawer(false)
+    setShowSourceSyncDrawer(false)
+    setShowAiModelDrawer(false)
+  }, [auth?.uid])
+
+  React.useEffect(() => {
     if (auth && plans.length === 0) loadPlans()
   }, [auth?.uid])
 
@@ -716,23 +737,28 @@ function AppLayout() {
         <div className="right-nav-actions">
           <div className="right-nav-top">
           <button type="button" className="app-logo-nav-button" title="YouTube Learning home" aria-label="YouTube Learning home" onClick={() => navigate('/')}><img src={appLogo} alt="" /></button>
-          <button type="button" className={`home-nav-button nav-color-plans ${location.pathname.startsWith('/plans') ? 'active' : ''}`} title="Learning Plans" aria-label="Learning Plans" onClick={() => navigate('/plans')}><svg viewBox="0 0 24 24"><path d="M5 4h11a3 3 0 0 1 3 3v13H7a2 2 0 0 1-2-2V4Zm2 0v14a2 2 0 0 0-2-2m4-7h5m-5 4h5" /></svg></button>
-          <button type="button" className={`home-nav-button nav-color-notes ${location.pathname.startsWith('/notes') ? 'active' : ''}`} title="Learning Notes" aria-label="Learning Notes" onClick={() => navigate('/notes')}><LearningNotesIcon /></button>
-          <button type="button" className="add-plan-nav-button nav-color-create" title="Create learning plan" aria-label="Create learning plan" onClick={() => { setCreatePlanError(''); setShowCreatePlanDrawer(true) }}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg></button>
-          <button type="button" className="refresh-plans nav-color-inbox" onClick={() => { setSourceSyncError(''); setShowSourceSyncDrawer(true) }} aria-label="Open source feed inbox" title="Source feed inbox">
-            <SourceInboxIcon />
-          </button>
-          <button type="button" className="quick-plan-button nav-color-search" onClick={() => setShowPlanSwitcher(true)} aria-label="Open global search" title="Global search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m15.5 15.5 5 5" /></svg></button>
+          <div className="right-nav-workspace-group" role="group" aria-label="Learning workspace" title="Learning workspace">
+            <button type="button" className={`home-nav-button nav-color-plans ${location.pathname.startsWith('/plans') ? 'active' : ''}`} title="Learning Plans" aria-label="Learning Plans" onClick={() => navigate('/plans')}><svg viewBox="0 0 24 24"><path d="M5 4h11a3 3 0 0 1 3 3v13H7a2 2 0 0 1-2-2V4Zm2 0v14a2 2 0 0 0-2-2m4-7h5m-5 4h5" /></svg></button>
+            <button type="button" className="quick-plan-button nav-color-search" onClick={() => setShowPlanSwitcher(true)} aria-label="Open global search" title="Global search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m15.5 15.5 5 5" /></svg></button>
+            {auth && <button type="button" className="add-plan-nav-button nav-color-create" title="Create learning plan" aria-label="Create learning plan" onClick={() => { setCreatePlanError(''); setShowCreatePlanDrawer(true) }}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg></button>}
+            {auth && <button type="button" className="refresh-plans nav-color-inbox" onClick={() => { setSourceSyncError(''); setShowSourceSyncDrawer(true) }} aria-label="Open source feed inbox" title="Source feed inbox">
+              <SourceInboxIcon />
+            </button>}
+          </div>
+          <div className="right-nav-public-group" role="group" aria-label="Public learning library" title="Public learning library">
+            <button type="button" className={`home-nav-button nav-color-public-plans ${location.pathname.startsWith('/public/plans') ? 'active' : ''}`} title="Public learning plans" aria-label="Public learning plans" onClick={() => navigate('/public/plans')}><PublicPlansIcon /></button>
+            <button type="button" className={`home-nav-button nav-color-notes ${location.pathname.startsWith('/notes') ? 'active' : ''}`} title="Learning Notes" aria-label="Learning Notes" onClick={() => navigate('/notes')}><LearningNotesIcon /></button>
+          </div>
           </div>
           <div className="right-nav-bottom">
-          {AI_ENABLED && <button type="button" className={`home-nav-button nav-color-ai ${showAiModelDrawer ? 'active' : ''}`} title="AI model configurations" aria-label="AI model configurations" onClick={() => setShowAiModelDrawer(true)}>AI</button>}
+          {AI_ENABLED && auth && <button type="button" className={`home-nav-button nav-color-ai ${showAiModelDrawer ? 'active' : ''}`} title="AI model configurations" aria-label="AI model configurations" onClick={() => setShowAiModelDrawer(true)}><AiModelConfigIcon /></button>}
           <button type="button" className="home-nav-button settings-nav-button nav-color-settings" title="Settings" aria-label="Settings" onClick={() => setShowSettingsDrawer(true)}><WorkspaceIcon name="settings" /></button>
           <button type="button" className={`profile-nav-button ${profileOpen ? 'active' : ''}`} title={auth?.displayName || auth?.email || 'Profile'} aria-label="Profile" aria-expanded={profileOpen} onClick={openProfile}>{auth?.photoURL ? <img src={auth.photoURL} alt="" /> : <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></svg>}</button>
           </div>
         </div>
       </aside>
       {profileOpen && <><div className="drawer-overlay profile-drawer-overlay" onClick={closeProfile} /><aside className="drawer profile-drawer" role="dialog" aria-modal="true" aria-labelledby="profile-drawer-title"><div className="drawer-header"><div><h2 id="profile-drawer-title">Profile</h2><p>Manage your account and connected services.</p></div><button className="btn btn-secondary btn-sm" onClick={closeProfile} aria-label="Close"><CloseIcon /></button></div><div className="drawer-body"><Profile showTitle={false} /></div></aside></>}
-      {showCreatePlanDrawer && <><div className="drawer-overlay" onClick={closeCreatePlanDrawer} /><aside className="drawer create-plan-drawer" role="dialog" aria-modal="true" aria-labelledby="create-plan-title">
+      {auth && showCreatePlanDrawer && <><div className="drawer-overlay" onClick={closeCreatePlanDrawer} /><aside className="drawer create-plan-drawer" role="dialog" aria-modal="true" aria-labelledby="create-plan-title">
         <div className="drawer-header"><h2 id="create-plan-title">Create Learning Plan</h2><button className="btn btn-secondary btn-sm" onClick={closeCreatePlanDrawer} aria-label="Close"><CloseIcon /></button></div>
         <div className="drawer-body">
           <DismissibleError message={createPlanError} />
@@ -742,9 +768,9 @@ function AppLayout() {
         </div>
         <div className="drawer-footer"><button className="btn btn-secondary" onClick={closeCreatePlanDrawer} disabled={creatingPlan}>Cancel</button><button className="btn btn-primary" onClick={submitNewPlan} disabled={creatingPlan}>{creatingPlan ? <><span className="spinner" /> Creating...</> : 'Create Plan'}</button></div>
       </aside></>}
-      {AI_ENABLED && showAiModelDrawer && <AiModelConfigDrawer onClose={() => setShowAiModelDrawer(false)} />}
+      {AI_ENABLED && auth && showAiModelDrawer && <AiModelConfigDrawer onClose={() => setShowAiModelDrawer(false)} />}
       {showSettingsDrawer && <><div className="drawer-overlay" onClick={() => setShowSettingsDrawer(false)} /><aside className="drawer settings-drawer" role="dialog" aria-modal="true" aria-labelledby="settings-drawer-title"><div className="drawer-header"><div><h2 id="settings-drawer-title">Settings</h2><p>Personalize your learning workspace.</p></div><button className="btn btn-secondary btn-sm" onClick={() => setShowSettingsDrawer(false)} aria-label="Close"><CloseIcon /></button></div><div className="drawer-body settings-drawer-body"><section className="settings-section"><div><h3>Font size</h3><p>Adjust text sizing across the application.</p></div><div className="settings-option-grid" role="group" aria-label="Global font size">{[['small', 'Small', 'Aa'], ['medium', 'Medium', 'Aa'], ['large', 'Large', 'Aa']].map(([size, label, sample]) => <button type="button" key={size} className={fontSize === size ? 'active' : ''} onClick={() => setFontSize(size)} aria-pressed={fontSize === size}><span className={`settings-font-sample ${size}`}>{sample}</span><strong>{label}</strong></button>)}</div></section><section className="settings-section"><div><h3>Theme</h3><p>Choose the color theme used throughout the application.</p></div><div className="settings-option-grid" role="group" aria-label="Theme">{['light', 'pale', 'dark'].map(value => <button type="button" key={value} className={theme === value ? 'active' : ''} onClick={() => setTheme(value)} aria-pressed={theme === value}><span className={`settings-theme-preview ${value}`}><ThemeIcon theme={value} /></span><strong>{value}</strong></button>)}</div></section></div><div className="drawer-footer"><button className="btn btn-primary" onClick={() => setShowSettingsDrawer(false)}>Done</button></div></aside></>}
-      {showSourceSyncDrawer && <><div className="drawer-overlay" onClick={() => setShowSourceSyncDrawer(false)} /><aside className="drawer source-sync-drawer"><div className="drawer-header"><div><h2>Source feed inbox</h2><p>Pull new YouTube feeds, then route them to a course for review.</p></div><button className="btn btn-secondary btn-sm" onClick={() => setShowSourceSyncDrawer(false)} aria-label="Close"><CloseIcon /></button></div><LoadingBar active={sourceInboxLoading} label={sourceInboxLoadingLabel} className="drawer-loading-wait-bar" /><div className="drawer-body source-sync-body">
+      {auth && showSourceSyncDrawer && <><div className="drawer-overlay" onClick={() => setShowSourceSyncDrawer(false)} /><aside className="drawer source-sync-drawer"><div className="drawer-header"><div><h2>Source feed inbox</h2><p>Pull new YouTube feeds, then route them to a course for review.</p></div><button className="btn btn-secondary btn-sm" onClick={() => setShowSourceSyncDrawer(false)} aria-label="Close"><CloseIcon /></button></div><LoadingBar active={sourceInboxLoading} label={sourceInboxLoadingLabel} className="drawer-loading-wait-bar" /><div className="drawer-body source-sync-body">
         <DismissibleError message={sourceSyncError} />
         <section className="source-sync-channel-section">
           <div className="source-sync-channel-controls"><input value={sourceSyncSearch} onChange={event => setSourceSyncSearch(event.target.value)} placeholder="Search channels or playlists..." aria-label="Search content sources" /><div className="picker-sort-toggle"><button className={sourceSyncFilter === 'all' ? 'active' : ''} onClick={() => setSourceSyncFilter('all')}>All ({syncMetadata?.channels?.length || 0})</button><button className={sourceSyncFilter === 'pending' ? 'active' : ''} onClick={() => setSourceSyncFilter('pending')}>Pending ({sourceSyncPendingCount})</button></div><label className="source-sync-target-switch"><input type="checkbox" checked={sourceSyncTargetsOnly} onChange={event => setSourceSyncTargetsOnly(event.target.checked)} /><span className="source-sync-target-switch-track" aria-hidden="true" /><span>Targets only</span></label><div className="picker-sort-toggle"><button className={sourceSyncSort === 'name' ? 'active' : ''} onClick={() => setSourceSyncSort('name')}>Name</button><button className={sourceSyncSort === 'date' ? 'active' : ''} onClick={() => setSourceSyncSort('date')}>Last sync</button></div></div>
@@ -773,6 +799,9 @@ function AppLayout() {
           <Route path="/" element={<Dashboard aiEnabled={AI_ENABLED} onOpenAiModels={() => setShowAiModelDrawer(true)} />} />
           <Route path="/plans" element={<PlansRoute newPlanRequest={0} onRefresh={loadPlans} refreshing={plansLoading} />} />
           <Route path="/notes" element={<Notes />} />
+          <Route path="/public/plans" element={<PublicPlans />} />
+          <Route path="/public/plans/:shareId" element={<PublicPlan />} />
+          <Route path="/public/plans/:shareId/courses/:courseId" element={<PublicPlan />} />
           <Route path="/ai-model-configs" element={<Navigate to="/" replace />} />
           <Route path="/plans/:planId" element={<PlanOverview loading={plansLoading} />} />
           {AI_ENABLED && <Route path="/plans/:planId/ai-requests" element={<AiRequests />} />}

@@ -22,3 +22,16 @@ class LambdaRuntimeTests(unittest.TestCase):
         self.assertEqual(event["requestContext"]["authorizer"]["lambda"]["userId"], "firebase-user")
         self.assertTrue(event["isBase64Encoded"])
         self.assertEqual(event["body"], "e30=")
+
+    def test_public_internal_event_does_not_invent_an_identity(self):
+        event = _internal_http_event({
+            "source": "youtube-agent.gateway",
+            "request": {
+                "method": "GET",
+                "path": "/public-api/plans/opaque-share-id",
+                "headers": {},
+            },
+        })
+
+        self.assertNotIn("authorizer", event["requestContext"])
+        self.assertEqual(event["rawPath"], "/public-api/plans/opaque-share-id")

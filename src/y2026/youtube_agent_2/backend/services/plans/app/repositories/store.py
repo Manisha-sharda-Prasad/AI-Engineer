@@ -147,6 +147,24 @@ def init_store() -> None:
                 )
                 """
             )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS public_plans (
+                share_id TEXT PRIMARY KEY,
+                owner_id TEXT NOT NULL,
+                plan_id TEXT NOT NULL,
+                data TEXT NOT NULL,
+                published_at TEXT,
+                updated_at TEXT
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_public_plans_owner_plan
+            ON public_plans (owner_id, plan_id)
+            """
+        )
         connection.execute("PRAGMA foreign_keys = ON")
         connection.execute(
             """
@@ -280,41 +298,50 @@ def init_store() -> None:
 
 
 def save_plan(plan_obj: dict) -> None:
+    from src.y2026.youtube_agent_2.backend.services.plans.app.domain.public_projection import build_public_plan
+
     if _dynamodb_store:
-        return _dynamodb_store.save_plan(plan_obj, _storage_user_id())
-    if _firestore_store:
-        return _firestore_store.save_plan(plan_obj, _active_user_id())
-    with _connect() as connection:
-        values = (
-            plan_obj.get("id"),
-            json.dumps(plan_obj, default=str),
-            plan_obj.get("created_at"),
-            plan_obj.get("updated_at"),
+        _dynamodb_store.save_plan(plan_obj, _storage_user_id())
+    elif _firestore_store:
+        _firestore_store.save_plan(plan_obj, _active_user_id())
+    else:
+        with _connect() as connection:
+            values = (
+                plan_obj.get("id"),
+                json.dumps(plan_obj, default=str),
+                plan_obj.get("created_at"),
+                plan_obj.get("updated_at"),
+            )
+            if connection.backend == "postgres":
+                connection.execute(
+                    """
+                    INSERT INTO plans (id, user_id, data, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?)
+                    ON CONFLICT(user_id, id) DO UPDATE SET
+                        data = excluded.data,
+                        created_at = excluded.created_at,
+                        updated_at = excluded.updated_at
+                    """,
+                    (values[0], _storage_user_id(), *values[1:]),
+                )
+            else:
+                connection.execute(
+                    """
+                    INSERT INTO plans (id, data, created_at, updated_at)
+                    VALUES (?, ?, ?, ?)
+                    ON CONFLICT(id) DO UPDATE SET
+                        data = excluded.data,
+                        created_at = excluded.created_at,
+                        updated_at = excluded.updated_at
+                    """,
+                    values,
+                )
+    if plan_obj.get("visibility") == "public" and plan_obj.get("public_share_id"):
+        save_public_plan(
+            plan_obj["public_share_id"],
+            plan_obj["id"],
+            build_public_plan(plan_obj),
         )
-        if connection.backend == "postgres":
-            connection.execute(
-                """
-                INSERT INTO plans (id, user_id, data, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?)
-                ON CONFLICT(user_id, id) DO UPDATE SET
-                    data = excluded.data,
-                    created_at = excluded.created_at,
-                    updated_at = excluded.updated_at
-                """,
-                (values[0], _storage_user_id(), *values[1:]),
-            )
-        else:
-            connection.execute(
-                """
-                INSERT INTO plans (id, data, created_at, updated_at)
-                VALUES (?, ?, ?, ?)
-                ON CONFLICT(id) DO UPDATE SET
-                    data = excluded.data,
-                    created_at = excluded.created_at,
-                    updated_at = excluded.updated_at
-                """,
-                values,
-            )
 
 
 def supports_targeted_updates() -> bool:
@@ -426,6 +453,69 @@ def list_plans() -> list[dict]:
                 "SELECT data FROM plans ORDER BY updated_at DESC"
             ).fetchall()
     return [json.loads(row[0]) for row in rows]
+
+
+def save_public_plan(share_id: str, plan_id: str, projection: dict) -> None:
+    owner_id = _storage_user_id()
+    if _dynamodb_store:
+        return _dynamodb_store.save_public_plan(share_id, owner_id, plan_id, projection)
+    if _firestore_store:
+        raise RuntimeError("Public-plan persistence is not configured for Firestore")
+    with _connect() as connection:
+        connection.execute(
+            """
+            INSERT INTO public_plans (
+                share_id, owner_id, plan_id, data, published_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT(share_id) DO UPDATE SET
+                owner_id = excluded.owner_id,
+                plan_id = excluded.plan_id,
+                data = excluded.data,
+                published_at = excluded.published_at,
+                updated_at = excluded.updated_at
+            """,
+            (
+                share_id,
+                owner_id,
+                plan_id,
+                json.dumps(projection, default=str),
+                projection.get("published_at"),
+                projection.get("updated_at"),
+            ),
+        )
+
+
+def load_public_plan(share_id: str) -> Optional[dict]:
+    if _dynamodb_store:
+        return _dynamodb_store.load_public_plan(share_id)
+    if _firestore_store:
+        return None
+    with _connect() as connection:
+        row = connection.execute(
+            "SELECT data FROM public_plans WHERE share_id = ?", (share_id,)
+        ).fetchone()
+    return json.loads(row[0]) if row else None
+
+
+def list_public_plans() -> list[dict]:
+    if _dynamodb_store:
+        return _dynamodb_store.list_public_plans()
+    if _firestore_store:
+        return []
+    with _connect() as connection:
+        rows = connection.execute(
+            "SELECT plan_id, data FROM public_plans ORDER BY published_at DESC, updated_at DESC"
+        ).fetchall()
+    return [{**json.loads(row[1]), "plan_id": row[0]} for row in rows]
+
+
+def delete_public_plan(share_id: str) -> None:
+    if _dynamodb_store:
+        return _dynamodb_store.delete_public_plan(share_id)
+    if _firestore_store:
+        return None
+    with _connect() as connection:
+        connection.execute("DELETE FROM public_plans WHERE share_id = ?", (share_id,))
 
 
 def save_source_sync_metadata(metadata: dict) -> None:
