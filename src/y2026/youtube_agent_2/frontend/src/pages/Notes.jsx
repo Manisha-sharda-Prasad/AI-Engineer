@@ -307,6 +307,34 @@ function LinkBrandIcon({ type }) {
   return <svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="19"/><path d="M5 24h38M24 5c6 5.3 9 11.7 9 19s-3 13.7-9 19c-6-5.3-9-11.7-9-19s3-13.7 9-19Z"/></svg>
 }
 
+function trustedIframeSource(value) {
+  try {
+    const parsed = new URL(value.replaceAll('&amp;', '&'))
+    const hostname = parsed.hostname.toLowerCase()
+    const isGoogleMaps = ['www.google.com', 'google.com', 'maps.google.com'].includes(hostname) && parsed.pathname.startsWith('/maps/') && parsed.pathname.includes('/embed')
+    return parsed.protocol === 'https:' && isGoogleMaps ? parsed.toString() : ''
+  } catch {
+    return ''
+  }
+}
+
+function markdownWithTrustedIframes(content = '') {
+  return content.replace(/<iframe\b([^>]*)>(?:\s*<\/iframe>)?/gi, (iframe, attributes) => {
+    const sourceMatch = attributes.match(/\bsrc\s*=\s*(["'])(.*?)\1/i)
+    if (!sourceMatch) return ''
+    const source = sourceMatch[2].replaceAll('&amp;', '&')
+    const trustedSource = trustedIframeSource(source)
+    if (trustedSource) return `\n\n\`\`\`notes-trusted-iframe\n${trustedSource}\n\`\`\`\n\n`
+    return `\n\n> Embedded content is not available in the reader. [Open embedded content](<${source}>)\n\n`
+  })
+}
+
+function TrustedIframeEmbed({ source }) {
+  const trustedSource = trustedIframeSource(source)
+  if (!trustedSource) return null
+  return <figure className="notes-trusted-embed"><iframe src={trustedSource} title="Embedded Google Map" loading="lazy" referrerPolicy="strict-origin-when-cross-origin" allowFullScreen/><figcaption><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.1 7-12a7 7 0 1 0-14 0c0 5.9 7 12 7 12Z"/><circle cx="12" cy="9" r="2.5"/></svg>Google Maps</figcaption></figure>
+}
+
 function staticReaderDocument(html, sourceUrl) {
   const parsed = new DOMParser().parseFromString(html, 'text/html')
   parsed.querySelectorAll('script, iframe, frame, object, embed, form, input, button, textarea, select, template, noscript, meta, base').forEach(element => element.remove())
@@ -469,10 +497,11 @@ function MarkdownContent({ note, headings, index, onOpenLink }) {
       const codeElement = React.Children.count(children) === 1 ? React.Children.only(children) : null
       const language = /language-([^\s]+)/.exec(codeElement?.props?.className || '')?.[1]?.toLowerCase()
       if (language === 'mermaid') return <MermaidDiagram source={String(codeElement.props.children).replace(/\n$/, '')} />
+      if (language === 'notes-trusted-iframe') return <TrustedIframeEmbed source={String(codeElement.props.children).trim()} />
       return <pre {...props}>{children}</pre>
     },
   }
-  return <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>{note.content}</ReactMarkdown>
+  return <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>{markdownWithTrustedIframes(note.content)}</ReactMarkdown>
 }
 
 function NotePageNavigation({ previousNote, nextNote, rootPath, onNavigate }) {

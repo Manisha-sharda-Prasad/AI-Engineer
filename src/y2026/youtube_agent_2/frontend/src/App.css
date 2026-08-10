@@ -475,6 +475,10 @@ body.notes-reader-open { overflow: hidden; }
 .markdown-body code { padding: 0.12rem 0.35rem; font-family: Consolas, 'Courier New', monospace; font-size: 0.88em; background: var(--bg-primary); }
 .markdown-body pre { padding: 1rem; overflow-x: auto; color: var(--text-primary); background: var(--bg-primary); border: 1px solid var(--border-color); }
 .markdown-body pre code { padding: 0; background: transparent; }
+.notes-trusted-embed { margin: 1.25rem 0; overflow: hidden; background: var(--bg-primary); border: 1px solid color-mix(in srgb, var(--notes-accent) 22%, var(--border-color)); border-radius: 13px; box-shadow: 0 10px 28px rgba(15,23,42,0.08); }
+.notes-trusted-embed iframe { display: block; width: 100%; aspect-ratio: 4 / 3; min-height: 320px; border: 0; }
+.notes-trusted-embed figcaption { display: flex; align-items: center; gap: 0.38rem; margin: 0; padding: 0.5rem 0.7rem; color: var(--text-secondary); background: linear-gradient(90deg, color-mix(in srgb, var(--notes-accent) 9%, var(--card-bg)), var(--card-bg)); border-top: 1px solid var(--border-color); font-size: 0.68rem; font-weight: 750; }
+.notes-trusted-embed figcaption svg { width: 15px; height: 15px; fill: none; stroke: var(--notes-accent); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .mermaid-card { margin: 1.25rem 0; overflow: hidden; background: var(--bg-primary); border: 1px solid color-mix(in srgb, var(--notes-accent) 22%, var(--border-color)); border-radius: 12px; box-shadow: 0 10px 28px rgba(15,23,42,0.07); }
 .mermaid-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.5rem 0.7rem; background: linear-gradient(90deg, color-mix(in srgb, var(--notes-accent) 10%, var(--card-bg)), color-mix(in srgb, var(--notes-accent-2) 7%, var(--card-bg))); border-bottom: 1px solid var(--border-color); }
 .mermaid-toolbar > span { color: var(--text-secondary); font-size: 0.68rem; font-weight: 750; letter-spacing: 0.04em; text-transform: uppercase; }
