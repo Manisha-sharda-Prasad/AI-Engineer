@@ -475,6 +475,23 @@ function MarkdownContent({ note, headings, index, onOpenLink }) {
   return <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>{note.content}</ReactMarkdown>
 }
 
+function NotePageNavigation({ previousNote, nextNote, rootPath, onNavigate }) {
+  const context = item => {
+    if (!item) return ''
+    const parts = relativeParts(item.path, rootPath).slice(0, -1).map(displayName)
+    return parts.join(' / ')
+  }
+  const destination = (item, direction) => {
+    if (!item) return null
+    const title = item.title || displayName(item.path.split('/').at(-1))
+    return <button type="button" className={`notes-page-nav-link is-${direction}`} onClick={() => onNavigate(item.path)} aria-label={`${direction === 'previous' ? 'Previous' : 'Next'} note: ${title}`}>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d={direction === 'previous' ? 'm14 6-6 6 6 6M8 12h10' : 'm10 6 6 6-6 6M6 12h10'}/></svg>
+      <span><strong>{title}</strong>{context(item) && <small>{context(item)}</small>}</span>
+    </button>
+  }
+  return <nav className="notes-page-navigation" aria-label="Previous and next notes">{destination(previousNote, 'previous')}{destination(nextNote, 'next')}</nav>
+}
+
 function headingTree(headings) {
   const roots = []
   const stack = []
@@ -599,6 +616,25 @@ function YearDropdown({ options, selectedYear, onSelect }) {
   </div>
 }
 
+function TopicDropdown({ options, selectedTopic, onSelect }) {
+  const [open, setOpen] = React.useState(false)
+  const pickerRef = React.useRef(null)
+  React.useEffect(() => {
+    const close = event => { if (!pickerRef.current?.contains(event.target)) setOpen(false) }
+    document.addEventListener('pointerdown', close)
+    return () => document.removeEventListener('pointerdown', close)
+  }, [])
+  const selected = options.find(option => option.value === selectedTopic) || options[0]
+  return <div className="notes-topic-picker" ref={pickerRef}>
+    <button type="button" className="notes-topic-trigger" onClick={() => setOpen(value => !value)} aria-haspopup="listbox" aria-expanded={open} title="Select notes topic">
+      <TopicIcon topic={selected?.value || 'knowledge'}/>
+      <span><b>{selected?.label || 'Topic'}</b><small>{selected?.count || 0}</small></span>
+      <svg className="notes-topic-chevron" viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg>
+    </button>
+    {open && <div className="notes-topic-menu" role="listbox" aria-label="Notes topic">{options.map(option => <button type="button" role="option" aria-selected={option.value === selectedTopic} className={option.value === selectedTopic ? 'active' : ''} key={option.value} onClick={() => { onSelect(option.value); setOpen(false) }}><TopicIcon topic={option.value}/><span><b>{option.label}</b><small>{option.count} notes</small></span>{option.value === selectedTopic && <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m4 10 4 4 8-8"/></svg>}</button>)}</div>}
+  </div>
+}
+
 function RepositoryCards({ repositories, loading, onOpen }) {
   return <div className="notes-catalog"><header className="notes-page-header"><div><span className="notes-eyebrow">Your knowledge library</span><h1>Learning notes</h1><p>Choose a configured GitHub repository to explore its topics and notes.</p></div></header>{loading ? <div className="note-reader-status"><span className="spinner" /> Loading repositories…</div> : <div className="notes-repository-grid">{repositories.map(repository => <button type="button" style={repositoryStyle(repository.id)} className="notes-repository-card" key={repository.id} onClick={() => !repository.error && onOpen(repository.id)} disabled={Boolean(repository.error)}><RepositoryMark repositoryId={repository.id}/><span className="notes-repository-copy"><strong>{repository.name}</strong><RepositoryAuthor repository={repository}/><span>{repository.description}</span><small>{repository.error || `${repository.note_count} notes · ${repository.branch} / ${repository.root_path}`}</small></span><span className="notes-card-arrow">›</span></button>)}</div>}</div>
 }
@@ -684,6 +720,10 @@ export default function Notes() {
   const topicPrefix = [index?.root_path, selectedYear !== 'Notes' ? selectedYear : '', selectedTopic !== 'General' ? selectedTopic : ''].filter(Boolean).join('/')
   const tree = React.useMemo(() => buildTree(topicNotes, topicPrefix), [topicNotes, topicPrefix])
   const headings = React.useMemo(() => extractHeadings(note?.content), [note?.content])
+  const orderedNotes = React.useMemo(() => [...allNotes].sort((left, right) => left.path.localeCompare(right.path, undefined, { numeric: true })), [allNotes])
+  const selectedNotePosition = orderedNotes.findIndex(item => item.path === selectedPath)
+  const previousNote = selectedNotePosition > 0 ? orderedNotes[selectedNotePosition - 1] : null
+  const nextNote = selectedNotePosition >= 0 && selectedNotePosition < orderedNotes.length - 1 ? orderedNotes[selectedNotePosition + 1] : null
 
   React.useEffect(() => setExpanded({}), [repositoryId, selectedYear, selectedTopic])
 
@@ -697,7 +737,7 @@ export default function Notes() {
 
   React.useEffect(() => { noteReaderRef.current?.scrollTo({ top: 0 }) }, [selectedPath])
 
-  const selectNote = path => { setSearchParams({ repo: repositoryId, path }); setMobilePanel(null) }
+  const selectNote = (path, { keepMobilePanel = false } = {}) => { setSearchParams({ repo: repositoryId, path }); if (!keepMobilePanel) setMobilePanel(null) }
   const openPreviewLink = descriptor => {
     if (!descriptor?.url) return
     if (!supportsDrawerPreview(descriptor)) { openInNewTab(descriptor.url); return }
@@ -717,9 +757,10 @@ export default function Notes() {
     setLinkPreviewHistory(current => current.slice(0, -1))
   }
   const jumpToPreviewedNote = path => { closeLinkPreview(); selectNote(path) }
-  const chooseFirst = candidates => { if (candidates.length) selectNote([...candidates].sort((a, b) => a.path.localeCompare(b.path, undefined, { numeric: true }))[0].path) }
-  const selectYear = year => chooseFirst(allNotes.filter(item => taxonomy(item, index.root_path).year === year))
-  const selectTopic = topic => chooseFirst(yearNotes.filter(item => taxonomy(item, index.root_path).topic === topic))
+  const chooseFirst = (candidates, options) => { if (candidates.length) selectNote([...candidates].sort((a, b) => a.path.localeCompare(b.path, undefined, { numeric: true }))[0].path, options) }
+  const keepMobileLibraryOpen = isMobile && mobilePanel === 'library'
+  const selectYear = year => chooseFirst(allNotes.filter(item => taxonomy(item, index.root_path).year === year), { keepMobilePanel: keepMobileLibraryOpen })
+  const selectTopic = topic => chooseFirst(yearNotes.filter(item => taxonomy(item, index.root_path).topic === topic), { keepMobilePanel: keepMobileLibraryOpen })
   const navigateBreadcrumb = parts => {
     if (parts.length === 1) return selectYear(parts[0])
     if (parts.length === 2) return selectTopic(parts[1])
@@ -748,6 +789,7 @@ export default function Notes() {
         <div className="notes-tree-toolbar">
           <label className="notes-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg><input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Search topics and notes…" aria-label="Search this repository" /></label>
           <YearDropdown selectedYear={selectedYear} onSelect={selectYear} options={years.map(year => ({ value: year, label: displayName(year), count: allNotes.filter(item => taxonomy(item, index.root_path).year === year).length }))}/>
+          <TopicDropdown selectedTopic={selectedTopic} onSelect={selectTopic} options={topics.map(topic => ({ value: topic, label: displayName(topic), count: filteredNotes.filter(item => { const value = taxonomy(item, index.root_path); return value.year === selectedYear && value.topic === topic }).length }))}/>
           <div className="notes-browser-actions"><button type="button" className="notes-browser-icon" onClick={() => setExpanded(Object.fromEntries(allTreePaths.map(path => [path, !allExpanded])))} title={allExpanded ? 'Collapse all subtopics' : 'Expand all subtopics'} aria-label={allExpanded ? 'Collapse all subtopics' : 'Expand all subtopics'} aria-pressed={allExpanded}><svg viewBox="0 0 24 24" aria-hidden="true">{allExpanded ? <path d="M9 9H4V4m11 5h5V4M9 15H4v5m11-5h5v5M4 9l5-5m11 5-5-5M4 15l5 5m11-5-5 5"/> : <path d="M8 3H3v5m13-5h5v5M8 21H3v-5m13 5h5v-5M3 8l5-5m13 5-5-5M3 16l5 5m13-5-5 5"/>}</svg></button>{index?.repository_url && <a className="notes-browser-icon notes-browser-github" href={index.repository_url} target="_blank" rel="noreferrer" title="View repository on GitHub" aria-label="View repository on GitHub"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 0 0-3 17.5c.5.1.7-.2.7-.5v-1.8c-2.8.6-3.4-1.2-3.4-1.2-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 0 1.6 1.1 1.6 1.1.9 1.6 2.4 1.1 2.9.9.1-.7.4-1.1.7-1.4-2.2-.3-4.6-1.1-4.6-5A3.9 3.9 0 0 1 7 7.8 3.6 3.6 0 0 1 7.1 5s.8-.3 2.9 1.1a10 10 0 0 1 5.2 0C17.2 4.7 18 5 18 5a3.6 3.6 0 0 1 .1 2.8 3.9 3.9 0 0 1 1 2.7c0 3.9-2.4 4.7-4.6 5 .4.3.7.9.7 1.8V20c0 .3.2.6.7.5A9 9 0 0 0 12 3Z"/></svg></a>}<button type="button" className="notes-browser-icon notes-desktop-nav-toggle" onClick={() => setShowNavigation(false)} aria-controls="notes-topic-navigation" title="Hide topic navigation" aria-label="Hide topic navigation"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M6 8h0M6 12h0"/></svg></button></div>
         </div>
         <div className="notes-tree-browser">
@@ -755,7 +797,7 @@ export default function Notes() {
           <nav className="notes-list" aria-label={`${selectedTopic} notes`}><span className="notes-pane-label">{displayName(selectedTopic)} notes</span>{!loadingIndex && <NoteTree node={tree} selectedPath={selectedPath} expanded={expanded} onToggle={path => setExpanded(current => ({ ...current, [path]: !current[path] }))} onSelect={selectNote} />}{!loadingIndex && !topicNotes.length && <p className="notes-empty">No notes match this search in {displayName(selectedTopic)}.</p>}</nav>
         </div>
       </aside>
-      <main ref={noteReaderRef} className="note-reader">{loadingNote ? <div className="note-reader-status"><span className="spinner" /> Loading note…</div> : note ? <article className="markdown-body"><MarkdownContent note={note} headings={headings} index={index} onOpenLink={openPreviewLink} /></article> : <div className="note-reader-status">Choose a note to start reading.</div>}</main>
+      <main ref={noteReaderRef} className="note-reader">{loadingNote ? <div className="note-reader-status"><span className="spinner" /> Loading note…</div> : note ? <><article className="markdown-body"><MarkdownContent note={note} headings={headings} index={index} onOpenLink={openPreviewLink} /></article><NotePageNavigation previousNote={previousNote} nextNote={nextNote} rootPath={index?.root_path || ''} onNavigate={selectNote}/></> : <div className="note-reader-status">Choose a note to start reading.</div>}</main>
       <OnThisPage note={note} headings={headings} isMobile={isMobile} mobileOpen={mobilePanel === 'outline'} onMobileClose={() => setMobilePanel(null)} />
     </div>
     {isMobile && mobilePanel && <button type="button" className="notes-mobile-backdrop" onClick={() => setMobilePanel(null)} aria-label="Close mobile navigation" />}
