@@ -28,6 +28,20 @@ export default function CourseWorkspace() {
   const [feedReviewSort, setFeedReviewSort] = React.useState('name')
   const [showMobileActions, setShowMobileActions] = React.useState(false)
   const [workspaceActionHost, setWorkspaceActionHost] = React.useState(null)
+  const [workspaceOutlineHost, setWorkspaceOutlineHost] = React.useState(null)
+  const [workspaceToolbarHost, setWorkspaceToolbarHost] = React.useState(null)
+  const [isCompactWorkspace, setIsCompactWorkspace] = React.useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 900px)').matches)
+
+  React.useEffect(() => {
+    const media = window.matchMedia('(max-width: 900px)')
+    const updateCompactMode = event => {
+      setIsCompactWorkspace(event.matches)
+      if (!event.matches) setShowMobileActions(false)
+    }
+    setIsCompactWorkspace(media.matches)
+    media.addEventListener('change', updateCompactMode)
+    return () => media.removeEventListener('change', updateCompactMode)
+  }, [])
 
   React.useEffect(() => {
     setShowOverview(false)
@@ -167,13 +181,31 @@ export default function CourseWorkspace() {
           }}
         />
       </div>
-      <div className="workspace-mobile-toolbar">
-        <div className="workspace-breadcrumb-actions" ref={setWorkspaceActionHost} />
-        <button type="button" className="mobile-page-menu-button" aria-label="Open course actions" aria-expanded={showMobileActions} onClick={() => setShowMobileActions(true)}><WorkspaceIcon name="menu" /></button>
-      </div>
-      {renderCourseActions("desktop-page-actions breadcrumb-actions")}
     </nav>
-    <PlanDetail key={`${planId}:${courseId}`} plan={plan} workspaceCourseId={courseId} workspaceActionHost={workspaceActionHost} isCourseEditing={isCourseEditing} onToggleCourseEditing={() => setIsCourseEditing(value => !value)} onUpdate={updated => dispatch(updatePlan(updated))} onDelete={() => {}} />
+    <section className="private-course-workspace-hero" aria-labelledby="private-course-workspace-title">
+      <span className="private-course-workspace-brand">
+        {course.logo_url || course.logo ? <img src={course.logo_url || course.logo} alt="" /> : <b>{course.title?.charAt(0)?.toUpperCase() || '?'}</b>}
+      </span>
+      <div>
+        <small>Learning course</small>
+        <h1 id="private-course-workspace-title">{course.title}</h1>
+        <p>{course.description || 'Learn through the modules and videos organized in this course.'}</p>
+        <div className="private-course-workspace-counts" aria-label="Course content totals">
+          <span><b>{course.modules?.length || 0}</b> modules</span>
+          <span><b>{progressVideoCount}</b> videos</span>
+        </div>
+      </div>
+      <div className="private-course-workspace-side">
+        {!isCompactWorkspace ? <div className="private-course-workspace-controls">
+          {renderCourseActions("private-course-overview-action")}
+          <div className="workspace-breadcrumb-actions" ref={setWorkspaceActionHost} />
+          <div className="workspace-header-tree-controls" ref={setWorkspaceToolbarHost} />
+        </div> : <div className="private-course-mobile-header-actions"><div className="private-course-mobile-outline-host" ref={setWorkspaceOutlineHost} /><button type="button" className="mobile-page-menu-button private-course-mobile-actions-trigger" aria-label="Open course actions" aria-expanded={showMobileActions} onClick={() => setShowMobileActions(true)}><WorkspaceIcon name="menu" /><span>Course actions</span></button></div>}
+      </div>
+    </section>
+    <div className="workspace-plan-detail">
+      <PlanDetail key={`${planId}:${courseId}`} plan={plan} workspaceCourseId={courseId} workspaceActionHost={workspaceActionHost} workspaceOutlineHost={workspaceOutlineHost} workspaceToolbarHost={workspaceToolbarHost} isCourseEditing={isCourseEditing} onToggleCourseEditing={() => setIsCourseEditing(value => !value)} onUpdate={updated => dispatch(updatePlan(updated))} onDelete={() => {}} />
+    </div>
     {showOverview && <><div className="drawer-overlay" onClick={() => setShowOverview(false)} /><aside className="drawer"><div className="drawer-header course-overview-drawer-header"><div><h2>{course.title}</h2>{course.description && <p>{course.description}</p>}</div><button className="btn btn-secondary btn-sm" onClick={() => setShowOverview(false)}><CloseIcon /></button></div><div className="drawer-body">
       {refreshError && <div className="alert alert-error">{refreshError}</div>}
       {stagedVideoCount > 0 && <section className="refresh-review refresh-review-notification"><div><h3>⚠️ New video feed ready</h3><p>{stagedVideoCount} new video{stagedVideoCount === 1 ? '' : 's'} staged across {stagedFeeds.length} source{stagedFeeds.length === 1 ? '' : 's'}.</p></div><button className="btn btn-secondary btn-sm" onClick={() => { setFeedReviewTab('visual'); setFeedReviewSearch(''); setFeedReviewSort('name'); setShowFeedReview(true) }}>Review new videos</button></section>}
@@ -192,7 +224,13 @@ export default function CourseWorkspace() {
             </div>
             <button className="mobile-action-drawer-close" onClick={() => setShowMobileActions(false)} aria-label="Close"><CloseIcon /></button>
           </div>
-          <div className="drawer-body">{renderCourseActions("mobile-drawer-actions")}</div>
+          <div className="drawer-body">
+            <div className="mobile-course-consolidated-actions">
+              {renderCourseActions("mobile-drawer-actions")}
+              <div className="workspace-breadcrumb-actions mobile-course-portal-actions" ref={setWorkspaceActionHost} />
+              <div className="workspace-header-tree-controls mobile-course-tree-controls" ref={setWorkspaceToolbarHost} />
+            </div>
+          </div>
         </aside>
       </>
     )}

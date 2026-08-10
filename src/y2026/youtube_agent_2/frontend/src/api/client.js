@@ -114,6 +114,22 @@ export function getPlans() {
   return request('/api/plans')
 }
 
+export function publishPlan(planId) {
+  return request(`/api/plans/${planId}/publication`, { method: 'POST' })
+}
+
+export function unpublishPlan(planId) {
+  return request(`/api/plans/${planId}/publication`, { method: 'DELETE' })
+}
+
+export function getPublicPlan(shareId) {
+  return request(`/public-api/plans/${encodeURIComponent(shareId)}`)
+}
+
+export function getPublicPlans() {
+  return request('/public-api/plans')
+}
+
 export function deletePlan(planId) {
   return request(`/api/plans/${planId}`, { method: 'DELETE' })
 }

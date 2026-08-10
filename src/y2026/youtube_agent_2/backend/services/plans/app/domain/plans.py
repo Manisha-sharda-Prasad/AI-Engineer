@@ -1,5 +1,6 @@
 """Business operations for learning plans and courses."""
 
+import secrets
 from datetime import datetime, timezone
 
 from fastapi import HTTPException
@@ -39,8 +40,48 @@ def get_plan(plan_id: str) -> LearningPlan:
 
 
 def delete_plan(plan_id: str) -> None:
+    plan = _load_plan(plan_id)
     if not db.delete_plan(plan_id):
         raise HTTPException(status_code=404, detail="Plan not found")
+    if plan.public_share_id:
+        db.delete_public_plan(plan.public_share_id)
+
+
+def publish_plan(plan_id: str) -> LearningPlan:
+    plan = _load_plan(plan_id)
+    if not plan.public_share_id:
+        plan.public_share_id = secrets.token_urlsafe(16)
+    plan.visibility = "public"
+    plan.published_at = plan.published_at or _now()
+    plan.updated_at = _now()
+    db.save_plan(plan.model_dump())
+    return plan
+
+
+def unpublish_plan(plan_id: str) -> LearningPlan:
+    plan = _load_plan(plan_id)
+    share_id = plan.public_share_id
+    plan.visibility = "private"
+    plan.public_share_id = None
+    plan.published_at = None
+    plan.updated_at = _now()
+    db.save_plan(plan.model_dump())
+    if share_id:
+        db.delete_public_plan(share_id)
+    return plan
+
+
+def get_public_plan(share_id: str) -> dict:
+    projection = db.load_public_plan(share_id)
+    if not projection:
+        raise HTTPException(status_code=404, detail="Published plan not found")
+    return projection
+
+
+def list_public_plans() -> list[dict]:
+    from .public_projection import build_public_plan_summary
+
+    return [build_public_plan_summary(plan) for plan in db.list_public_plans()]
 
 
 def delete_courses(plan_id: str, request: CourseDeleteRequest) -> LearningPlan:
@@ -93,6 +134,9 @@ def replace_plan(plan_id: str, replacement: LearningPlan) -> LearningPlan:
             detail="The uploaded plan id must match the current plan",
         )
     replacement.created_at = existing.created_at
+    replacement.visibility = existing.visibility
+    replacement.public_share_id = existing.public_share_id
+    replacement.published_at = existing.published_at
     replacement.updated_at = _now()
     db.save_plan(replacement.model_dump())
     return replacement

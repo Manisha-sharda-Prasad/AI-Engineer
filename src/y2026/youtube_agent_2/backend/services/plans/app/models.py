@@ -96,6 +96,9 @@ class LearningPlan(BaseModel):
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     courses: List[Course] = Field(default_factory=list)
     labels: List[str] = Field(default_factory=list)
+    visibility: Literal["private", "public"] = "private"
+    public_share_id: Optional[str] = None
+    published_at: Optional[datetime] = None
 
 class CourseDeleteRequest(BaseModel):
     course_ids: List[str] = Field(min_length=1)

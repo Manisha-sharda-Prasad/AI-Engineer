@@ -9,6 +9,8 @@ _PLAYLIST_PATH = re.compile(r"^/api/[^/]+/playlists$")
 
 
 def select_upstream(path: str) -> tuple[str, str]:
+    if path == "/public-api/plans" or path.startswith("/public-api/plans/"):
+        return "plans-service", config.PLANS_SERVICE_URL.rstrip("/")
     if (
         path in {"/api/channels", "/api/videos"}
         or _PLAYLIST_PATH.match(path)

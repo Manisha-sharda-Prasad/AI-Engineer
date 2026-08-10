@@ -18,10 +18,11 @@ class DynamoDBStore:
         if not table_name:
             raise RuntimeError("DYNAMODB_TABLE_NAME is required for DynamoDB storage")
         import boto3
-        from boto3.dynamodb.conditions import Key
+        from boto3.dynamodb.conditions import Attr, Key
 
         self.table = boto3.resource("dynamodb").Table(table_name)
         self._key = Key
+        self._attr = Attr
 
     @staticmethod
     def _pk(user_id: str) -> str:
@@ -168,6 +169,50 @@ class DynamoDBStore:
             key=lambda plan: plan.get("updated_at", ""),
             reverse=True,
         )
+
+    def save_public_plan(self, share_id: str, owner_id: str, plan_id: str, projection: dict) -> None:
+        key = f"PUBLIC_PLAN#{_id(share_id)}"
+        self.table.put_item(Item={
+            "PK": key,
+            "SK": key,
+            "entity": "public_plan",
+            "owner_id": owner_id,
+            "plan_id": plan_id,
+            "published_at": str(projection.get("published_at") or ""),
+            "updated_at": str(projection.get("updated_at") or ""),
+            "data": _json(projection),
+        })
+
+    def load_public_plan(self, share_id: str) -> dict | None:
+        key = f"PUBLIC_PLAN#{_id(share_id)}"
+        item = self.table.get_item(Key={"PK": key, "SK": key}).get("Item")
+        return json.loads(item["data"]) if item and item.get("entity") == "public_plan" else None
+
+    def list_public_plans(self) -> list[dict]:
+        response = self.table.scan(
+            FilterExpression=self._attr("entity").eq("public_plan"),
+            ProjectionExpression="#data, plan_id",
+            ExpressionAttributeNames={"#data": "data"},
+        )
+        items = list(response.get("Items", []))
+        while response.get("LastEvaluatedKey"):
+            response = self.table.scan(
+                FilterExpression=self._attr("entity").eq("public_plan"),
+                ProjectionExpression="#data, plan_id",
+                ExpressionAttributeNames={"#data": "data"},
+                ExclusiveStartKey=response["LastEvaluatedKey"],
+            )
+            items.extend(response.get("Items", []))
+        plans = [{**json.loads(item["data"]), "plan_id": item.get("plan_id")} for item in items]
+        return sorted(
+            plans,
+            key=lambda plan: plan.get("published_at") or plan.get("updated_at") or "",
+            reverse=True,
+        )
+
+    def delete_public_plan(self, share_id: str) -> None:
+        key = f"PUBLIC_PLAN#{_id(share_id)}"
+        self.table.delete_item(Key={"PK": key, "SK": key})
 
     def save_source_sync_metadata(self, metadata: dict, user_id: str) -> None:
         items = [{"SK": "SYNC#META", "entity": "sync", "data": _json({"updated_at": metadata.get("updated_at")})}]

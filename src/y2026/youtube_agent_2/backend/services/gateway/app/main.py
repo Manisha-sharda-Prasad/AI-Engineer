@@ -88,8 +88,10 @@ def _check_rate_limit(user_id: str) -> bool:
 
 
 def _invoke_private_lambda(
-    service_name: str, request: Request, body: bytes
+    service_name: str, request: Request, body: bytes, user_id: str | None = None
 ) -> tuple[bytes, int, dict[str, str], str | None]:
+    if user_id is None and request.url.path.startswith("/api/"):
+        user_id = identity.require_current_user()
     function_name = {
         "youtube-service": config.YOUTUBE_FUNCTION_NAME,
         "plans-service": config.PLANS_FUNCTION_NAME,
@@ -103,7 +105,6 @@ def _invoke_private_lambda(
     }
     event = {
         "source": "youtube-agent.gateway",
-        "user_id": identity.require_current_user(),
         "request_id": request.headers.get("x-request-id", "internal"),
         "request": {
             "method": request.method,
@@ -114,6 +115,8 @@ def _invoke_private_lambda(
             "isBase64Encoded": True,
         },
     }
+    if user_id:
+        event["user_id"] = user_id
     result = _aws_client("lambda").invoke(
         FunctionName=function_name,
         InvocationType="RequestResponse",
@@ -147,8 +150,19 @@ async def proxy(path: str, request: Request):
             media_type="application/json",
         )
 
-    user_id = identity.require_current_user()
-    if not await asyncio.to_thread(_check_rate_limit, user_id):
+    is_public_plan_read = (
+        (public_path == "/public-api/plans" or public_path.startswith("/public-api/plans/"))
+        and request.method in {"GET", "HEAD", "OPTIONS"}
+    )
+    if public_path.startswith("/public-api/") and not is_public_plan_read:
+        return Response(
+            content=b'{"detail":"Method not allowed"}',
+            status_code=405,
+            media_type="application/json",
+        )
+    user_id = None if is_public_plan_read else identity.require_current_user()
+    rate_limit_key = user_id or f"public:{request.client.host if request.client else 'unknown'}"
+    if not await asyncio.to_thread(_check_rate_limit, rate_limit_key):
         return Response(
             content=b'{"detail":"Rate limit exceeded"}',
             status_code=429,
@@ -160,7 +174,7 @@ async def proxy(path: str, request: Request):
     if config.DOWNSTREAM_INVOKE_MODE == "lambda":
         try:
             content, status, response_headers, media_type = await asyncio.to_thread(
-                _invoke_private_lambda, service_name, request, body
+                _invoke_private_lambda, service_name, request, body, user_id
             )
         except Exception:
             return Response(

@@ -5,7 +5,7 @@ export const NOTE_REPOSITORIES = [
     id: 'senior-system-engineer',
     owner: 'lekhrajdinkar',
     repo: 'senior-system-engineer',
-    branch: 'main',
+    branch: '2026',
     path: 'docs',
     name: 'Senior System Engineer',
     description: 'Architecture, cloud, DevOps, and senior engineering notes.',
@@ -46,6 +46,15 @@ export const NOTE_REPOSITORIES = [
     name: 'Cloud Engineering',
     description: 'AWS, cloud foundations, and cloud engineering notes.',
   },
+  {
+    id: 'blog-posts',
+    owner: 'nitinkc',
+    repo: 'nitinkc.github.io',
+    branch: 'main',
+    path: '_posts',
+    name: 'NitinKCBlog Posts',
+    description: 'NitinKC blog posts and articles.',
+  }
 ]
 
 export const NOTE_INDEX_CACHE_MS = 5 * 60 * 1000
