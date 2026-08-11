@@ -121,6 +121,18 @@ class VideoBulkMoveRequest(BaseModel):
 class PlaybackUpdateRequest(BaseModel):
     position_secs: float = Field(ge=0)
 
+class VideoProgressUpdate(BaseModel):
+    course_id: str
+    module_id: str
+    video_id: str
+    watched: Optional[bool] = None
+    position_secs: Optional[float] = Field(default=None, ge=0)
+    changed_at: Optional[datetime] = None
+
+class BulkProgressUpdateRequest(BaseModel):
+    base_updated_at: Optional[datetime] = None
+    videos: List[VideoProgressUpdate] = Field(min_length=1, max_length=2000)
+
 class MetadataUpdateRequest(BaseModel):
     name: Optional[str] = None
     title: Optional[str] = None

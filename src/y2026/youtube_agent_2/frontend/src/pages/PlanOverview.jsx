@@ -16,6 +16,7 @@ import {
 } from "../api/client";
 import EditMetadataDrawer from "../components/EditMetadataDrawer";
 import LoadingBar from "../components/LoadingBar";
+import PrivatePlanSyncStatus from "../components/PrivatePlanSyncStatus";
 import { CloseIcon, EditIcon, LabelIcon, WorkspaceIcon } from "../components/Icons";
 import {
   CourseViewDropdown,
@@ -1056,6 +1057,7 @@ export default function PlanOverview({ loading = false }) {
             onSelect={(value) => updatePageState({ courseLabelTab: value })}
           />
         </div>
+        {!isAllPlans && <PrivatePlanSyncStatus planId={planId} />}
         <button type="button" className="mobile-page-menu-button" aria-label="Open course actions" aria-expanded={showMobileActions} onClick={() => setShowMobileActions(true)}><WorkspaceIcon name="menu" /></button>
         {isAllPlans && renderCourseActions("desktop-page-actions breadcrumb-actions")}
       </nav>

@@ -18,10 +18,12 @@ import SourceFeedPreviewDialog from './components/SourceFeedPreviewDialog'
 import AiModelConfigDrawer from './components/AiModelConfigDrawer'
 import DismissibleError from './components/DismissibleError'
 import LoadingBar from './components/LoadingBar'
-import { confirmSourceFeedOrganization, createPlan, getPlans, getSourceSyncMetadata, organizeNewSourceFeeds, pushNewSourceFeeds, setAccessTokenProvider, syncSourceMetadata } from './api/client'
-import { addPlan, setPlans } from './store/plansSlice'
+import { confirmSourceFeedOrganization, createPlan, getPlans, getSourceSyncMetadata, organizeNewSourceFeeds, pushNewSourceFeeds, setAccessTokenProvider, setApiStatusListener, syncSourceMetadata } from './api/client'
+import { addPlan, applyPendingPlanProgress, setPlans } from './store/plansSlice'
 import { setSourceSyncMetadata } from './store/sourcesSlice'
 import { loadAiModels } from './store/aiModelsSlice'
+import { endPrivateSyncSession, setApiAvailability, setNetworkOnline, startPrivateSyncSession } from './store/privatePlanSyncSlice'
+import { loadPrivatePlanCache, savePrivatePlanCache } from './utils/privatePlanCache'
 import { firebaseAuth } from './firebase'
 import appLogo from '../app-logo.png'
 
@@ -433,6 +435,7 @@ function AppLayout() {
   const dispatch = useDispatch()
   const plans = useSelector(state => state.plans.items)
   const syncMetadata = useSelector(state => state.sources.syncMetadata)
+  const privatePlanSync = useSelector(state => state.privatePlanSync)
   const [auth, setAuth] = React.useState(null)
   const [showCreatePlanDrawer, setShowCreatePlanDrawer] = React.useState(false)
   const [createPlanForm, setCreatePlanForm] = React.useState({ name: '', description: '', logoUrl: 'https://skillicons.dev/icons?i=' })
@@ -457,7 +460,9 @@ function AppLayout() {
   const [showPlanSwitcher, setShowPlanSwitcher] = React.useState(false)
   const [showSettingsDrawer, setShowSettingsDrawer] = React.useState(false)
   const [showAiModelDrawer, setShowAiModelDrawer] = React.useState(false)
+  const [showMobileNav, setShowMobileNav] = React.useState(false)
   const sourceBootstrapUserRef = React.useRef(null)
+  const privateCacheUserRef = React.useRef(null)
   const navigate = useNavigate()
   const location = useLocation()
   const profileOpen = location.pathname === '/profile'
@@ -465,6 +470,19 @@ function AppLayout() {
   const routedLocation = profileOpen
     ? (profileBackgroundLocation || { pathname: '/', search: '', hash: '', state: null, key: 'profile-background' })
     : location
+
+  React.useEffect(() => {
+    setShowMobileNav(false)
+  }, [location.pathname])
+
+  React.useEffect(() => {
+    if (!showMobileNav) return undefined
+    const closeOnEscape = event => {
+      if (event.key === 'Escape') setShowMobileNav(false)
+    }
+    document.addEventListener('keydown', closeOnEscape)
+    return () => document.removeEventListener('keydown', closeOnEscape)
+  }, [showMobileNav])
 
   const openProfile = () => {
     if (profileOpen) return
@@ -483,7 +501,12 @@ function AppLayout() {
     setPlansLoading(true)
     try {
       const data = await getPlans()
-      dispatch(setPlans(Array.isArray(data) ? data : data.plans || []))
+      const loadedPlans = Array.isArray(data) ? data : data.plans || []
+      dispatch(setPlans(loadedPlans))
+      const pendingByPlan = store.getState().privatePlanSync.pendingByPlan
+      Object.entries(pendingByPlan).forEach(([planId, pending]) => {
+        dispatch(applyPendingPlanProgress({ planId, videos: pending.videos }))
+      })
     } catch (error) {
       console.error('Unable to load learning plans:', error)
     } finally {
@@ -522,10 +545,64 @@ function AppLayout() {
   }
 
   React.useEffect(() => {
+    setApiStatusListener(status => dispatch(setApiAvailability(status)))
+    const markOffline = () => dispatch(setNetworkOnline(false))
+    const markOnline = () => {
+      dispatch(setNetworkOnline(true))
+      if (firebaseAuth?.currentUser) {
+        firebaseAuth.currentUser.getIdToken(true)
+          .then(() => dispatch(setApiAvailability({ networkOnline: true, authAvailable: true, reason: null })))
+          .catch(() => dispatch(setApiAvailability({ authAvailable: false, reason: 'auth' })))
+      }
+    }
+    window.addEventListener('offline', markOffline)
+    window.addEventListener('online', markOnline)
+    return () => {
+      setApiStatusListener(null)
+      window.removeEventListener('offline', markOffline)
+      window.removeEventListener('online', markOnline)
+    }
+  }, [dispatch])
+
+  React.useEffect(() => {
     if (!firebaseAuth) return undefined
+    let active = true
     setAccessTokenProvider(() => firebaseAuth.currentUser?.getIdToken() || Promise.resolve(null))
-    return firebaseAuth.onIdTokenChanged(user => setAuth(user))
-  }, [])
+    const unsubscribe = firebaseAuth.onIdTokenChanged(async user => {
+      setAuth(user)
+      if (!user) {
+        privateCacheUserRef.current = null
+        dispatch(endPrivateSyncSession())
+        dispatch(setPlans([]))
+        return
+      }
+      dispatch(setApiAvailability({ authAvailable: true, reason: navigator.onLine ? null : 'network' }))
+      if (privateCacheUserRef.current === user.uid) return
+      privateCacheUserRef.current = user.uid
+      try {
+        const cached = await loadPrivatePlanCache(user.uid)
+        if (!active) return
+        if (store.getState().plans.items.length === 0 && cached.plans?.length) {
+          dispatch(setPlans(cached.plans))
+          Object.entries(cached.pendingByPlan || {}).forEach(([planId, pending]) => {
+            dispatch(applyPendingPlanProgress({ planId, videos: pending.videos }))
+          })
+        }
+        dispatch(startPrivateSyncSession({ userId: user.uid, pendingByPlan: cached.pendingByPlan || {} }))
+      } catch {
+        if (active) dispatch(startPrivateSyncSession({ userId: user.uid, pendingByPlan: {} }))
+      }
+    })
+    return () => { active = false; unsubscribe() }
+  }, [dispatch])
+
+  React.useEffect(() => {
+    if (!auth?.uid || !privatePlanSync.hydrated || privatePlanSync.userId !== auth.uid) return undefined
+    const timeout = window.setTimeout(() => {
+      savePrivatePlanCache(auth.uid, plans, privatePlanSync.pendingByPlan).catch(error => console.warn('Unable to persist offline learning-plan state:', error))
+    }, 250)
+    return () => window.clearTimeout(timeout)
+  }, [auth?.uid, plans, privatePlanSync.hydrated, privatePlanSync.pendingByPlan, privatePlanSync.userId])
 
   React.useEffect(() => {
     if (auth) return
@@ -535,8 +612,8 @@ function AppLayout() {
   }, [auth?.uid])
 
   React.useEffect(() => {
-    if (auth && plans.length === 0) loadPlans()
-  }, [auth?.uid])
+    if (auth && privatePlanSync.hydrated) loadPlans()
+  }, [auth?.uid, privatePlanSync.hydrated])
 
   React.useEffect(() => {
     if (AI_ENABLED && auth) dispatch(loadAiModels())
@@ -733,30 +810,46 @@ function AppLayout() {
 
   return (
     <div className="app-layout">
-      <aside className="right-nav">
+      <aside className={`right-nav ${showMobileNav ? 'mobile-nav-open' : ''}`}>
         <div className="right-nav-actions">
+          <div className="right-nav-mobile-bar">
+            <button type="button" className="app-logo-nav-button" title="YouTube Learning home" aria-label="YouTube Learning home" onClick={() => navigate('/')}><img src={appLogo} alt="" /></button>
+            <button type="button" className="mobile-nav-menu-button" aria-label={showMobileNav ? 'Close navigation menu' : 'Open navigation menu'} aria-expanded={showMobileNav} onClick={() => setShowMobileNav(value => !value)}>
+              {showMobileNav ? <CloseIcon /> : <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" /></svg>}
+            </button>
+          </div>
+          <div className="right-nav-menu-panel" aria-label="Application navigation" onClick={() => setShowMobileNav(false)}>
+          <div className="mobile-nav-drawer-header">
+            <div><img src={appLogo} alt="" /><span><small>YouTube Learning</small><strong>Navigation</strong></span></div>
+            <button type="button" aria-label="Close navigation menu" onClick={() => setShowMobileNav(false)}><CloseIcon /></button>
+          </div>
+          <button type="button" className="mobile-nav-home-item" onClick={() => navigate('/')}><img src={appLogo} alt="" /><span className="mobile-nav-item-label">YouTube Learning home</span></button>
           <div className="right-nav-top">
-          <button type="button" className="app-logo-nav-button" title="YouTube Learning home" aria-label="YouTube Learning home" onClick={() => navigate('/')}><img src={appLogo} alt="" /></button>
           <div className="right-nav-workspace-group" role="group" aria-label="Learning workspace" title="Learning workspace">
-            <button type="button" className={`home-nav-button nav-color-plans ${location.pathname.startsWith('/plans') ? 'active' : ''}`} title="Learning Plans" aria-label="Learning Plans" onClick={() => navigate('/plans')}><svg viewBox="0 0 24 24"><path d="M5 4h11a3 3 0 0 1 3 3v13H7a2 2 0 0 1-2-2V4Zm2 0v14a2 2 0 0 0-2-2m4-7h5m-5 4h5" /></svg></button>
-            <button type="button" className="quick-plan-button nav-color-search" onClick={() => setShowPlanSwitcher(true)} aria-label="Open global search" title="Global search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m15.5 15.5 5 5" /></svg></button>
-            {auth && <button type="button" className="add-plan-nav-button nav-color-create" title="Create learning plan" aria-label="Create learning plan" onClick={() => { setCreatePlanError(''); setShowCreatePlanDrawer(true) }}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg></button>}
+            <span className="mobile-nav-group-title">Learning workspace</span>
+            <button type="button" className={`home-nav-button nav-color-plans ${location.pathname.startsWith('/plans') ? 'active' : ''}`} title="Learning Plans" aria-label="Learning Plans" onClick={() => navigate('/plans')}><svg viewBox="0 0 24 24"><path d="M5 4h11a3 3 0 0 1 3 3v13H7a2 2 0 0 1-2-2V4Zm2 0v14a2 2 0 0 0-2-2m4-7h5m-5 4h5" /></svg><span className="mobile-nav-item-label">Learning plans</span></button>
+            <button type="button" className="quick-plan-button nav-color-search" onClick={() => setShowPlanSwitcher(true)} aria-label="Open global search" title="Global search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m15.5 15.5 5 5" /></svg><span className="mobile-nav-item-label">Global search</span></button>
+            {auth && <button type="button" className="add-plan-nav-button nav-color-create" title="Create learning plan" aria-label="Create learning plan" onClick={() => { setCreatePlanError(''); setShowCreatePlanDrawer(true) }}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg><span className="mobile-nav-item-label">Create learning plan</span></button>}
             {auth && <button type="button" className="refresh-plans nav-color-inbox" onClick={() => { setSourceSyncError(''); setShowSourceSyncDrawer(true) }} aria-label="Open source feed inbox" title="Source feed inbox">
-              <SourceInboxIcon />
+              <SourceInboxIcon /><span className="mobile-nav-item-label">Source feed inbox</span>
             </button>}
           </div>
           <div className="right-nav-public-group" role="group" aria-label="Public learning library" title="Public learning library">
-            <button type="button" className={`home-nav-button nav-color-public-plans ${location.pathname.startsWith('/public/plans') ? 'active' : ''}`} title="Public learning plans" aria-label="Public learning plans" onClick={() => navigate('/public/plans')}><PublicPlansIcon /></button>
-            <button type="button" className={`home-nav-button nav-color-notes ${location.pathname.startsWith('/notes') ? 'active' : ''}`} title="Learning Notes" aria-label="Learning Notes" onClick={() => navigate('/notes')}><LearningNotesIcon /></button>
+            <span className="mobile-nav-group-title">Public learning library</span>
+            <button type="button" className={`home-nav-button nav-color-public-plans ${location.pathname.startsWith('/public/plans') ? 'active' : ''}`} title="Public learning plans" aria-label="Public learning plans" onClick={() => navigate('/public/plans')}><PublicPlansIcon /><span className="mobile-nav-item-label">Public learning plans</span></button>
+            <button type="button" className={`home-nav-button nav-color-notes ${location.pathname.startsWith('/notes') ? 'active' : ''}`} title="Learning Notes" aria-label="Learning Notes" onClick={() => navigate('/notes')}><LearningNotesIcon /><span className="mobile-nav-item-label">Learning notes</span></button>
           </div>
           </div>
           <div className="right-nav-bottom">
-          {AI_ENABLED && auth && <button type="button" className={`home-nav-button nav-color-ai ${showAiModelDrawer ? 'active' : ''}`} title="AI model configurations" aria-label="AI model configurations" onClick={() => setShowAiModelDrawer(true)}><AiModelConfigIcon /></button>}
-          <button type="button" className="home-nav-button settings-nav-button nav-color-settings" title="Settings" aria-label="Settings" onClick={() => setShowSettingsDrawer(true)}><WorkspaceIcon name="settings" /></button>
-          <button type="button" className={`profile-nav-button ${profileOpen ? 'active' : ''}`} title={auth?.displayName || auth?.email || 'Profile'} aria-label="Profile" aria-expanded={profileOpen} onClick={openProfile}>{auth?.photoURL ? <img src={auth.photoURL} alt="" /> : <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></svg>}</button>
+          <span className="mobile-nav-group-title">Account and settings</span>
+          {AI_ENABLED && auth && <button type="button" className={`home-nav-button nav-color-ai ${showAiModelDrawer ? 'active' : ''}`} title="AI model configurations" aria-label="AI model configurations" onClick={() => setShowAiModelDrawer(true)}><AiModelConfigIcon /><span className="mobile-nav-item-label">AI model configurations</span></button>}
+          <button type="button" className="home-nav-button settings-nav-button nav-color-settings" title="Settings" aria-label="Settings" onClick={() => setShowSettingsDrawer(true)}><WorkspaceIcon name="settings" /><span className="mobile-nav-item-label">Settings</span></button>
+          <button type="button" className={`profile-nav-button ${profileOpen ? 'active' : ''}`} title={auth?.displayName || auth?.email || 'Profile'} aria-label="Profile" aria-expanded={profileOpen} onClick={openProfile}>{auth?.photoURL ? <img src={auth.photoURL} alt="" /> : <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></svg>}<span className="mobile-nav-item-label">{auth?.displayName || auth?.email || 'Profile'}</span></button>
+          </div>
           </div>
         </div>
       </aside>
+      {showMobileNav && <button type="button" className="mobile-nav-overlay" aria-label="Close navigation menu" onClick={() => setShowMobileNav(false)} />}
       {profileOpen && <><div className="drawer-overlay profile-drawer-overlay" onClick={closeProfile} /><aside className="drawer profile-drawer" role="dialog" aria-modal="true" aria-labelledby="profile-drawer-title"><div className="drawer-header"><div><h2 id="profile-drawer-title">Profile</h2><p>Manage your account and connected services.</p></div><button className="btn btn-secondary btn-sm" onClick={closeProfile} aria-label="Close"><CloseIcon /></button></div><div className="drawer-body"><Profile showTitle={false} /></div></aside></>}
       {auth && showCreatePlanDrawer && <><div className="drawer-overlay" onClick={closeCreatePlanDrawer} /><aside className="drawer create-plan-drawer" role="dialog" aria-modal="true" aria-labelledby="create-plan-title">
         <div className="drawer-header"><h2 id="create-plan-title">Create Learning Plan</h2><button className="btn btn-secondary btn-sm" onClick={closeCreatePlanDrawer} aria-label="Close"><CloseIcon /></button></div>

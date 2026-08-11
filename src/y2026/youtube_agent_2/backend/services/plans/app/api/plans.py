@@ -1,9 +1,10 @@
 """HTTP routes for learning plans, courses, and workspace mutations."""
 
-from fastapi import APIRouter, Response
+from fastapi import APIRouter, Query, Response
 
 from src.y2026.youtube_agent_2.backend.services.plans.app.domain import plans as service
 from src.y2026.youtube_agent_2.backend.services.plans.app.models import (
+    BulkProgressUpdateRequest,
     CourseDeleteRequest,
     Course,
     LabelsUpdateRequest,
@@ -50,9 +51,13 @@ def unpublish_plan(plan_id: str):
 
 
 @router.get("/public-api/plans", tags=["public-plans"])
-def list_public_plans(response: Response):
+def list_public_plans(
+    response: Response,
+    limit: int = Query(default=20, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+):
     response.headers["Cache-Control"] = "public, max-age=60"
-    return {"plans": service.list_public_plans()}
+    return service.list_public_plans(limit=limit, offset=offset)
 
 
 @router.head("/public-api/plans", tags=["public-plans"])
@@ -129,6 +134,16 @@ def update_video_labels(plan_id: str, course_id: str, module_id: str, video_id: 
 @router.patch("/api/plans/{plan_id}/courses/{course_id}/modules/{module_id}/videos/{video_id}/playback", tags=["videos"])
 def update_video_playback(plan_id: str, course_id: str, module_id: str, video_id: str, request: PlaybackUpdateRequest):
     return {"plan": service.update_video_playback(plan_id, course_id, module_id, video_id, request)}
+
+
+@router.patch("/api/plans/{plan_id}/progress", tags=["videos"])
+def update_plan_progress(plan_id: str, request: BulkProgressUpdateRequest):
+    plan, updated_count, had_remote_changes = service.update_plan_progress(plan_id, request)
+    return {
+        "plan": plan,
+        "updated_count": updated_count,
+        "had_remote_changes": had_remote_changes,
+    }
 
 
 @router.patch("/api/plans/{plan_id}/courses/{course_id}/videos/reorder", tags=["courses"])

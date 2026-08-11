@@ -12,18 +12,57 @@ import { peekYouTubeAccessToken } from '../youtubeAuth'
 
 const BASE = import.meta.env.VITE_API_BASE_URL || ''
 let accessTokenProvider = async () => null
+let apiStatusListener = () => {}
+
+export class ApiUnavailableError extends Error {
+  constructor(message, reason) {
+    super(message)
+    this.name = 'ApiUnavailableError'
+    this.reason = reason
+  }
+}
+
+export function isApiUnavailableError(error) {
+  return error instanceof ApiUnavailableError
+}
 
 export function setAccessTokenProvider(provider) {
   accessTokenProvider = provider || (async () => null)
 }
 
+export function setApiStatusListener(listener) {
+  apiStatusListener = listener || (() => {})
+}
+
 async function request(path, options = {}) {
-  const token = await accessTokenProvider()
+  if (typeof navigator !== 'undefined' && !navigator.onLine) {
+    apiStatusListener({ networkOnline: false, reason: 'network' })
+    throw new ApiUnavailableError('You are offline. Changes will be saved locally.', 'network')
+  }
+  let token = null
+  try {
+    token = await accessTokenProvider()
+  } catch {
+    apiStatusListener({ authAvailable: false, reason: 'auth' })
+    if (!path.startsWith('/public-api/')) {
+      throw new ApiUnavailableError('Your sign-in session needs to be renewed.', 'auth')
+    }
+  }
   const youtubeToken = peekYouTubeAccessToken()
-  const res = await fetch(`${BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(youtubeToken ? { 'X-YouTube-Access-Token': youtubeToken } : {}), ...options.headers },
-    ...options,
-  })
+  let res
+  try {
+    res = await fetch(`${BASE}${path}`, {
+      headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(youtubeToken ? { 'X-YouTube-Access-Token': youtubeToken } : {}), ...options.headers },
+      ...options,
+    })
+  } catch {
+    apiStatusListener({ networkOnline: false, reason: 'network' })
+    throw new ApiUnavailableError('The backend is unavailable. Changes will be saved locally.', 'network')
+  }
+  if (res.status === 401 && token) {
+    apiStatusListener({ authAvailable: false, reason: 'auth' })
+    throw new ApiUnavailableError('Your sign-in session has expired.', 'auth')
+  }
   if (!res.ok) {
     const body = await res.text()
     let detail = body
@@ -35,6 +74,7 @@ async function request(path, options = {}) {
     }
     throw new Error(`HTTP ${res.status}: ${detail}`)
   }
+  if (token) apiStatusListener({ networkOnline: true, authAvailable: true, reason: null })
   return res.json()
 }
 
@@ -126,8 +166,9 @@ export function getPublicPlan(shareId) {
   return request(`/public-api/plans/${encodeURIComponent(shareId)}`)
 }
 
-export function getPublicPlans() {
-  return request('/public-api/plans')
+export function getPublicPlans({ limit = 20, offset = 0 } = {}) {
+  const params = new URLSearchParams({ limit: String(limit), offset: String(offset) })
+  return request(`/public-api/plans?${params}`)
 }
 
 export function deletePlan(planId) {
@@ -221,6 +262,10 @@ export function updateVideoLabels(planId, courseId, moduleId, videoId, labels) {
 }
 export function updateVideoPlayback(planId, courseId, moduleId, videoId, positionSecs) {
   return request(`/api/plans/${planId}/courses/${courseId}/modules/${moduleId}/videos/${videoId}/playback`, { method: 'PATCH', body: JSON.stringify({ position_secs: positionSecs }) })
+}
+
+export function updatePlanProgress(planId, progress) {
+  return request(`/api/plans/${planId}/progress`, { method: 'PATCH', body: JSON.stringify(progress) })
 }
 
 export function reorderCourseVideos(planId, courseId, data) {
