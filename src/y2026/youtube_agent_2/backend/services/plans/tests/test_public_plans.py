@@ -98,7 +98,12 @@ class PublicPlanRouteTests(unittest.TestCase):
 
         gallery_response = self.anonymous.get("/public-api/plans")
         self.assertEqual(gallery_response.status_code, 200)
-        gallery = gallery_response.json()["plans"]
+        gallery_payload = gallery_response.json()
+        gallery = gallery_payload["plans"]
+        self.assertEqual(gallery_payload["limit"], 20)
+        self.assertEqual(gallery_payload["offset"], 0)
+        self.assertEqual(gallery_payload["total"], 1)
+        self.assertFalse(gallery_payload["has_more"])
         self.assertEqual(len(gallery), 1)
         self.assertEqual(gallery[0]["share_id"], share_id)
         self.assertEqual(gallery[0]["plan_id"], "plan-1")
@@ -106,6 +111,11 @@ class PublicPlanRouteTests(unittest.TestCase):
         self.assertEqual(gallery[0]["module_count"], 1)
         self.assertEqual(gallery[0]["video_count"], 1)
         self.assertNotIn("courses", gallery[0])
+
+        second_page = self.anonymous.get("/public-api/plans?limit=1&offset=1").json()
+        self.assertEqual(second_page["plans"], [])
+        self.assertEqual(second_page["total"], 1)
+        self.assertEqual(second_page["offset"], 1)
 
         response = self.anonymous.get(f"/public-api/plans/{share_id}")
 
@@ -170,6 +180,58 @@ class PublicPlanRouteTests(unittest.TestCase):
             self.anonymous.get("/public-api/plans/not-a-share").status_code,
             404,
         )
+
+    def test_bulk_progress_merge_updates_only_progress_fields(self):
+        before = self.owner.get("/api/plans/plan-1").json()
+        response = self.owner.patch(
+            "/api/plans/plan-1/progress",
+            json={
+                "base_updated_at": before["updated_at"],
+                "videos": [{
+                    "course_id": "course-1",
+                    "module_id": "module-1",
+                    "video_id": "private-video",
+                    "watched": False,
+                    "position_secs": 87,
+                    "changed_at": "2026-08-11T12:00:00Z",
+                }],
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["updated_count"], 1)
+        self.assertFalse(payload["had_remote_changes"])
+        plan = payload["plan"]
+        self.assertEqual(plan["name"], before["name"])
+        video = plan["courses"][0]["modules"][0]["videos"][0]
+        self.assertFalse(video["watched"])
+        self.assertNotIn("watched", video["labels"])
+        self.assertEqual(video["last_played_position_secs"], 87)
+        self.assertEqual(plan["courses"][0]["last_played_video_id"], "private-video")
+
+    def test_bulk_progress_merge_rejects_missing_video_without_partial_update(self):
+        response = self.owner.patch(
+            "/api/plans/plan-1/progress",
+            json={"videos": [
+                {
+                    "course_id": "course-1",
+                    "module_id": "module-1",
+                    "video_id": "private-video",
+                    "watched": False,
+                },
+                {
+                    "course_id": "course-1",
+                    "module_id": "module-1",
+                    "video_id": "missing-video",
+                    "watched": True,
+                },
+            ]},
+        )
+
+        self.assertEqual(response.status_code, 409)
+        video = self.owner.get("/api/plans/plan-1").json()["courses"][0]["modules"][0]["videos"][0]
+        self.assertTrue(video["watched"])
 
 
 if __name__ == "__main__":

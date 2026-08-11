@@ -188,7 +188,7 @@ class DynamoDBStore:
         item = self.table.get_item(Key={"PK": key, "SK": key}).get("Item")
         return json.loads(item["data"]) if item and item.get("entity") == "public_plan" else None
 
-    def list_public_plans(self) -> list[dict]:
+    def list_public_plans(self, *, limit: int = 20, offset: int = 0) -> tuple[list[dict], int]:
         response = self.table.scan(
             FilterExpression=self._attr("entity").eq("public_plan"),
             ProjectionExpression="#data, plan_id",
@@ -204,11 +204,12 @@ class DynamoDBStore:
             )
             items.extend(response.get("Items", []))
         plans = [{**json.loads(item["data"]), "plan_id": item.get("plan_id")} for item in items]
-        return sorted(
+        plans = sorted(
             plans,
             key=lambda plan: plan.get("published_at") or plan.get("updated_at") or "",
             reverse=True,
         )
+        return plans[offset:offset + limit], len(plans)
 
     def delete_public_plan(self, share_id: str) -> None:
         key = f"PUBLIC_PLAN#{_id(share_id)}"

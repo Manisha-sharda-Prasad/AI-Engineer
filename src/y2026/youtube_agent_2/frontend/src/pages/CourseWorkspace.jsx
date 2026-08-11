@@ -8,6 +8,7 @@ import { submitCourseRefreshFeed } from '../api/client'
 import { updatePlan } from '../store/plansSlice'
 import { rememberLearningLocation, selectPlanPageState, selectWorkspaceState, updatePlanPage } from '../store/learningUiSlice'
 import { getVideoProgress } from '../utils/videoProgress'
+import PrivatePlanSyncStatus from '../components/PrivatePlanSyncStatus'
 
 export default function CourseWorkspace() {
   const { planId, courseId } = useParams()
@@ -181,6 +182,7 @@ export default function CourseWorkspace() {
           }}
         />
       </div>
+      <PrivatePlanSyncStatus planId={planId} />
     </nav>
     <section className="private-course-workspace-hero" aria-labelledby="private-course-workspace-title">
       <span className="private-course-workspace-brand">

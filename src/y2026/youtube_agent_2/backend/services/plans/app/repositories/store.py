@@ -497,16 +497,23 @@ def load_public_plan(share_id: str) -> Optional[dict]:
     return json.loads(row[0]) if row else None
 
 
-def list_public_plans() -> list[dict]:
+def list_public_plans(*, limit: int = 20, offset: int = 0) -> tuple[list[dict], int]:
     if _dynamodb_store:
-        return _dynamodb_store.list_public_plans()
+        return _dynamodb_store.list_public_plans(limit=limit, offset=offset)
     if _firestore_store:
-        return []
+        return [], 0
     with _connect() as connection:
+        total = connection.execute("SELECT COUNT(*) FROM public_plans").fetchone()[0]
         rows = connection.execute(
-            "SELECT plan_id, data FROM public_plans ORDER BY published_at DESC, updated_at DESC"
+            """
+            SELECT plan_id, data
+            FROM public_plans
+            ORDER BY published_at DESC, updated_at DESC
+            LIMIT ? OFFSET ?
+            """,
+            (limit, offset),
         ).fetchall()
-    return [{**json.loads(row[1]), "plan_id": row[0]} for row in rows]
+    return [{**json.loads(row[1]), "plan_id": row[0]} for row in rows], total
 
 
 def delete_public_plan(share_id: str) -> None:

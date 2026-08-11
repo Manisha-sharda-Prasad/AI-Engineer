@@ -475,12 +475,28 @@ function LinkPreviewDrawer({ preview, repositoryId, index, onClose, onNavigate, 
   </div>
 }
 
-function MarkdownContent({ note, headings, index, onOpenLink }) {
+function MarkdownContent({ note, headings, index, onOpenLink, titleNavigation }) {
   let headingIndex = 0
+  let titleNavigationRendered = false
   const heading = level => ({ children, ...props }) => {
     const Tag = `h${level}`
     const id = headings[headingIndex]?.id
     headingIndex += 1
+    if (level === 1 && titleNavigation && !titleNavigationRendered) {
+      titleNavigationRendered = true
+      const { previousNote, nextNote, onNavigate } = titleNavigation
+      const previousTitle = previousNote?.title || (previousNote ? displayName(previousNote.path.split('/').at(-1)) : '')
+      const nextTitle = nextNote?.title || (nextNote ? displayName(nextNote.path.split('/').at(-1)) : '')
+      return <div className="notes-title-navigation">
+        <button type="button" disabled={!previousNote} onClick={() => previousNote && onNavigate(previousNote.path)} title={previousNote ? `Previous: ${previousTitle}` : 'No previous note'} aria-label={previousNote ? `Previous note: ${previousTitle}` : 'No previous note'}>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="notes-title-chevron-previous" x1="4" y1="4" x2="20" y2="20" gradientUnits="userSpaceOnUse"><stop stopColor="var(--notes-accent)"/><stop offset="1" stopColor="var(--notes-accent-2)"/></linearGradient></defs><path d="m14 6-6 6 6 6" stroke="url(#notes-title-chevron-previous)"/></svg>
+        </button>
+        <Tag id={id} {...props}>{children}</Tag>
+        <button type="button" disabled={!nextNote} onClick={() => nextNote && onNavigate(nextNote.path)} title={nextNote ? `Next: ${nextTitle}` : 'No next note'} aria-label={nextNote ? `Next note: ${nextTitle}` : 'No next note'}>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="notes-title-chevron-next" x1="4" y1="4" x2="20" y2="20" gradientUnits="userSpaceOnUse"><stop stopColor="var(--notes-accent)"/><stop offset="1" stopColor="var(--notes-accent-2)"/></linearGradient></defs><path d="m10 6 6 6-6 6" stroke="url(#notes-title-chevron-next)"/></svg>
+        </button>
+      </div>
+    }
     return <Tag id={id} {...props}>{children}</Tag>
   }
   const components = {
@@ -826,7 +842,7 @@ export default function Notes() {
           <nav className="notes-list" aria-label={`${selectedTopic} notes`}><span className="notes-pane-label">{displayName(selectedTopic)} notes</span>{!loadingIndex && <NoteTree node={tree} selectedPath={selectedPath} expanded={expanded} onToggle={path => setExpanded(current => ({ ...current, [path]: !current[path] }))} onSelect={selectNote} />}{!loadingIndex && !topicNotes.length && <p className="notes-empty">No notes match this search in {displayName(selectedTopic)}.</p>}</nav>
         </div>
       </aside>
-      <main ref={noteReaderRef} className="note-reader">{loadingNote ? <div className="note-reader-status"><span className="spinner" /> Loading note…</div> : note ? <><article className="markdown-body"><MarkdownContent note={note} headings={headings} index={index} onOpenLink={openPreviewLink} /></article><NotePageNavigation previousNote={previousNote} nextNote={nextNote} rootPath={index?.root_path || ''} onNavigate={selectNote}/></> : <div className="note-reader-status">Choose a note to start reading.</div>}</main>
+      <main ref={noteReaderRef} className="note-reader">{loadingNote ? <div className="note-reader-status"><span className="spinner" /> Loading note…</div> : note ? <><article className="markdown-body"><MarkdownContent note={note} headings={headings} index={index} onOpenLink={openPreviewLink} titleNavigation={{ previousNote, nextNote, onNavigate: selectNote }} /></article><NotePageNavigation previousNote={previousNote} nextNote={nextNote} rootPath={index?.root_path || ''} onNavigate={selectNote}/></> : <div className="note-reader-status">Choose a note to start reading.</div>}</main>
       <OnThisPage note={note} headings={headings} isMobile={isMobile} mobileOpen={mobilePanel === 'outline'} onMobileClose={() => setMobilePanel(null)} />
     </div>
     {isMobile && mobilePanel && <button type="button" className="notes-mobile-backdrop" onClick={() => setMobilePanel(null)} aria-label="Close mobile navigation" />}

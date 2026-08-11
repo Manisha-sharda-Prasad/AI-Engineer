@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from fastapi import HTTPException
 
 from src.y2026.youtube_agent_2.backend.services.plans.app.config import ALLOWED_PREBUILT_LABELS
-from src.y2026.youtube_agent_2.backend.services.plans.app.models import Course, CourseDeleteRequest, LearningPlan, MetadataUpdateRequest, PlaybackUpdateRequest, VideoBulkMoveRequest, VideoReorderRequest
+from src.y2026.youtube_agent_2.backend.services.plans.app.models import BulkProgressUpdateRequest, Course, CourseDeleteRequest, LearningPlan, MetadataUpdateRequest, PlaybackUpdateRequest, VideoBulkMoveRequest, VideoReorderRequest
 from src.y2026.youtube_agent_2.backend.services.plans.app.repositories import store as db
 
 
@@ -78,10 +78,17 @@ def get_public_plan(share_id: str) -> dict:
     return projection
 
 
-def list_public_plans() -> list[dict]:
+def list_public_plans(*, limit: int = 20, offset: int = 0) -> dict:
     from .public_projection import build_public_plan_summary
 
-    return [build_public_plan_summary(plan) for plan in db.list_public_plans()]
+    plans, total = db.list_public_plans(limit=limit, offset=offset)
+    return {
+        "plans": [build_public_plan_summary(plan) for plan in plans],
+        "limit": limit,
+        "offset": offset,
+        "total": total,
+        "has_more": offset + len(plans) < total,
+    }
 
 
 def delete_courses(plan_id: str, request: CourseDeleteRequest) -> LearningPlan:
@@ -289,6 +296,59 @@ def update_video_playback(plan_id: str, course_id: str, module_id: str, video_id
     plan.updated_at = now
     db.save_plan(plan.model_dump())
     return plan
+
+
+def update_plan_progress(
+    plan_id: str,
+    request: BulkProgressUpdateRequest,
+) -> tuple[LearningPlan, int, bool]:
+    """Merge a client progress snapshot without replacing plan structure or metadata."""
+    plan = _load_plan(plan_id)
+    had_remote_changes = bool(
+        request.base_updated_at and plan.updated_at > request.base_updated_at
+    )
+    locations = {}
+    for course in plan.courses:
+        for module in course.modules:
+            for video in module.videos:
+                locations[(course.id, module.id, video.video_id)] = (course, video)
+
+    missing = [
+        item.video_id
+        for item in request.videos
+        if (item.course_id, item.module_id, item.video_id) not in locations
+    ]
+    if missing:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Progress target no longer exists: {', '.join(sorted(set(missing)))}",
+        )
+    if any(item.watched is None and item.position_secs is None for item in request.videos):
+        raise HTTPException(status_code=422, detail="Each progress item must include watched or position_secs")
+
+    now = _now()
+    touched_courses = set()
+    for item in request.videos:
+        course, video = locations[(item.course_id, item.module_id, item.video_id)]
+        changed_at = item.changed_at or now
+        if item.watched is not None:
+            video.watched = item.watched
+            labels = [label for label in video.labels if label != "watched"]
+            video.labels = [*labels, "watched"] if item.watched else labels
+        if item.position_secs is not None:
+            video.last_played_position_secs = item.position_secs
+            video.last_played_at = changed_at
+            course.last_played_video_id = video.video_id
+            course.last_played_position_secs = item.position_secs
+            course.last_played_at = changed_at
+        touched_courses.add(course.id)
+
+    for course in plan.courses:
+        if course.id in touched_courses:
+            course.updated_at = now
+    plan.updated_at = now
+    db.save_plan(plan.model_dump())
+    return plan, len(request.videos), had_remote_changes
 
 
 def reorder_course_videos(plan_id: str, course_id: str, request: VideoReorderRequest) -> LearningPlan:
