@@ -622,6 +622,9 @@ export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId
 
   const activeCourseVideos = activeCourse?.modules?.flatMap(module => module.videos || []) || []
   const { watched: activeCourseWatched, total: activeCourseVideoCount, progress: activeCourseProgress } = getVideoProgress(activeCourseVideos)
+  const activeCourseVideoIndex = activeCourseVideos.findIndex(video => video === activeVideo || (video.video_id && video.video_id === activeVideo?.video_id))
+  const previousCourseVideo = activeCourseVideoIndex > 0 ? activeCourseVideos[activeCourseVideoIndex - 1] : null
+  const nextCourseVideo = activeCourseVideoIndex >= 0 && activeCourseVideoIndex < activeCourseVideos.length - 1 ? activeCourseVideos[activeCourseVideoIndex + 1] : null
 
   const youtubeVideoId = activeVideo ? getYoutubeVideoId(activeVideo.url || activeVideo.video_id) : null
   const restorePosition = activeVideo?.last_played_position_secs || (activeVideo?.video_id === activeCourse?.last_played_video_id ? activeCourse.last_played_position_secs || 0 : 0)
@@ -923,6 +926,16 @@ export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId
                     onShowMore={() => setShowDescriptionDrawer(true)}
                   />
                 </div>
+                <nav className="video-sequence-navigation" aria-label="Video navigation">
+                  <button type="button" disabled={!previousCourseVideo} onClick={() => previousCourseVideo && handleVideoSelect(previousCourseVideo)} aria-label={previousCourseVideo ? `Previous video: ${previousCourseVideo.title}` : 'No previous video'}>
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+                    <span><small>Previous</small><strong>{previousCourseVideo?.title || 'Start of course'}</strong></span>
+                  </button>
+                  <button type="button" disabled={!nextCourseVideo} onClick={() => nextCourseVideo && handleVideoSelect(nextCourseVideo)} aria-label={nextCourseVideo ? `Next video: ${nextCourseVideo.title}` : 'No next video'}>
+                    <span><small>Next</small><strong>{nextCourseVideo?.title || 'End of course'}</strong></span>
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+                  </button>
+                </nav>
               </div>
             ) : (
               <div className="no-video-placeholder">
