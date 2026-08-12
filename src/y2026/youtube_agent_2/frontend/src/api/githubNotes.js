@@ -55,8 +55,36 @@ function rawUrl(repository, path) {
   return `https://raw.githubusercontent.com/${repository.owner}/${repository.repo}/${encodeURIComponent(repository.branch)}/${encodedPath}`
 }
 
-export async function getNotes(repositoryId) {
+async function responseError(response, fallback) {
+  try {
+    const payload = await response.json()
+    return payload.error || fallback
+  } catch {
+    return fallback
+  }
+}
+
+export async function getLocalNoteAvailability() {
+  try {
+    const response = await fetch('/local-notes/status', { cache: 'no-store' })
+    if (!response.ok) return []
+    const payload = await response.json()
+    return Array.isArray(payload.available) ? payload.available : []
+  } catch {
+    return []
+  }
+}
+
+async function getLocalNotes(repository) {
+  const response = await fetch(`/local-notes/${encodeURIComponent(repository.id)}/index`, { cache: 'no-store' })
+  if (!response.ok) throw new Error(await responseError(response, 'The local checkout could not be indexed.'))
+  const payload = await response.json()
+  return { ...publicRepository(repository, payload.notes?.length || 0), source: 'local', notes: payload.notes || [] }
+}
+
+export async function getNotes(repositoryId, source = 'remote') {
   const repository = repositoryById(repositoryId)
+  if (source === 'local') return getLocalNotes(repository)
   const cached = readCache(repository)
   if (cached) return cached
 
@@ -83,25 +111,54 @@ export async function getNotes(repositoryId) {
     github_url: `https://github.com/${repository.owner}/${repository.repo}/blob/${repository.branch}/${item.path}`,
   })).sort((left, right) => left.path.localeCompare(right.path, undefined, { numeric: true }))
 
-  const result = { ...publicRepository(repository, notes.length), notes }
+  const result = { ...publicRepository(repository, notes.length), source: 'remote', notes }
   writeCache(repository, result)
   return result
 }
 
 export async function getNoteRepositories() {
+  const localRepositories = new Set(await getLocalNoteAvailability())
   const results = await Promise.allSettled(NOTE_REPOSITORIES.map(repository => getNotes(repository.id)))
+  const repositories = await Promise.all(results.map(async (result, index) => {
+    const repository = NOTE_REPOSITORIES[index]
+    if (result.status === 'fulfilled') return { ...publicRepository(repository, result.value.notes.length), local_available: localRepositories.has(repository.id) }
+    if (localRepositories.has(repository.id)) {
+      try {
+        const local = await getLocalNotes(repository)
+        return { ...publicRepository(repository, local.notes.length), local_available: true, remote_error: result.reason?.message || 'Unable to load GitHub.' }
+      } catch {
+        // Surface the original remote error when neither source can load.
+      }
+    }
+    return { ...publicRepository(repository, 0), local_available: false, error: result.reason?.message || 'Unable to load repository.' }
+  }))
   return {
-    repositories: results.map((result, index) => result.status === 'fulfilled'
-      ? publicRepository(NOTE_REPOSITORIES[index], result.value.notes.length)
-      : { ...publicRepository(NOTE_REPOSITORIES[index], 0), error: result.reason?.message || 'Unable to load repository.' }),
+    repositories,
   }
 }
 
-export async function getNoteContent(repositoryId, path) {
+export async function getNoteContent(repositoryId, path, source = 'remote') {
   const repository = repositoryById(repositoryId)
-  const index = await getNotes(repositoryId)
+  const index = await getNotes(repositoryId, source)
   const selected = index.notes.find(note => note.path === path)
   if (!selected) throw new Error('Markdown note was not found in the configured docs directory.')
+
+  if (source === 'local') {
+    const url = `/local-notes/${encodeURIComponent(repositoryId)}/content?path=${encodeURIComponent(path)}`
+    const encodedPath = path.split('/').map(encodeURIComponent).join('/')
+    const rawUrl = `${window.location.origin}/local-notes/${encodeURIComponent(repositoryId)}/raw/${encodedPath}`
+    const response = await fetch(url, { cache: 'no-store' })
+    if (!response.ok) throw new Error(await responseError(response, 'The local Markdown note could not be read.'))
+    return {
+      repository_id: repositoryId,
+      path,
+      title: selected.title,
+      content: await response.text(),
+      raw_url: rawUrl,
+      github_url: selected.github_url,
+      source: 'local',
+    }
+  }
 
   const url = rawUrl(repository, path)
   const response = await fetch(url)
@@ -113,5 +170,6 @@ export async function getNoteContent(repositoryId, path) {
     content: await response.text(),
     raw_url: url,
     github_url: selected.github_url,
+    source: 'remote',
   }
 }

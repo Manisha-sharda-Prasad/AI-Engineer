@@ -250,22 +250,32 @@ function Breadcrumbs({ index, selectedPath, onDirectory }) {
   )
 }
 
-function NoteTree({ node, selectedPath, expanded, onToggle, onSelect, depth = 0 }) {
+function TreeFolderIcon() {
+  return <svg className="notes-tree-folder-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 6.5h6l2 2h9v9.75a1.75 1.75 0 0 1-1.75 1.75H5.25a1.75 1.75 0 0 1-1.75-1.75V6.5Z"/><path d="M3.5 9h17"/></svg>
+}
+
+function TreeNoteIcon() {
+  return <svg className="notes-file-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h8l4 4V20H6V3.5Z"/><path d="M14 3.5V8h4M9 12h6M9 15.5h6"/></svg>
+}
+
+function NoteTree({ node, selectedPath, activeDirectories, expanded, onToggle, onSelect, depth = 0 }) {
   const directories = [...node.directories.values()].sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
   const notes = [...node.notes].sort((a, b) => a.path.localeCompare(b.path, undefined, { numeric: true }))
   return <div className="notes-tree-level" style={{ '--tree-depth': depth }}>
     {directories.map(directory => {
       const isExpanded = expanded[directory.path] === true
+      const isActiveDirectory = activeDirectories.has(directory.path)
       return <div className="notes-tree-directory" key={directory.path}>
-        <button type="button" className="notes-tree-folder" data-tree-path={directory.path} onClick={() => onToggle(directory.path)} aria-expanded={isExpanded}>
-          <span className={`notes-tree-chevron ${isExpanded ? 'expanded' : ''}`}>›</span>
+        <button type="button" className={`notes-tree-folder ${isActiveDirectory ? 'active-ancestor' : ''}`} data-tree-path={directory.path} onClick={() => onToggle(directory.path)} aria-expanded={isExpanded}>
+          <svg className={`notes-tree-chevron ${isExpanded ? 'expanded' : ''}`} viewBox="0 0 16 16" aria-hidden="true"><path d="m5 3 5 5-5 5"/></svg>
+          <TreeFolderIcon />
           <span className="notes-tree-folder-name">{displayName(directory.name)}</span>
           <small className="notes-count-badge">{noteCount(directory)}</small>
         </button>
-        <div className={`notes-tree-children ${isExpanded ? 'expanded' : ''}`}><div><NoteTree node={directory} selectedPath={selectedPath} expanded={expanded} onToggle={onToggle} onSelect={onSelect} depth={depth + 1} /></div></div>
+        <div className={`notes-tree-children ${isExpanded ? 'expanded' : ''}`}><div><NoteTree node={directory} selectedPath={selectedPath} activeDirectories={activeDirectories} expanded={expanded} onToggle={onToggle} onSelect={onSelect} depth={depth + 1} /></div></div>
       </div>
     })}
-    {notes.map(note => <button type="button" key={note.path} className={`notes-tree-note ${selectedPath === note.path ? 'active' : ''}`} onClick={() => onSelect(note.path)} title={note.path}><span className="notes-file-icon">#</span><strong>{note.title}</strong></button>)}
+    {notes.map(note => <button type="button" key={note.path} className={`notes-tree-note ${selectedPath === note.path ? 'active' : ''}`} onClick={() => onSelect(note.path)} title={note.path}><TreeNoteIcon/><strong>{note.title}</strong>{selectedPath === note.path && <span className="notes-current-label">Current</span>}</button>)}
   </div>
 }
 
@@ -414,7 +424,7 @@ function FolderPreviewTree({ node, landingPath, selectedPath, onSelect, depth = 
   </div>
 }
 
-function LinkPreviewDrawer({ preview, repositoryId, index, onClose, onNavigate, onPreviewLink, canGoBack, onBack }) {
+function LinkPreviewDrawer({ preview, repositoryId, source, index, onClose, onNavigate, onPreviewLink, canGoBack, onBack }) {
   const [previewNote, setPreviewNote] = React.useState(null)
   const [folderSelectedPath, setFolderSelectedPath] = React.useState('')
   const [loading, setLoading] = React.useState(false)
@@ -435,9 +445,9 @@ function LinkPreviewDrawer({ preview, repositoryId, index, onClose, onNavigate, 
     if (!contentPath) { setLoading(false); return undefined }
     let active = true
     setLoading(true)
-    getNoteContent(repositoryId, contentPath).then(data => active && setPreviewNote(data)).catch(fetchError => active && setError(fetchError.message || 'Unable to preview this note.')).finally(() => active && setLoading(false))
+    getNoteContent(repositoryId, contentPath, source).then(data => active && setPreviewNote(data)).catch(fetchError => active && setError(fetchError.message || 'Unable to preview this note.')).finally(() => active && setLoading(false))
     return () => { active = false }
-  }, [preview, repositoryId, folderSelectedPath])
+  }, [preview, repositoryId, source, folderSelectedPath])
 
   if (!preview) return null
   const labels = { note: 'Linked learning note', folder: 'Linked notes folder', youtube: 'YouTube video', 'youtube-post': 'YouTube post', github: 'GitHub resource', chatgpt: 'ChatGPT link', deepseek: 'DeepSeek link', external: 'External resource' }
@@ -654,10 +664,10 @@ function YearDropdown({ options, selectedYear, onSelect }) {
   return <div className="notes-year-picker" ref={pickerRef}>
     <button type="button" className="notes-year-trigger" onClick={() => setOpen(value => !value)} aria-haspopup="listbox" aria-expanded={open} title="Select notes year">
       <svg className="notes-year-calendar" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4m8-4v4M3 10h18"/></svg>
-      <span><b>{selected?.label || 'Year'}</b><small>{selected?.count || 0}</small></span>
+      <span><b>{selected?.label || 'Year'}</b></span>
       <svg className="notes-year-chevron" viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg>
     </button>
-    {open && <div className="notes-year-menu" role="listbox" aria-label="Notes year">{options.map(option => <button type="button" role="option" aria-selected={option.value === selectedYear} className={option.value === selectedYear ? 'active' : ''} key={option.value} onClick={() => { onSelect(option.value); setOpen(false) }}><span><b>{option.label}</b><small>{option.count} notes</small></span>{option.value === selectedYear && <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m4 10 4 4 8-8"/></svg>}</button>)}</div>}
+    {open && <div className="notes-year-menu" role="listbox" aria-label="Notes year">{options.map(option => <button type="button" role="option" aria-selected={option.value === selectedYear} className={option.value === selectedYear ? 'active' : ''} key={option.value} onClick={() => { onSelect(option.value); setOpen(false) }}><span><b>{option.label}</b></span>{option.value === selectedYear && <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m4 10 4 4 8-8"/></svg>}</button>)}</div>}
   </div>
 }
 
@@ -673,10 +683,32 @@ function TopicDropdown({ options, selectedTopic, onSelect }) {
   return <div className="notes-topic-picker" ref={pickerRef}>
     <button type="button" className="notes-topic-trigger" onClick={() => setOpen(value => !value)} aria-haspopup="listbox" aria-expanded={open} title="Select notes topic">
       <TopicIcon topic={selected?.value || 'knowledge'}/>
-      <span><b>{selected?.label || 'Topic'}</b><small>{selected?.count || 0}</small></span>
+      <span><b>{selected?.label || 'Topic'}</b></span>
       <svg className="notes-topic-chevron" viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg>
     </button>
-    {open && <div className="notes-topic-menu" role="listbox" aria-label="Notes topic">{options.map(option => <button type="button" role="option" aria-selected={option.value === selectedTopic} className={option.value === selectedTopic ? 'active' : ''} key={option.value} onClick={() => { onSelect(option.value); setOpen(false) }}><TopicIcon topic={option.value}/><span><b>{option.label}</b><small>{option.count} notes</small></span>{option.value === selectedTopic && <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m4 10 4 4 8-8"/></svg>}</button>)}</div>}
+    {open && <div className="notes-topic-menu" role="listbox" aria-label="Notes topic">{options.map(option => <button type="button" role="option" aria-selected={option.value === selectedTopic} className={option.value === selectedTopic ? 'active' : ''} key={option.value} onClick={() => { onSelect(option.value); setOpen(false) }}><TopicIcon topic={option.value}/><span><b>{option.label}</b></span>{option.value === selectedTopic && <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m4 10 4 4 8-8"/></svg>}</button>)}</div>}
+  </div>
+}
+
+function NoteSourceToggle({ source, onChange }) {
+  return <div className="notes-source-toggle" role="group" aria-label="Notes source">
+    <button type="button" className={source === 'remote' ? 'active' : ''} aria-pressed={source === 'remote'} onClick={() => onChange('remote')} title="Read from GitHub">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 18h10a4 4 0 0 0 .5-8A6 6 0 0 0 6 9a4.5 4.5 0 0 0 1 9Z"/></svg><span>Remote</span>
+    </button>
+    <button type="button" className={source === 'local' ? 'active' : ''} aria-pressed={source === 'local'} onClick={() => onChange('local')} title="Read from local checkout">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M8 21h8M12 18v3"/></svg><span>Local</span>
+    </button>
+  </div>
+}
+
+function NoteSourceStatus({ source, onRefresh }) {
+  const local = source === 'local'
+  return <div className={`notes-source-status ${local ? 'local' : 'remote'}`} title={local ? 'Reading files from your local checkout' : 'Reading published files from GitHub'}>
+    <span className="notes-source-status-dot" aria-hidden="true" />
+    <span>{local ? 'Local checkout' : 'GitHub live'}</span>
+    {local && <button type="button" onClick={onRefresh} title="Reload local files" aria-label="Reload local notes">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6v5h-5M4 18v-5h5M18.5 9A7 7 0 0 0 6.7 6.7L4 9m16 6-2.7 2.3A7 7 0 0 1 5.5 15"/></svg>
+    </button>}
   </div>
 }
 
@@ -694,6 +726,8 @@ export default function Notes() {
   const [index, setIndex] = React.useState(null)
   const [note, setNote] = React.useState(null)
   const [query, setQuery] = React.useState('')
+  const [noteSource, setNoteSource] = React.useState('remote')
+  const [sourceRevision, setSourceRevision] = React.useState(0)
   const [expanded, setExpanded] = React.useState({})
   const [showNavigation, setShowNavigation] = React.useState(true)
   const [mobilePanel, setMobilePanel] = React.useState(null)
@@ -710,6 +744,13 @@ export default function Notes() {
     getNoteRepositories().then(data => active && setRepositories(data.repositories || [])).catch(fetchError => active && setError(fetchError.message || 'Unable to load note repositories.')).finally(() => active && setLoadingCatalog(false))
     return () => { active = false }
   }, [])
+
+  React.useEffect(() => {
+    if (!repositoryId || !repositories.length) return
+    const repository = repositories.find(item => item.id === repositoryId)
+    const preferred = localStorage.getItem(`learning-notes-source:${repositoryId}`)
+    setNoteSource(preferred === 'local' && repository?.local_available ? 'local' : 'remote')
+  }, [repositoryId, repositories])
 
   React.useEffect(() => {
     if (!repositoryId) return undefined
@@ -740,17 +781,17 @@ export default function Notes() {
     if (!repositoryId) { setIndex(null); setNote(null); return undefined }
     let active = true
     setLoadingIndex(true); setError(''); setQuery('')
-    getNotes(repositoryId).then(data => { if (!active) return; setIndex(data); if (!selectedPath && data.notes?.length) setSearchParams({ repo: repositoryId, path: data.notes[0].path }, { replace: true }) }).catch(fetchError => active && setError(fetchError.message || 'Unable to load this repository.')).finally(() => active && setLoadingIndex(false))
+    getNotes(repositoryId, noteSource).then(data => { if (!active) return; setIndex(data); if ((!selectedPath || !data.notes.some(item => item.path === selectedPath)) && data.notes?.length) setSearchParams({ repo: repositoryId, path: data.notes[0].path }, { replace: true }) }).catch(fetchError => active && setError(fetchError.message || 'Unable to load this repository.')).finally(() => active && setLoadingIndex(false))
     return () => { active = false }
-  }, [repositoryId])
+  }, [repositoryId, noteSource, sourceRevision])
 
   React.useEffect(() => {
     if (!repositoryId || !selectedPath) { setNote(null); return undefined }
     let active = true
     setLoadingNote(true); setError('')
-    getNoteContent(repositoryId, selectedPath).then(data => active && setNote(data)).catch(fetchError => { if (active) { setNote(null); setError(fetchError.message || 'Unable to load this note.') } }).finally(() => active && setLoadingNote(false))
+    getNoteContent(repositoryId, selectedPath, noteSource).then(data => active && setNote(data)).catch(fetchError => { if (active) { setNote(null); setError(fetchError.message || 'Unable to load this note.') } }).finally(() => active && setLoadingNote(false))
     return () => { active = false }
-  }, [repositoryId, selectedPath])
+  }, [repositoryId, selectedPath, noteSource, sourceRevision])
 
   const allNotes = index?.notes || []
   const currentTaxonomy = selectedPath ? taxonomy({ path: selectedPath }, index?.root_path || '') : { year: '', topic: '' }
@@ -761,9 +802,17 @@ export default function Notes() {
   const selectedTopic = topics.includes(currentTaxonomy.topic) ? currentTaxonomy.topic : topics[0]
   const normalizedQuery = query.trim().toLowerCase()
   const filteredNotes = allNotes.filter(item => !normalizedQuery || `${item.title} ${item.path}`.toLowerCase().includes(normalizedQuery))
+  const yearFilteredNotes = filteredNotes.filter(item => taxonomy(item, index?.root_path || '').year === selectedYear)
   const topicNotes = filteredNotes.filter(item => { const value = taxonomy(item, index?.root_path || ''); return value.year === selectedYear && value.topic === selectedTopic })
   const topicPrefix = [index?.root_path, selectedYear !== 'Notes' ? selectedYear : '', selectedTopic !== 'General' ? selectedTopic : ''].filter(Boolean).join('/')
   const tree = React.useMemo(() => buildTree(topicNotes, topicPrefix), [topicNotes, topicPrefix])
+  const allTreePaths = React.useMemo(() => directoryPaths(tree), [tree])
+  const allTreePathsKey = allTreePaths.join('\u0000')
+  const activeDirectories = React.useMemo(() => {
+    if (!selectedPath || !topicPrefix || !selectedPath.startsWith(`${topicPrefix}/`)) return new Set()
+    const directories = selectedPath.slice(topicPrefix.length + 1).split('/').slice(0, -1)
+    return new Set(directories.map((_, position) => directories.slice(0, position + 1).join('/')))
+  }, [selectedPath, topicPrefix])
   const headings = React.useMemo(() => extractHeadings(note?.content), [note?.content])
   const orderedNotes = React.useMemo(() => [...allNotes].sort((left, right) => left.path.localeCompare(right.path, undefined, { numeric: true })), [allNotes])
   const selectedNotePosition = orderedNotes.findIndex(item => item.path === selectedPath)
@@ -771,6 +820,11 @@ export default function Notes() {
   const nextNote = selectedNotePosition >= 0 && selectedNotePosition < orderedNotes.length - 1 ? orderedNotes[selectedNotePosition + 1] : null
 
   React.useEffect(() => setExpanded({}), [repositoryId, selectedYear, selectedTopic])
+
+  React.useEffect(() => {
+    if (!normalizedQuery || !allTreePaths.length) return
+    setExpanded(Object.fromEntries(allTreePaths.map(path => [path, true])))
+  }, [normalizedQuery, allTreePathsKey])
 
   React.useEffect(() => {
     if (!selectedPath || !topicPrefix || !selectedPath.startsWith(`${topicPrefix}/`)) return
@@ -818,34 +872,37 @@ export default function Notes() {
   if (!repositoryId) return <RepositoryCards repositories={repositories} loading={loadingCatalog} onOpen={repo => setSearchParams({ repo })} />
 
   const currentRepository = repositories.find(item => item.id === repositoryId)
-  const allTreePaths = directoryPaths(tree)
   const allExpanded = allTreePaths.length > 0 && allTreePaths.every(path => expanded[path] === true)
+  const selectNoteSource = source => {
+    if (source === 'local' && !currentRepository?.local_available) return
+    localStorage.setItem(`learning-notes-source:${repositoryId}`, source)
+    setNoteSource(source)
+  }
 
   return <div className={`notes-page ${showNavigation ? '' : 'navigation-hidden'}`} style={repositoryStyle(repositoryId)}>
     <header className="notes-reader-header">
-      {!showNavigation && <button type="button" className="notes-nav-reveal" onClick={() => setShowNavigation(true)} aria-controls="notes-topic-navigation" title="Show topic navigation" aria-label="Show topic navigation"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M6 8h0M6 12h0"/></svg></button>}
+      <button type="button" className="notes-nav-reveal notes-desktop-nav-toggle" onClick={() => setShowNavigation(value => !value)} aria-controls="notes-topic-navigation" aria-expanded={showNavigation} title={showNavigation ? 'Hide notes navigation' : 'Show notes navigation'} aria-label={showNavigation ? 'Hide notes navigation' : 'Show notes navigation'}><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/><path d={showNavigation ? 'm7 9-3 3 3 3' : 'm5 9 3 3-3 3'}/></svg></button>
       <Breadcrumbs index={index} selectedPath={selectedPath} onDirectory={navigateBreadcrumb} />
+      <NoteSourceStatus source={noteSource} onRefresh={() => setSourceRevision(value => value + 1)} />
       <div className="notes-mobile-header-actions"><button type="button" onClick={() => { setShowNavigation(true); setMobilePanel('library') }} aria-label="Open notes library" title="Notes library"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M6 8h0M6 12h0"/></svg></button><button type="button" onClick={() => setMobilePanel('outline')} aria-label="Open page outline" title="On this page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/></svg></button></div>
     </header>
     <DismissibleError message={error} />
     <div className="notes-layout">
       <aside ref={navigationRef} id="notes-topic-navigation" className={`notes-browser ${mobilePanel === 'library' ? 'mobile-open' : ''}`} aria-label="Repository topics" aria-hidden={!showNavigation || (isMobile && mobilePanel !== 'library')}>
-        <div className="notes-browser-header"><RepositoryDropdown repositories={repositories} selected={currentRepository || index} onSelect={repo => { setSearchParams({ repo }); setMobilePanel(null) }}/><button type="button" className="notes-mobile-drawer-close" onClick={() => setMobilePanel(null)} aria-label="Close notes library">×</button></div>
+        <div className="notes-browser-header"><RepositoryDropdown repositories={repositories} selected={currentRepository || index} onSelect={repo => { setSearchParams({ repo }); setMobilePanel(null) }}/>{currentRepository?.local_available && <NoteSourceToggle source={noteSource} onChange={selectNoteSource}/>}<button type="button" className="notes-mobile-drawer-close" onClick={() => setMobilePanel(null)} aria-label="Close notes library">×</button></div>
         <div className="notes-tree-toolbar">
-          <label className="notes-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg><input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Search topics and notes…" aria-label="Search this repository" /></label>
-          <YearDropdown selectedYear={selectedYear} onSelect={selectYear} options={years.map(year => ({ value: year, label: displayName(year), count: allNotes.filter(item => taxonomy(item, index.root_path).year === year).length }))}/>
-          <TopicDropdown selectedTopic={selectedTopic} onSelect={selectTopic} options={topics.map(topic => ({ value: topic, label: displayName(topic), count: filteredNotes.filter(item => { const value = taxonomy(item, index.root_path); return value.year === selectedYear && value.topic === topic }).length }))}/>
-          <div className="notes-browser-actions"><button type="button" className="notes-browser-icon" onClick={() => setExpanded(Object.fromEntries(allTreePaths.map(path => [path, !allExpanded])))} title={allExpanded ? 'Collapse all subtopics' : 'Expand all subtopics'} aria-label={allExpanded ? 'Collapse all subtopics' : 'Expand all subtopics'} aria-pressed={allExpanded}><svg viewBox="0 0 24 24" aria-hidden="true">{allExpanded ? <path d="M9 9H4V4m11 5h5V4M9 15H4v5m11-5h5v5M4 9l5-5m11 5-5-5M4 15l5 5m11-5-5 5"/> : <path d="M8 3H3v5m13-5h5v5M8 21H3v-5m13 5h5v-5M3 8l5-5m13 5-5-5M3 16l5 5m13-5-5 5"/>}</svg></button>{index?.repository_url && <a className="notes-browser-icon notes-browser-github" href={index.repository_url} target="_blank" rel="noreferrer" title="View repository on GitHub" aria-label="View repository on GitHub"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 0 0-3 17.5c.5.1.7-.2.7-.5v-1.8c-2.8.6-3.4-1.2-3.4-1.2-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 0 1.6 1.1 1.6 1.1.9 1.6 2.4 1.1 2.9.9.1-.7.4-1.1.7-1.4-2.2-.3-4.6-1.1-4.6-5A3.9 3.9 0 0 1 7 7.8 3.6 3.6 0 0 1 7.1 5s.8-.3 2.9 1.1a10 10 0 0 1 5.2 0C17.2 4.7 18 5 18 5a3.6 3.6 0 0 1 .1 2.8 3.9 3.9 0 0 1 1 2.7c0 3.9-2.4 4.7-4.6 5 .4.3.7.9.7 1.8V20c0 .3.2.6.7.5A9 9 0 0 0 12 3Z"/></svg></a>}<button type="button" className="notes-browser-icon notes-desktop-nav-toggle" onClick={() => setShowNavigation(false)} aria-controls="notes-topic-navigation" title="Hide topic navigation" aria-label="Hide topic navigation"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M6 8h0M6 12h0"/></svg></button></div>
+          <div className="notes-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg><input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Search topics and notes…" aria-label="Search this repository" />{normalizedQuery && <><small className="notes-search-count">{yearFilteredNotes.length}</small><button type="button" className="notes-search-clear" onClick={() => setQuery('')} aria-label="Clear notes search">×</button></>}</div>
+          <YearDropdown selectedYear={selectedYear} onSelect={selectYear} options={years.map(year => ({ value: year, label: displayName(year) }))}/>
+          <TopicDropdown selectedTopic={selectedTopic} onSelect={selectTopic} options={topics.map(topic => ({ value: topic, label: displayName(topic) }))}/>
         </div>
         <div className="notes-tree-browser">
-          <nav className="notes-topic-list" aria-label={`${selectedYear} topics`}><span className="notes-pane-label">Topics</span>{topics.map(topic => { const count = filteredNotes.filter(item => { const value = taxonomy(item, index.root_path); return value.year === selectedYear && value.topic === topic }).length; return <button type="button" className={topic === selectedTopic ? 'active' : ''} key={topic} onClick={() => selectTopic(topic)}><TopicIcon topic={topic}/><span className="notes-topic-name">{displayName(topic)}</span><small className="notes-count-badge">{count}</small></button> })}</nav>
-          <nav className="notes-list" aria-label={`${selectedTopic} notes`}><span className="notes-pane-label">{displayName(selectedTopic)} notes</span>{!loadingIndex && <NoteTree node={tree} selectedPath={selectedPath} expanded={expanded} onToggle={path => setExpanded(current => ({ ...current, [path]: !current[path] }))} onSelect={selectNote} />}{!loadingIndex && !topicNotes.length && <p className="notes-empty">No notes match this search in {displayName(selectedTopic)}.</p>}</nav>
+          <nav className="notes-list" aria-label={`${selectedTopic} notes`}><div className="notes-pane-label"><span><b>{displayName(selectedTopic)}</b><small>Subtopics and notes</small></span><span className="notes-pane-actions"><button type="button" onClick={() => setExpanded(Object.fromEntries(allTreePaths.map(path => [path, !allExpanded])))} title={allExpanded ? 'Collapse all subtopics' : 'Expand all subtopics'} aria-label={allExpanded ? 'Collapse all subtopics' : 'Expand all subtopics'} aria-pressed={allExpanded}><svg viewBox="0 0 24 24" aria-hidden="true">{allExpanded ? <path d="M9 9H4V4m11 5h5V4M9 15H4v5m11-5h5v5M4 9l5-5m11 5-5-5M4 15l5 5m11-5-5 5"/> : <path d="M8 3H3v5m13-5h5v5M8 21H3v-5m13 5h5v-5M3 8l5-5m13 5-5-5M3 16l5 5m13-5-5 5"/>}</svg></button><em>{topicNotes.length}</em></span></div>{!loadingIndex && <NoteTree node={tree} selectedPath={selectedPath} activeDirectories={activeDirectories} expanded={expanded} onToggle={path => setExpanded(current => ({ ...current, [path]: !current[path] }))} onSelect={selectNote} />}{!loadingIndex && !topicNotes.length && <p className="notes-empty">No notes match this search in {displayName(selectedTopic)}.</p>}</nav>
         </div>
       </aside>
       <main ref={noteReaderRef} className="note-reader">{loadingNote ? <div className="note-reader-status"><span className="spinner" /> Loading note…</div> : note ? <><article className="markdown-body"><MarkdownContent note={note} headings={headings} index={index} onOpenLink={openPreviewLink} titleNavigation={{ previousNote, nextNote, onNavigate: selectNote }} /></article><NotePageNavigation previousNote={previousNote} nextNote={nextNote} rootPath={index?.root_path || ''} onNavigate={selectNote}/></> : <div className="note-reader-status">Choose a note to start reading.</div>}</main>
       <OnThisPage note={note} headings={headings} isMobile={isMobile} mobileOpen={mobilePanel === 'outline'} onMobileClose={() => setMobilePanel(null)} />
     </div>
     {isMobile && mobilePanel && <button type="button" className="notes-mobile-backdrop" onClick={() => setMobilePanel(null)} aria-label="Close mobile navigation" />}
-    <LinkPreviewDrawer preview={linkPreview} repositoryId={repositoryId} index={index} onClose={closeLinkPreview} onNavigate={jumpToPreviewedNote} onPreviewLink={followPreviewLink} canGoBack={linkPreviewHistory.length > 0} onBack={goBackInPreview}/>
+    <LinkPreviewDrawer preview={linkPreview} repositoryId={repositoryId} source={noteSource} index={index} onClose={closeLinkPreview} onNavigate={jumpToPreviewedNote} onPreviewLink={followPreviewLink} canGoBack={linkPreviewHistory.length > 0} onBack={goBackInPreview}/>
   </div>
 }

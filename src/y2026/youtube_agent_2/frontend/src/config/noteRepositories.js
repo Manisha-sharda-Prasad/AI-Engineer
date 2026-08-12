@@ -5,6 +5,7 @@ export const NOTE_REPOSITORIES = [
     id: 'senior-system-engineer',
     owner: 'lekhrajdinkar',
     repo: 'senior-system-engineer',
+    localRepo: 'solution-engineer',
     branch: '2026',
     path: 'docs',
     name: 'Senior System Engineer',
