@@ -1,6 +1,6 @@
 import React from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import PlanDetail from '../components/PlanDetail'
 import { CloseIcon, WorkspaceIcon } from '../components/Icons'
 import { LearningPlanDropdown, CourseViewDropdown, CourseDropdown } from '../components/LearningPathNav'
@@ -9,10 +9,12 @@ import { updatePlan } from '../store/plansSlice'
 import { rememberLearningLocation, selectPlanPageState, selectWorkspaceState, updatePlanPage } from '../store/learningUiSlice'
 import { getVideoProgress } from '../utils/videoProgress'
 import PrivatePlanSyncStatus from '../components/PrivatePlanSyncStatus'
+import { firebaseAuth } from '../firebase'
 
 export default function CourseWorkspace() {
   const { planId, courseId } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const dispatch = useDispatch()
   const allPlans = useSelector(state => state.plans.items)
   const plan = useSelector(state => state.plans.items.find(item => item.id === planId))
@@ -32,6 +34,12 @@ export default function CourseWorkspace() {
   const [workspaceOutlineHost, setWorkspaceOutlineHost] = React.useState(null)
   const [workspaceToolbarHost, setWorkspaceToolbarHost] = React.useState(null)
   const [isCompactWorkspace, setIsCompactWorkspace] = React.useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 900px)').matches)
+  const [authState, setAuthState] = React.useState(() => ({ resolved: !firebaseAuth, user: firebaseAuth?.currentUser || null }))
+
+  React.useEffect(() => {
+    if (!firebaseAuth) return undefined
+    return firebaseAuth.onIdTokenChanged(user => setAuthState({ resolved: true, user }))
+  }, [])
 
   React.useEffect(() => {
     const media = window.matchMedia('(max-width: 900px)')
@@ -60,7 +68,18 @@ export default function CourseWorkspace() {
     }))
   }, [courseId, dispatch, planId, rememberedWorkspace.activeModuleId, rememberedWorkspace.activeVideoId])
 
-  if (!plan || !plan.courses?.some(course => course.id === courseId)) return <div className="alert alert-info">Course not found.</div>
+  if (!plan || !plan.courses?.some(course => course.id === courseId)) {
+    if (!authState.resolved) return <div className="private-course-access-state" role="status"><span className="spinner" /><strong>Checking your learning session…</strong></div>
+    if (!authState.user) return <section className="private-course-access-state is-signed-out" aria-labelledby="private-course-sign-in-title">
+      <span className="private-course-access-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v2"/></svg></span>
+      <div><small>Private learning course</small><h1 id="private-course-sign-in-title">Sign in to continue</h1><p>This course belongs to a private account. Sign in with the same account to restore its cached plan and locally saved progress.</p></div>
+      <div className="private-course-access-actions">
+        <button type="button" className="btn btn-primary" onClick={() => navigate('/profile', { state: { profileBackgroundLocation: location } })}>Sign in with Google</button>
+        <button type="button" className="btn btn-secondary" onClick={() => navigate('/public/plans')}>Browse public plans</button>
+      </div>
+    </section>
+    return <section className="private-course-access-state"><strong>Course not found</strong><p>This course is not available in your current learning plans.</p><button type="button" className="btn btn-secondary" onClick={() => navigate('/plans')}>Back to learning plans</button></section>
+  }
 
   const course = plan.courses.find(item => item.id === courseId)
   const videos = course.modules?.flatMap(module => module.videos || []) || []

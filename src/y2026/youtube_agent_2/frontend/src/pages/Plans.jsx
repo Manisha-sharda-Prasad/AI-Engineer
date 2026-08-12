@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { createPlan, deletePlan as deletePlanRequest } from '../api/client'
 import { updatePlanLabels, updatePlanMetadata } from '../api/client'
 import EditMetadataDrawer from '../components/EditMetadataDrawer'
@@ -11,9 +11,10 @@ import { rememberLearningLocation, updatePlansPage } from '../store/learningUiSl
 import { getProgressEligibleVideos, getVideoProgress } from '../utils/videoProgress'
 import appLogo from '../../app-logo.png'
 
-export default function Plans({ newPlanRequest, onRefresh, refreshing = false }) {
+export default function Plans({ newPlanRequest, onRefresh, refreshing = false, auth, authResolved = true }) {
   const dispatch = useDispatch()
   const navigate = useNavigate()
+  const location = useLocation()
   const plans = useSelector(state => state.plans.items)
   const [showDrawer, setShowDrawer] = useState(false)
   const [form, setForm] = useState({ name: '', description: '', logoUrl: 'https://skillicons.dev/icons?i=' })
@@ -91,6 +92,17 @@ export default function Plans({ newPlanRequest, onRefresh, refreshing = false })
   function handleUpdatePlan(updatedPlan) {
     dispatch(updatePlan(updatedPlan))
   }
+
+  if (!authResolved) return <div className="private-course-access-state" role="status"><span className="spinner" /><strong>Checking your learning session…</strong></div>
+
+  if (!auth) return <section className="private-course-access-state is-signed-out" aria-labelledby="private-plans-sign-in-title">
+    <span className="private-course-access-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v2"/></svg></span>
+    <div><small>Private learning plans</small><h1 id="private-plans-sign-in-title">Sign in to view your plans</h1><p>Your learning plans are private. Sign in with the same account to restore cached plans and any locally saved progress.</p></div>
+    <div className="private-course-access-actions">
+      <button type="button" className="btn btn-primary" onClick={() => navigate('/profile', { state: { profileBackgroundLocation: location } })}>Sign in with Google</button>
+      <button type="button" className="btn btn-secondary" onClick={() => navigate('/public/plans')}>Browse public plans</button>
+    </div>
+  </section>
 
   return (
     <div className="plans-page">

@@ -635,6 +635,38 @@ function LearningPlanOverviewDrawer({
   );
 }
 
+function PrivatePlanActionMenu({ label, icon, tone = "secondary", children }) {
+  const [open, setOpen] = React.useState(false);
+  const menuRef = React.useRef(null);
+
+  React.useEffect(() => {
+    const close = (event) => {
+      if (!menuRef.current?.contains(event.target)) setOpen(false);
+    };
+    document.addEventListener("pointerdown", close);
+    return () => document.removeEventListener("pointerdown", close);
+  }, []);
+
+  return (
+    <div className={`private-plan-action-menu is-${tone}`} ref={menuRef}>
+      <button
+        type="button"
+        className="private-plan-action-menu-trigger"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((current) => !current)}
+      >
+        {icon}
+        <span>{label}</span>
+        <svg className="private-plan-action-menu-chevron" viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4" /></svg>
+      </button>
+      {open && <div className="private-plan-action-menu-popover" role="menu" onClick={(event) => {
+        if (event.target.closest("button")) setOpen(false);
+      }}>{children}</div>}
+    </div>
+  );
+}
+
 export default function PlanOverview({ loading = false }) {
   const { planId } = useParams();
   const navigate = useNavigate();
@@ -994,24 +1026,25 @@ export default function PlanOverview({ loading = false }) {
         </button>
       </div>
       <div className="private-plan-hero-action-bottom">
-        <div className="private-plan-create-actions">
-          <button className="btn btn-primary btn-sm" onClick={() => setShowManual(true)}>
+        <PrivatePlanActionMenu label="Add course" tone="primary" icon={<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>}>
+          <button type="button" role="menuitem" onClick={() => setShowManual(true)}>
             <WorkspaceIcon name="manual" />
-            Manual course
+            <span><strong>Manual course</strong><small>Build a course and add its content yourself</small></span>
           </button>
-          {AI_ENABLED && <button className="btn btn-secondary btn-sm" onClick={() => setShowAi(true)}>
+          {AI_ENABLED && <button type="button" role="menuitem" onClick={() => setShowAi(true)}>
             <WorkspaceIcon name="ai" />
-            AI suggested course
+            <span><strong>AI suggested course</strong><small>Generate a course structure with AI</small></span>
           </button>}
-          {AI_ENABLED && <button
-            className="btn btn-secondary btn-sm ai-request-status-button"
+        </PrivatePlanActionMenu>
+        <PrivatePlanActionMenu label="Manage" icon={<WorkspaceIcon name="menu" />}>
+          <div className="private-plan-manage-options">{renderCourseSelectionControls()}</div>
+          {AI_ENABLED && <button type="button" role="menuitem"
             onClick={() => navigate(`/plans/${planId}/ai-requests`)}
           >
             <WorkspaceIcon name="progress" />
-            <span>AI request status</span>
+            <span><strong>AI request status</strong><small>Review generated-course requests</small></span>
           </button>}
-        </div>
-        {renderCourseSelectionControls("private-plan-course-options")}
+        </PrivatePlanActionMenu>
       </div>
     </div>
   );

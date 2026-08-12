@@ -110,7 +110,7 @@ function formatRelativeAge(value) {
   return 'just now'
 }
 
-function PlansRoute({ newPlanRequest, onRefresh, refreshing }) {
+function PlansRoute({ newPlanRequest, onRefresh, refreshing, auth, authResolved }) {
   const plans = useSelector(state => state.plans.items)
   const lastLocation = useSelector(state => state.learningUi.currentLocation)
   const lastPlanId = lastLocation.planId
@@ -124,7 +124,7 @@ function PlansRoute({ newPlanRequest, onRefresh, refreshing }) {
     return <Navigate to={`/plans/${targetPlan.id}/courses/${targetCourse.id}/learn`} replace />
   }
   if (targetPlan) return <Navigate to={`/plans/${targetPlan.id}`} replace />
-  return <Plans newPlanRequest={newPlanRequest} onRefresh={onRefresh} refreshing={refreshing} />
+  return <Plans newPlanRequest={newPlanRequest} onRefresh={onRefresh} refreshing={refreshing} auth={auth} authResolved={authResolved} />
 }
 
 const GLOBAL_SEARCH_SCOPE_OPTIONS = [
@@ -437,6 +437,7 @@ function AppLayout() {
   const syncMetadata = useSelector(state => state.sources.syncMetadata)
   const privatePlanSync = useSelector(state => state.privatePlanSync)
   const [auth, setAuth] = React.useState(null)
+  const [authResolved, setAuthResolved] = React.useState(() => !firebaseAuth)
   const [showCreatePlanDrawer, setShowCreatePlanDrawer] = React.useState(false)
   const [createPlanForm, setCreatePlanForm] = React.useState({ name: '', description: '', logoUrl: 'https://skillicons.dev/icons?i=' })
   const [createPlanError, setCreatePlanError] = React.useState('')
@@ -472,7 +473,7 @@ function AppLayout() {
     : location
 
   React.useEffect(() => {
-    setShowMobileNav(false)
+    if (window.matchMedia('(max-width: 900px)').matches) setShowMobileNav(false)
   }, [location.pathname])
 
   React.useEffect(() => {
@@ -483,6 +484,11 @@ function AppLayout() {
     document.addEventListener('keydown', closeOnEscape)
     return () => document.removeEventListener('keydown', closeOnEscape)
   }, [showMobileNav])
+
+  const closeNavigationAfterAction = event => {
+    if (!event.target.closest('button')) return
+    if (window.matchMedia('(max-width: 900px)').matches) setShowMobileNav(false)
+  }
 
   const openProfile = () => {
     if (profileOpen) return
@@ -570,6 +576,7 @@ function AppLayout() {
     setAccessTokenProvider(() => firebaseAuth.currentUser?.getIdToken() || Promise.resolve(null))
     const unsubscribe = firebaseAuth.onIdTokenChanged(async user => {
       setAuth(user)
+      setAuthResolved(true)
       if (!user) {
         privateCacheUserRef.current = null
         dispatch(endPrivateSyncSession())
@@ -814,16 +821,13 @@ function AppLayout() {
         <div className="right-nav-actions">
           <div className="right-nav-mobile-bar">
             <button type="button" className="app-logo-nav-button" title="YouTube Learning home" aria-label="YouTube Learning home" onClick={() => navigate('/')}><img src={appLogo} alt="" /></button>
-            <button type="button" className="mobile-nav-menu-button" aria-label={showMobileNav ? 'Close navigation menu' : 'Open navigation menu'} aria-expanded={showMobileNav} onClick={() => setShowMobileNav(value => !value)}>
-              {showMobileNav ? <CloseIcon /> : <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" /></svg>}
+            <button type="button" className={`mobile-nav-menu-button ${showMobileNav ? 'expanded' : ''}`} aria-label={showMobileNav ? 'Collapse navigation' : 'Expand navigation'} aria-expanded={showMobileNav} onClick={() => setShowMobileNav(value => !value)}>
+              <svg className="navigation-slide-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7" /></svg>
             </button>
           </div>
-          <div className="right-nav-menu-panel" aria-label="Application navigation" onClick={() => setShowMobileNav(false)}>
-          <div className="mobile-nav-drawer-header">
-            <div><img src={appLogo} alt="" /><span><small>YouTube Learning</small><strong>Navigation</strong></span></div>
-            <button type="button" aria-label="Close navigation menu" onClick={() => setShowMobileNav(false)}><CloseIcon /></button>
-          </div>
-          <button type="button" className="mobile-nav-home-item" onClick={() => navigate('/')}><img src={appLogo} alt="" /><span className="mobile-nav-item-label">YouTube Learning home</span></button>
+          <div className="right-nav-menu-panel" aria-label="Application navigation" onClick={closeNavigationAfterAction}>
+          <button type="button" className="mobile-nav-drawer-close" aria-label="Collapse navigation" onClick={() => setShowMobileNav(false)}><svg className="navigation-slide-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7" /></svg></button>
+          <button type="button" className="mobile-nav-home-item" onClick={() => navigate('/')}><img src={appLogo} alt="" /><span className="mobile-nav-item-label">Home</span></button>
           <div className="right-nav-top">
           <div className="right-nav-workspace-group" role="group" aria-label="Learning workspace" title="Learning workspace">
             <span className="mobile-nav-group-title">Learning workspace</span>
@@ -890,7 +894,7 @@ function AppLayout() {
       <main className="main-content">
         <Routes location={routedLocation}>
           <Route path="/" element={<Dashboard aiEnabled={AI_ENABLED} onOpenAiModels={() => setShowAiModelDrawer(true)} />} />
-          <Route path="/plans" element={<PlansRoute newPlanRequest={0} onRefresh={loadPlans} refreshing={plansLoading} />} />
+          <Route path="/plans" element={<PlansRoute newPlanRequest={0} onRefresh={loadPlans} refreshing={plansLoading} auth={auth} authResolved={authResolved} />} />
           <Route path="/notes" element={<Notes />} />
           <Route path="/public/plans" element={<PublicPlans />} />
           <Route path="/public/plans/:shareId" element={<PublicPlan />} />

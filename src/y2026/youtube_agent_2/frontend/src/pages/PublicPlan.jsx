@@ -64,6 +64,10 @@ function PublicCourseReader({ plan, course, shareId, navigate }) {
     return [...items, { ...module, videos: moduleMatches ? module.videos : matchingVideos }]
   }, [])
   const allExpanded = modules.length > 0 && modules.every(module => expandedModules[module.id])
+  const courseVideos = React.useMemo(() => modules.flatMap(module => module.videos || []), [modules])
+  const activeVideoIndex = courseVideos.findIndex(video => video === activeVideo || (video.video_id && video.video_id === activeVideo?.video_id))
+  const previousVideo = activeVideoIndex > 0 ? courseVideos[activeVideoIndex - 1] : null
+  const nextVideo = activeVideoIndex >= 0 && activeVideoIndex < courseVideos.length - 1 ? courseVideos[activeVideoIndex + 1] : null
   const activeYoutubeId = youtubeVideoId(activeVideo)
   const activeTitle = activeVideo?.revised_title_from_ai || activeVideo?.title
   const activeModule = modules.find(module => module.videos?.some(video => video.video_id === activeVideo?.video_id))
@@ -107,6 +111,16 @@ function PublicCourseReader({ plan, course, shareId, navigate }) {
           /> : <div className="public-video-placeholder"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="m10 9 5 3-5 3V9Z"/></svg><strong>{activeVideo ? 'Preview unavailable' : 'Select a video'}</strong><p>{activeVideo ? 'This resource cannot be embedded, but you can open it in a new tab.' : 'Choose a video from the course outline.'}</p>{activeVideo?.url && <a href={activeVideo.url} target="_blank" rel="noreferrer">Open resource ↗</a>}</div>}
         </div>
         {activeVideo && <div className="public-active-video-info"><span>{activeModule?.title || 'Course video'}</span><h2>{activeTitle}</h2>{activeVideo.description && <p>{activeVideo.description}</p>}{activeVideo.url && <a href={activeVideo.url} target="_blank" rel="noreferrer">Open on YouTube ↗</a>}</div>}
+        {activeVideo && <nav className="video-sequence-navigation" aria-label="Video navigation">
+          <button type="button" disabled={!previousVideo} onClick={() => previousVideo && setActiveVideo(previousVideo)} aria-label={previousVideo ? `Previous video: ${previousVideo.revised_title_from_ai || previousVideo.title}` : 'No previous video'}>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+            <span><small>Previous</small><strong>{previousVideo ? previousVideo.revised_title_from_ai || previousVideo.title : 'Start of course'}</strong></span>
+          </button>
+          <button type="button" disabled={!nextVideo} onClick={() => nextVideo && setActiveVideo(nextVideo)} aria-label={nextVideo ? `Next video: ${nextVideo.revised_title_from_ai || nextVideo.title}` : 'No next video'}>
+            <span><small>Next</small><strong>{nextVideo ? nextVideo.revised_title_from_ai || nextVideo.title : 'End of course'}</strong></span>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+          </button>
+        </nav>}
       </section>
       {showOutline && <button type="button" className="public-course-outline-overlay" aria-label="Close course outline" onClick={() => setShowOutline(false)} />}
       <aside className={`public-course-outline ${showOutline ? 'mobile-open' : ''}`} aria-label="Course modules and videos">
