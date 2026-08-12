@@ -1,0 +1,3449 @@
+{
+  "id": "393304fb-e954-4843-95f4-1f75cd1d91a4",
+  "name": "Hello Interview Learning Plan",
+  "description": "Structured learning plan organized from 124 videos from the Hello Interview YouTube channel.",
+  "logo_url": "https://yt3.ggpht.com/EF0G_E_LsoqwayBpT8S4WheoMyMQHOhL6TMeM3sHZlew4Kmv7l7sTigvFv8MIudBSoOIbRyS=s800-c-k-c0x00ffffff-no-rj",
+  "icon_key": "hello-interview",
+  "labels": [
+    "youtube",
+    "interview-prep",
+    "system-design",
+    "coding",
+    "behavioral"
+  ],
+  "created_at": "2026-08-12T07:26:00Z",
+  "updated_at": "2026-08-12T07:26:00Z",
+  "courses": [
+    {
+      "id": "917c5d80-3651-47d2-b9d5-7143dd28e1ba",
+      "title": "System Design Foundations",
+      "description": "Core system design concepts covering APIs, data stores, partitioning, consistency, caching, messaging, transactions, and scale-oriented data structures.",
+      "logo_url": "https://yt3.ggpht.com/EF0G_E_LsoqwayBpT8S4WheoMyMQHOhL6TMeM3sHZlew4Kmv7l7sTigvFv8MIudBSoOIbRyS=s800-c-k-c0x00ffffff-no-rj",
+      "icon_key": "architecture",
+      "sequence": 1,
+      "labels": [
+        "system-design",
+        "foundations",
+        "distributed-systems"
+      ],
+      "last_played_video_id": null,
+      "last_played_position_secs": null,
+      "last_played_at": null,
+      "created_at": "2026-08-12T07:26:00Z",
+      "updated_at": "2026-08-12T07:26:00Z",
+      "source_channels": [
+        {
+          "channel_id": "UC3kf-QFT6FZzDk9JsPg8Svg",
+          "title": "Hello Interview",
+          "url": "https://youtube.com/channel/UC3kf-QFT6FZzDk9JsPg8Svg",
+          "thumbnail": "https://yt3.ggpht.com/EF0G_E_LsoqwayBpT8S4WheoMyMQHOhL6TMeM3sHZlew4Kmv7l7sTigvFv8MIudBSoOIbRyS=s800-c-k-c0x00ffffff-no-rj",
+          "video_count": 124,
+          "videos_count": 124,
+          "source_created_at": "2022-03-04T18:07:00.28683Z",
+          "last_video_published_at": "2026-08-06T15:00:36Z",
+          "last_synced_at": null,
+          "last_feed_checked_at": null,
+          "playlists": []
+        }
+      ],
+      "new_video_feeds": [],
+      "modules": [
+        {
+          "id": "194bd32f-7c4b-4e61-8f44-ddf7a11365fc",
+          "title": "Interview Framework & Estimation",
+          "sequence": 1,
+          "labels": [
+            "interview-framework"
+          ],
+          "videos": [
+            {
+              "video_id": "nJsVO84LCGs",
+              "title": "How to Learn System Design with Jordan Has No Life",
+              "revised_title_from_ai": "How to Learn System Design with Jordan Has No Life",
+              "description": "Stefan interviews Jordan, the creator of the YouTube channel 'Jordan Has No Life.' They discuss Jordan's journey into system design, his learning process, and the evolution of his content creation. Jordan shares insights on the importance of understanding core concepts, the value of personal projects, and the trends in system design. They also touch on the impact of AI on engineering and the significance of practical decision-making in system design.",
+              "url": "https://youtube.com/watch?v=nJsVO84LCGs",
+              "thumbnail": "https://i.ytimg.com/vi/nJsVO84LCGs/hqdefault.jpg",
+              "duration_secs": 2156,
+              "published_at": "2025-03-13T20:35:00Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 37320,
+              "like_count": 872,
+              "recording_date": null,
+              "sequence": 1,
+              "watched": false,
+              "labels": [
+                "interview-framework"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "Ru54dxzCyD0",
+              "title": "How to Prepare for System Design Interviews w/ Meta Staff Engineer",
+              "revised_title_from_ai": "How to Prepare for System Design Interviews w/ Meta Staff Engineer",
+              "description": "Here is how I would prepare for a system design interview if I was starting from scratch!",
+              "url": "https://youtube.com/watch?v=Ru54dxzCyD0",
+              "thumbnail": "https://i.ytimg.com/vi/Ru54dxzCyD0/hqdefault.jpg",
+              "duration_secs": 1107,
+              "published_at": "2025-05-21T16:00:50Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 249357,
+              "like_count": 5046,
+              "recording_date": null,
+              "sequence": 2,
+              "watched": false,
+              "labels": [
+                "interview-framework"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "vIqcclmFQQ8",
+              "title": "Do I need back of the envelope calculations?",
+              "revised_title_from_ai": "Do I need back of the envelope calculations?",
+              "description": "Use them when you need them! Interviewers aren't looking for mental math prodigies, they want engineers who can make informed decisions.",
+              "url": "https://youtube.com/watch?v=vIqcclmFQQ8",
+              "thumbnail": "https://i.ytimg.com/vi/vIqcclmFQQ8/hqdefault.jpg",
+              "duration_secs": 95,
+              "published_at": "2025-11-03T16:01:28Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 14501,
+              "like_count": 284,
+              "recording_date": null,
+              "sequence": 3,
+              "watched": false,
+              "labels": [
+                "interview-framework"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            }
+          ]
+        },
+        {
+          "id": "410738e8-4ca5-48b4-b4e5-df3f10e33a77",
+          "title": "Networking, APIs & Real-Time Communication",
+          "sequence": 2,
+          "labels": [
+            "api-networking"
+          ],
+          "videos": [
+            {
+              "video_id": "SHkbPm1Wrno",
+              "title": "Networking Essentials for System Design Interviews w/ Ex Meta Senior Manager",
+              "revised_title_from_ai": "Networking Essentials for System Design Interviews w/ Ex Meta Senior Manager",
+              "description": "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📝 Full written breakdown: https://hellointerview.com/youtube/networking-essentials/description\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+              "url": "https://youtube.com/watch?v=SHkbPm1Wrno",
+              "thumbnail": "https://i.ytimg.com/vi/SHkbPm1Wrno/hqdefault.jpg",
+              "duration_secs": 4082,
+              "published_at": "2025-03-02T17:00:26Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 252969,
+              "like_count": 5823,
+              "recording_date": null,
+              "sequence": 1,
+              "watched": false,
+              "labels": [
+                "api-networking"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "7-6F3b14baA",
+              "title": "API Gateways in System Design Interviews w/ Ex-Meta Staff Engineer",
+              "revised_title_from_ai": "API Gateways in System Design Interviews w/ Ex-Meta Staff Engineer",
+              "description": "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📝 Full written breakdown: https://hellointerview.com/youtube/api-gateway/description\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+              "url": "https://youtube.com/watch?v=7-6F3b14baA",
+              "thumbnail": "https://i.ytimg.com/vi/7-6F3b14baA/hqdefault.jpg",
+              "duration_secs": 385,
+              "published_at": "2025-04-17T23:54:06Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 237507,
+              "like_count": 7739,
+              "recording_date": null,
+              "sequence": 2,
+              "watched": false,
+              "labels": [
+                "api-networking"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "DQ57zYedMdQ",
+              "title": "API Design in System Design Interviews w/ Meta Staff Engineer",
+              "revised_title_from_ai": "API Design in System Design Interviews w/ Meta Staff Engineer",
+              "description": "A simple explanation of API Design in the context of system design interviews. Learn about REST, GraphQL, and RPC and when to apply them in your interview.",
+              "url": "https://youtube.com/watch?v=DQ57zYedMdQ",
+              "thumbnail": "https://i.ytimg.com/vi/DQ57zYedMdQ/hqdefault.jpg",
+              "duration_secs": 1720,
+              "published_at": "2025-07-27T16:00:31Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 258857,
+              "like_count": 6860,
+              "recording_date": null,
+              "sequence": 3,
+              "watched": false,
+              "labels": [
+                "api-networking"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "9HDu7pizcs8",
+              "title": "Cursor pagination",
+              "revised_title_from_ai": "Cursor pagination",
+              "description": "Your infinite scroll feed works great in testing. Then it hits production and users start seeing duplicate posts. Why?",
+              "url": "https://youtube.com/watch?v=9HDu7pizcs8",
+              "thumbnail": "https://i.ytimg.com/vi/9HDu7pizcs8/hqdefault.jpg",
+              "duration_secs": 81,
+              "published_at": "2026-05-26T16:06:36Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 57568,
+              "like_count": 2950,
+              "recording_date": null,
+              "sequence": 4,
+              "watched": false,
+              "labels": [
+                "api-networking"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "Q3f5jmIwN3Y",
+              "title": "REST vs GraphQL vs gRPC: Which API wins in system design interviews?",
+              "revised_title_from_ai": "REST vs GraphQL vs gRPC: Which API wins in system design interviews?",
+              "description": "REST is not the answer to every API question, and if that's all you say in a system design interview, you might be in trouble.",
+              "url": "https://youtube.com/watch?v=Q3f5jmIwN3Y",
+              "thumbnail": "https://i.ytimg.com/vi/Q3f5jmIwN3Y/hqdefault.jpg",
+              "duration_secs": 73,
+              "published_at": "2026-05-28T16:06:18Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 69755,
+              "like_count": 3444,
+              "recording_date": null,
+              "sequence": 5,
+              "watched": false,
+              "labels": [
+                "api-networking"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "38IqoJd7j5E",
+              "title": "4 ways to push real-time updates to clients. Most engineers only know 1.",
+              "revised_title_from_ai": "4 ways to push real-time updates to clients. Most engineers only know 1.",
+              "description": "There are 4 ways to push real-time data to web clients. You don't need websockets for everything.",
+              "url": "https://youtube.com/watch?v=38IqoJd7j5E",
+              "thumbnail": "https://i.ytimg.com/vi/38IqoJd7j5E/hqdefault.jpg",
+              "duration_secs": 80,
+              "published_at": "2026-06-23T16:07:10Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 47534,
+              "like_count": 2582,
+              "recording_date": null,
+              "sequence": 6,
+              "watched": false,
+              "labels": [
+                "api-networking"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            }
+          ]
+        },
+        {
+          "id": "8c64ddc6-82cf-43b1-9070-9cf9a231018b",
+          "title": "Databases, Storage & Indexing",
+          "sequence": 3,
+          "labels": [
+            "data-storage"
+          ],
+          "videos": [
+            {
+              "video_id": "jg-Dy0GNPvQ",
+              "title": "Separate DB per service? Explained in 60 seconds. #systemdesign #softwaredesign #interviewquestions",
+              "revised_title_from_ai": "Separate DB per service? Explained in 60 seconds. #systemdesign #softwaredesign #interviewquestions",
+              "description": "Do you really need a separate database for that? Maybe. If you're a junior engineer and you don't have a lot of experience, it's probably not a bad idea to lean on this rule. But interviewers may be looking for different things from you and it's just as possible to create an untenable design that feels overengineered. Explain your choices and justify them in terms of the requirements of the system and what your interviewer is looking for. You don't get any special credit for banging on the rulebook!",
+              "url": "https://youtube.com/watch?v=jg-Dy0GNPvQ",
+              "thumbnail": "https://i.ytimg.com/vi/jg-Dy0GNPvQ/hqdefault.jpg",
+              "duration_secs": 60,
+              "published_at": "2024-08-02T23:32:28Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 74303,
+              "like_count": 1817,
+              "recording_date": null,
+              "sequence": 1,
+              "watched": false,
+              "labels": [
+                "data-storage"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "tIvCjH2ETzo",
+              "title": "SQL vs NoSQL is the WRONG Question (System Design Tips)",
+              "revised_title_from_ai": "SQL vs NoSQL is the WRONG Question (System Design Tips)",
+              "description": "Stop asking \"SQL or NoSQL?\" in your system design interviews! 🚫 ",
+              "url": "https://youtube.com/watch?v=tIvCjH2ETzo",
+              "thumbnail": "https://i.ytimg.com/vi/tIvCjH2ETzo/hqdefault.jpg",
+              "duration_secs": 60,
+              "published_at": "2025-01-16T03:08:58Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 203091,
+              "like_count": 6566,
+              "recording_date": null,
+              "sequence": 2,
+              "watched": false,
+              "labels": [
+                "data-storage"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "BHCSL_ZifI0",
+              "title": "DB Indexing in System Design Interviews - B-tree, Geospatial, Inverted Index, and more!",
+              "revised_title_from_ai": "DB Indexing in System Design Interviews - B-tree, Geospatial, Inverted Index, and more!",
+              "description": "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📝 Full written breakdown: https://hellointerview.com/youtube/db-indexing/description\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+              "url": "https://youtube.com/watch?v=BHCSL_ZifI0",
+              "thumbnail": "https://i.ytimg.com/vi/BHCSL_ZifI0/hqdefault.jpg",
+              "duration_secs": 856,
+              "published_at": "2025-02-09T17:00:09Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 234315,
+              "like_count": 6827,
+              "recording_date": null,
+              "sequence": 3,
+              "watched": false,
+              "labels": [
+                "data-storage"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "RvaMHMxHjp4",
+              "title": "Object Storage in System Design Interviews w/ Ex-Meta Staff Engineer",
+              "revised_title_from_ai": "Object Storage in System Design Interviews w/ Ex-Meta Staff Engineer",
+              "description": "A simple explanation of Object Storage in the context of system design interviews.",
+              "url": "https://youtube.com/watch?v=RvaMHMxHjp4",
+              "thumbnail": "https://i.ytimg.com/vi/RvaMHMxHjp4/hqdefault.jpg",
+              "duration_secs": 757,
+              "published_at": "2025-06-02T16:00:42Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 85794,
+              "like_count": 2523,
+              "recording_date": null,
+              "sequence": 4,
+              "watched": false,
+              "labels": [
+                "data-storage"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "TUcPS6dsWx4",
+              "title": "Data Modeling in System Design Interviews w/ Meta Staff Engineer",
+              "revised_title_from_ai": "Data Modeling in System Design Interviews w/ Meta Staff Engineer",
+              "description": "A simple explanation of Data Modeling in the context of system design interviews. Learn database options and how to build your model with correct relationships, indexes, normalization, etc.",
+              "url": "https://youtube.com/watch?v=TUcPS6dsWx4",
+              "thumbnail": "https://i.ytimg.com/vi/TUcPS6dsWx4/hqdefault.jpg",
+              "duration_secs": 1835,
+              "published_at": "2025-09-23T16:00:51Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 142402,
+              "like_count": 4141,
+              "recording_date": null,
+              "sequence": 5,
+              "watched": false,
+              "labels": [
+                "data-storage"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "Qd76ZmfRs_Q",
+              "title": "How do Time Series Databases Work?",
+              "revised_title_from_ai": "How do Time Series Databases Work?",
+              "description": "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📝 Full written breakdown: https://hellointerview.com/youtube/time-series-databases/description\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+              "url": "https://youtube.com/watch?v=Qd76ZmfRs_Q",
+              "thumbnail": "https://i.ytimg.com/vi/Qd76ZmfRs_Q/hqdefault.jpg",
+              "duration_secs": 2235,
+              "published_at": "2025-12-01T17:00:54Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 47500,
+              "like_count": 1037,
+              "recording_date": null,
+              "sequence": 6,
+              "watched": false,
+              "labels": [
+                "data-storage"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "FCNwMYzCgno",
+              "title": "Just Use Postgres",
+              "revised_title_from_ai": "Just Use Postgres",
+              "description": "Don't over-engineer, Postgres is awesome for 90% of use-cases.",
+              "url": "https://youtube.com/watch?v=FCNwMYzCgno",
+              "thumbnail": "https://i.ytimg.com/vi/FCNwMYzCgno/hqdefault.jpg",
+              "duration_secs": 60,
+              "published_at": "2025-12-23T21:25:00Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 77588,
+              "like_count": 3517,
+              "recording_date": null,
+              "sequence": 7,
+              "watched": false,
+              "labels": [
+                "data-storage"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "338NIknyedw",
+              "title": "Top 3 database Indexes every engineer should know",
+              "revised_title_from_ai": "Top 3 database Indexes every engineer should know",
+              "description": "Want to see a complete breakdown on DB indexing? Checkout https://www.youtube.com/watch?v=BHCSL_ZifI0",
+              "url": "https://youtube.com/watch?v=338NIknyedw",
+              "thumbnail": "https://i.ytimg.com/vi/338NIknyedw/hqdefault.jpg",
+              "duration_secs": 59,
+              "published_at": "2026-01-08T21:04:39Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 101115,
+              "like_count": 4109,
+              "recording_date": null,
+              "sequence": 8,
+              "watched": false,
+              "labels": [
+                "data-storage"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "BXjUp5icnN0",
+              "title": "ACID Databases",
+              "revised_title_from_ai": "ACID Databases",
+              "description": "ACID are properties of databases that make application development easier and less prone to errors. They're provided by most relational databases and a growing number of NoSQL databases. ACID is difficult to guarantee at scale, so it's often the first requirement relaxed as your service grows.",
+              "url": "https://youtube.com/watch?v=BXjUp5icnN0",
+              "thumbnail": "https://i.ytimg.com/vi/BXjUp5icnN0/hqdefault.jpg",
+              "duration_secs": 59,
+              "published_at": "2026-02-20T16:00:28Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 33416,
+              "like_count": 1074,
+              "recording_date": null,
+              "sequence": 9,
+              "watched": false,
+              "labels": [
+                "data-storage"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "SkLdk9JVIZ8",
+              "title": "B-tree vs LSM tree: which database index wins for your workload?",
+              "revised_title_from_ai": "B-tree vs LSM tree: which database index wins for your workload?",
+              "description": "Your interviewer asks why Cassandra handles write-heavy workloads better than Postgres. Most candidates say it's a NoSQL versus SQL thing. That's wrong.",
+              "url": "https://youtube.com/watch?v=SkLdk9JVIZ8",
+              "thumbnail": "https://i.ytimg.com/vi/SkLdk9JVIZ8/hqdefault.jpg",
+              "duration_secs": 56,
+              "published_at": "2026-04-30T16:02:32Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 66184,
+              "like_count": 2215,
+              "recording_date": null,
+              "sequence": 10,
+              "watched": false,
+              "labels": [
+                "data-storage"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "dW-meGlxS0c",
+              "title": "Why your upload server should never touch the file bytes",
+              "revised_title_from_ai": "Why your upload server should never touch the file bytes",
+              "description": "Client uploads a video to your server, you server uploads to S3. But be careful, you just paid twice for the same work.",
+              "url": "https://youtube.com/watch?v=dW-meGlxS0c",
+              "thumbnail": "https://i.ytimg.com/vi/dW-meGlxS0c/hqdefault.jpg",
+              "duration_secs": 70,
+              "published_at": "2026-05-12T16:09:48Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 148470,
+              "like_count": 9051,
+              "recording_date": null,
+              "sequence": 11,
+              "watched": false,
+              "labels": [
+                "data-storage"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "tPjfFlT-BEw",
+              "title": "Database transactions explained",
+              "revised_title_from_ai": "Database transactions explained",
+              "description": "Your interviewer just asked you how database transactions work. How should you respond?",
+              "url": "https://youtube.com/watch?v=tPjfFlT-BEw",
+              "thumbnail": "https://i.ytimg.com/vi/tPjfFlT-BEw/hqdefault.jpg",
+              "duration_secs": 64,
+              "published_at": "2026-06-02T16:00:52Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 48149,
+              "like_count": 2317,
+              "recording_date": null,
+              "sequence": 12,
+              "watched": false,
+              "labels": [
+                "data-storage"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "dQXdSxn7d1g",
+              "title": "Proximity Search & Geospatial Indexes Explained",
+              "revised_title_from_ai": "Proximity Search & Geospatial Indexes Explained",
+              "description": "🧠 Want more system design content? Head over to https://www.hellointerview.com/youtube/proximity-search",
+              "url": "https://youtube.com/watch?v=dQXdSxn7d1g",
+              "thumbnail": "https://i.ytimg.com/vi/dQXdSxn7d1g/hqdefault.jpg",
+              "duration_secs": 1027,
+              "published_at": "2026-06-04T16:06:56Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 29706,
+              "like_count": 1080,
+              "recording_date": null,
+              "sequence": 13,
+              "watched": false,
+              "labels": [
+                "data-storage"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            }
+          ]
+        },
+        {
+          "id": "dd51dac2-cb8f-4be6-8cd5-6965072bec62",
+          "title": "Partitioning, Consistency & Distributed Data",
+          "sequence": 4,
+          "labels": [
+            "distributed-data"
+          ],
+          "videos": [
+            {
+              "video_id": "PuZvF2EyfBM",
+              "title": "Elasticsearch Deep Dive w/ a Ex-Meta Senior Manager for System Design Interviews",
+              "revised_title_from_ai": "Elasticsearch Deep Dive w/ a Ex-Meta Senior Manager for System Design Interviews",
+              "description": "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📝 Full written breakdown: https://hellointerview.com/youtube/elasticsearch/description\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+              "url": "https://youtube.com/watch?v=PuZvF2EyfBM",
+              "thumbnail": "https://i.ytimg.com/vi/PuZvF2EyfBM/hqdefault.jpg",
+              "duration_secs": 2643,
+              "published_at": "2024-09-08T17:30:05Z",
+              "tags": [],
+              "category_id": "24",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 192960,
+              "like_count": 3394,
+              "recording_date": null,
+              "sequence": 1,
+              "watched": false,
+              "labels": [
+                "distributed-data"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "VdrEq0cODu4",
+              "title": "CAP Theorem in System Design Interviews",
+              "revised_title_from_ai": "CAP Theorem in System Design Interviews",
+              "description": "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📝 Full written breakdown: https://hellointerview.com/youtube/cap-theorem/description\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+              "url": "https://youtube.com/watch?v=VdrEq0cODu4",
+              "thumbnail": "https://i.ytimg.com/vi/VdrEq0cODu4/hqdefault.jpg",
+              "duration_secs": 836,
+              "published_at": "2024-11-17T17:33:15Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 207664,
+              "like_count": 8340,
+              "recording_date": null,
+              "sequence": 2,
+              "watched": false,
+              "labels": [
+                "distributed-data"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "2X2SO3Y-af8",
+              "title": "DynamoDB Deep Dive w/ a Ex-Meta Staff Engineer",
+              "revised_title_from_ai": "DynamoDB Deep Dive w/ a Ex-Meta Staff Engineer",
+              "description": "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📝 Full written breakdown: https://hellointerview.com/youtube/dynamodb/description\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+              "url": "https://youtube.com/watch?v=2X2SO3Y-af8",
+              "thumbnail": "https://i.ytimg.com/vi/2X2SO3Y-af8/hqdefault.jpg",
+              "duration_secs": 1385,
+              "published_at": "2025-01-23T16:00:04Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 148381,
+              "like_count": 3413,
+              "recording_date": null,
+              "sequence": 3,
+              "watched": false,
+              "labels": [
+                "distributed-data"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "vccwdhfqIrI",
+              "title": "Consistent Hashing: Easy Explanation for System Design Interviews",
+              "revised_title_from_ai": "Consistent Hashing: Easy Explanation for System Design Interviews",
+              "description": "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📝 Full written breakdown: https://hellointerview.com/youtube/consistent-hashing/description\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+              "url": "https://youtube.com/watch?v=vccwdhfqIrI",
+              "thumbnail": "https://i.ytimg.com/vi/vccwdhfqIrI/hqdefault.jpg",
+              "duration_secs": 434,
+              "published_at": "2025-02-20T23:00:54Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 155681,
+              "like_count": 6189,
+              "recording_date": null,
+              "sequence": 4,
+              "watched": false,
+              "labels": [
+                "distributed-data"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "TD3-INhm60Q",
+              "title": "Cassandra Deep Dive w/ a Ex-Meta Staff Engineer",
+              "revised_title_from_ai": "Cassandra Deep Dive w/ a Ex-Meta Staff Engineer",
+              "description": "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📝 Full written breakdown: https://hellointerview.com/youtube/cassandra/description\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+              "url": "https://youtube.com/watch?v=TD3-INhm60Q",
+              "thumbnail": "https://i.ytimg.com/vi/TD3-INhm60Q/hqdefault.jpg",
+              "duration_secs": 1791,
+              "published_at": "2025-10-13T15:00:48Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 64608,
+              "like_count": 1810,
+              "recording_date": null,
+              "sequence": 5,
+              "watched": false,
+              "labels": [
+                "distributed-data"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "L521gizea4s",
+              "title": "Sharding in System Design Interviews w/ Meta Staff Engineer",
+              "revised_title_from_ai": "Sharding in System Design Interviews w/ Meta Staff Engineer",
+              "description": "A simple explanation of database Sharding in the context of system design interviews. ",
+              "url": "https://youtube.com/watch?v=L521gizea4s",
+              "thumbnail": "https://i.ytimg.com/vi/L521gizea4s/hqdefault.jpg",
+              "duration_secs": 1834,
+              "published_at": "2025-11-02T19:25:24Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 147454,
+              "like_count": 4083,
+              "recording_date": null,
+              "sequence": 6,
+              "watched": false,
+              "labels": [
+                "distributed-data"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "t1y-iCAWVyk",
+              "title": "Consistent hashing in under 60s",
+              "revised_title_from_ai": "Consistent hashing in under 60s",
+              "description": "Want more? https://www.youtube.com/watch?v=vccwdhfqIrI",
+              "url": "https://youtube.com/watch?v=t1y-iCAWVyk",
+              "thumbnail": "https://i.ytimg.com/vi/t1y-iCAWVyk/hqdefault.jpg",
+              "duration_secs": 63,
+              "published_at": "2026-01-19T16:22:40Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 70182,
+              "like_count": 2574,
+              "recording_date": null,
+              "sequence": 7,
+              "watched": false,
+              "labels": [
+                "distributed-data"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "Ibf7wKf8MqU",
+              "title": "CAP theorem in system design interviews",
+              "revised_title_from_ai": "CAP theorem in system design interviews",
+              "description": "I've coached hundreds of engineers through system design interviews. Almost every one of them gets CAP theorem wrong the same way. Here's the fix in 60 seconds. #shorts",
+              "url": "https://youtube.com/watch?v=Ibf7wKf8MqU",
+              "thumbnail": "https://i.ytimg.com/vi/Ibf7wKf8MqU/hqdefault.jpg",
+              "duration_secs": 84,
+              "published_at": "2026-06-30T16:02:55Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 33201,
+              "like_count": 2018,
+              "recording_date": null,
+              "sequence": 8,
+              "watched": false,
+              "labels": [
+                "distributed-data"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            }
+          ]
+        },
+        {
+          "id": "bfbe890d-c8c6-435a-af39-8954d91a79f1",
+          "title": "Caching & Read Scaling",
+          "sequence": 5,
+          "labels": [
+            "caching-read-scaling"
+          ],
+          "videos": [
+            {
+              "video_id": "fmT5nlEkl3U",
+              "title": "Redis Deep Dive w/ a Ex-Meta Senior Manager",
+              "revised_title_from_ai": "Redis Deep Dive w/ a Ex-Meta Senior Manager",
+              "description": "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📝 Full written breakdown: https://hellointerview.com/youtube/redis/description\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+              "url": "https://youtube.com/watch?v=fmT5nlEkl3U",
+              "thumbnail": "https://i.ytimg.com/vi/fmT5nlEkl3U/hqdefault.jpg",
+              "duration_secs": 1860,
+              "published_at": "2024-06-26T19:10:00Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 337677,
+              "like_count": 5981,
+              "recording_date": null,
+              "sequence": 1,
+              "watched": false,
+              "labels": [
+                "caching-read-scaling"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "1NngTUYPdpI",
+              "title": "Caching in System Design Interviews w/ Meta Staff Engineer",
+              "revised_title_from_ai": "Caching in System Design Interviews w/ Meta Staff Engineer",
+              "description": "A simple explanation of Caching in the context of system design interviews. ",
+              "url": "https://youtube.com/watch?v=1NngTUYPdpI",
+              "thumbnail": "https://i.ytimg.com/vi/1NngTUYPdpI/hqdefault.jpg",
+              "duration_secs": 1814,
+              "published_at": "2025-11-12T15:03:34Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 210333,
+              "like_count": 5557,
+              "recording_date": null,
+              "sequence": 2,
+              "watched": false,
+              "labels": [
+                "caching-read-scaling"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "fYxRC710KeI",
+              "title": "Scaling reads in a distributed system",
+              "revised_title_from_ai": "Scaling reads in a distributed system",
+              "description": "Learn more at https://www.hellointerview.com/learn/system-design/patterns/scaling-reads",
+              "url": "https://youtube.com/watch?v=fYxRC710KeI",
+              "thumbnail": "https://i.ytimg.com/vi/fYxRC710KeI/hqdefault.jpg",
+              "duration_secs": 60,
+              "published_at": "2026-01-26T17:25:59Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 57081,
+              "like_count": 2611,
+              "recording_date": null,
+              "sequence": 3,
+              "watched": false,
+              "labels": [
+                "caching-read-scaling"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "ljd4WmSHUoY",
+              "title": "5 ways to scale reads. Most engineers only know 2.",
+              "revised_title_from_ai": "5 ways to scale reads. Most engineers only know 2.",
+              "description": "Most engineers know about caching and read replicas. Bu there are three more levels to scaling reads.",
+              "url": "https://youtube.com/watch?v=ljd4WmSHUoY",
+              "thumbnail": "https://i.ytimg.com/vi/ljd4WmSHUoY/hqdefault.jpg",
+              "duration_secs": 60,
+              "published_at": "2026-04-28T16:12:36Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 49195,
+              "like_count": 1980,
+              "recording_date": null,
+              "sequence": 4,
+              "watched": false,
+              "labels": [
+                "caching-read-scaling"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "MPFkGLZGe9M",
+              "title": "4 Ways to Fix Cache Stampede",
+              "revised_title_from_ai": "4 Ways to Fix Cache Stampede",
+              "description": "Your cache just expired and ten THOUSAND requests hit your database at once. That's a cache stampede, and most engineers only know one way to fix it.",
+              "url": "https://youtube.com/watch?v=MPFkGLZGe9M",
+              "thumbnail": "https://i.ytimg.com/vi/MPFkGLZGe9M/hqdefault.jpg",
+              "duration_secs": 105,
+              "published_at": "2026-05-06T16:06:13Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 58124,
+              "like_count": 2776,
+              "recording_date": null,
+              "sequence": 5,
+              "watched": false,
+              "labels": [
+                "caching-read-scaling"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            }
+          ]
+        },
+        {
+          "id": "72d489e6-35a1-4d50-9807-f37d4d8bfc19",
+          "title": "Messaging, Transactions & Write Scaling",
+          "sequence": 6,
+          "labels": [
+            "messaging-write-scaling"
+          ],
+          "videos": [
+            {
+              "video_id": "DU8o-OTeoCc",
+              "title": "Kafka System Design Deep Dive w/ a Ex-Meta Staff Engineer",
+              "revised_title_from_ai": "Kafka System Design Deep Dive w/ a Ex-Meta Staff Engineer",
+              "description": "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📝 Full written breakdown: https://hellointerview.com/youtube/kafka/description\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+              "url": "https://youtube.com/watch?v=DU8o-OTeoCc",
+              "thumbnail": "https://i.ytimg.com/vi/DU8o-OTeoCc/hqdefault.jpg",
+              "duration_secs": 2611,
+              "published_at": "2024-07-21T16:00:08Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 576030,
+              "like_count": 12364,
+              "recording_date": null,
+              "sequence": 1,
+              "watched": false,
+              "labels": [
+                "messaging-write-scaling"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "1ISRd0bS714",
+              "title": "Message Queues in System Design Interviews w/ Meta Staff Engineer",
+              "revised_title_from_ai": "Message Queues in System Design Interviews w/ Meta Staff Engineer",
+              "description": "A simple explanation of Message Queues in the context of system design interviews. ",
+              "url": "https://youtube.com/watch?v=1ISRd0bS714",
+              "thumbnail": "https://i.ytimg.com/vi/1ISRd0bS714/hqdefault.jpg",
+              "duration_secs": 1606,
+              "published_at": "2026-03-01T17:00:01Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 184677,
+              "like_count": 5456,
+              "recording_date": null,
+              "sequence": 2,
+              "watched": false,
+              "labels": [
+                "messaging-write-scaling"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "1HOVtQ-_fcE",
+              "title": "Kafka vs RabbitMQ",
+              "revised_title_from_ai": "Kafka vs RabbitMQ",
+              "description": "🧠 Want more system design content? Head over to https://www.hellointerview.com/youtube/kafka-vs-rabbitmq",
+              "url": "https://youtube.com/watch?v=1HOVtQ-_fcE",
+              "thumbnail": "https://i.ytimg.com/vi/1HOVtQ-_fcE/hqdefault.jpg",
+              "duration_secs": 656,
+              "published_at": "2026-03-22T15:00:03Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 237716,
+              "like_count": 7807,
+              "recording_date": null,
+              "sequence": 3,
+              "watched": false,
+              "labels": [
+                "messaging-write-scaling"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "DOFflggE_0Q",
+              "title": "Distributed Transactions Explained: 2 Phase Commit vs Saga Pattern",
+              "revised_title_from_ai": "Distributed Transactions Explained: 2 Phase Commit vs Saga Pattern",
+              "description": "🧠 Want more system design content? Head over to  https://www.hellointerview.com/youtube/distributed-transactions",
+              "url": "https://youtube.com/watch?v=DOFflggE_0Q",
+              "thumbnail": "https://i.ytimg.com/vi/DOFflggE_0Q/hqdefault.jpg",
+              "duration_secs": 886,
+              "published_at": "2026-05-05T16:21:29Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 176658,
+              "like_count": 6645,
+              "recording_date": null,
+              "sequence": 4,
+              "watched": false,
+              "labels": [
+                "messaging-write-scaling"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "5wiJvT7EY3o",
+              "title": "Distributed transactions",
+              "revised_title_from_ai": "Distributed transactions",
+              "description": "Your interviewer asks how you'd handle transactions when an operation spans multiple services. Most candidates have never thought about this.",
+              "url": "https://youtube.com/watch?v=5wiJvT7EY3o",
+              "thumbnail": "https://i.ytimg.com/vi/5wiJvT7EY3o/hqdefault.jpg",
+              "duration_secs": 83,
+              "published_at": "2026-05-07T16:01:33Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 74966,
+              "like_count": 3564,
+              "recording_date": null,
+              "sequence": 5,
+              "watched": false,
+              "labels": [
+                "messaging-write-scaling"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "AMMnSWYzaxs",
+              "title": "Kafka in 60s",
+              "revised_title_from_ai": "Kafka in 60s",
+              "description": "Kafka, explained in one idea. Save this for your next system design interview. #shorts",
+              "url": "https://youtube.com/watch?v=AMMnSWYzaxs",
+              "thumbnail": "https://i.ytimg.com/vi/AMMnSWYzaxs/hqdefault.jpg",
+              "duration_secs": 55,
+              "published_at": "2026-06-25T16:03:40Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 48709,
+              "like_count": 2472,
+              "recording_date": null,
+              "sequence": 6,
+              "watched": false,
+              "labels": [
+                "messaging-write-scaling"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "Jla1aOtI9ao",
+              "title": "Scaling Writes 1: Part 1 of 4 — Vertical Scaling & Database Choice",
+              "revised_title_from_ai": "Scaling Writes 1: Part 1 of 4 — Vertical Scaling & Database Choice",
+              "description": "More from the Scaling Writes series: https://www.hellointerview.com/learn/system-design/patterns/scaling-writes",
+              "url": "https://youtube.com/watch?v=Jla1aOtI9ao",
+              "thumbnail": "https://i.ytimg.com/vi/Jla1aOtI9ao/hqdefault.jpg",
+              "duration_secs": 87,
+              "published_at": "2026-07-07T16:00:56Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 34524,
+              "like_count": 1806,
+              "recording_date": null,
+              "sequence": 7,
+              "watched": false,
+              "labels": [
+                "messaging-write-scaling"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "A2y3EmVc8nU",
+              "title": "Scaling Writes: Part 2 of 4 — Sharding & Partitioning",
+              "revised_title_from_ai": "Scaling Writes: Part 2 of 4 — Sharding & Partitioning",
+              "description": "Millions of concurrent writes. One database. That box will fall over, and your interviewer knows it. The answer they're waiting for is sharding.",
+              "url": "https://youtube.com/watch?v=A2y3EmVc8nU",
+              "thumbnail": "https://i.ytimg.com/vi/A2y3EmVc8nU/hqdefault.jpg",
+              "duration_secs": 95,
+              "published_at": "2026-07-09T16:07:49Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 39920,
+              "like_count": 2144,
+              "recording_date": null,
+              "sequence": 8,
+              "watched": false,
+              "labels": [
+                "messaging-write-scaling"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "K5AdUe5Eu-Y",
+              "title": "Scaling Writes: Part 3 of 4 — Queues & Load Shedding",
+              "revised_title_from_ai": "Scaling Writes: Part 3 of 4 — Queues & Load Shedding",
+              "description": "Interviewers ask about traffic spikes an embarrassing proportion of the time. Black Friday. The Super Bowl. The end of an auction. Your job is to have a real answer.",
+              "url": "https://youtube.com/watch?v=K5AdUe5Eu-Y",
+              "thumbnail": "https://i.ytimg.com/vi/K5AdUe5Eu-Y/hqdefault.jpg",
+              "duration_secs": 112,
+              "published_at": "2026-07-14T16:03:22Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 29733,
+              "like_count": 1633,
+              "recording_date": null,
+              "sequence": 9,
+              "watched": false,
+              "labels": [
+                "messaging-write-scaling"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "ep_-AFZ_SMw",
+              "title": "Scaling Writes: Part 4 of 4 — Batching & Aggregation",
+              "revised_title_from_ai": "Scaling Writes: Part 4 of 4 — Batching & Aggregation",
+              "description": "Most approaches to scaling writes just find somewhere to put the writes as they come in. A bigger database, more shards, a queue to absorb the burst. Batching does something different. It makes fewer, bigger writes.",
+              "url": "https://youtube.com/watch?v=ep_-AFZ_SMw",
+              "thumbnail": "https://i.ytimg.com/vi/ep_-AFZ_SMw/hqdefault.jpg",
+              "duration_secs": 97,
+              "published_at": "2026-07-16T16:08:43Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 28720,
+              "like_count": 1667,
+              "recording_date": null,
+              "sequence": 10,
+              "watched": false,
+              "labels": [
+                "messaging-write-scaling"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            }
+          ]
+        },
+        {
+          "id": "186d67cb-05b2-4226-b010-991df96ba586",
+          "title": "Probabilistic Structures & Large-Scale Techniques",
+          "sequence": 7,
+          "labels": [
+            "large-scale-data-structures"
+          ],
+          "videos": [
+            {
+              "video_id": "IgyU0iFIoqM",
+              "title": "Data Structures for Big Data in Interviews - Bloom Filters, Count-Min Sketch, HyperLogLog",
+              "revised_title_from_ai": "Data Structures for Big Data in Interviews - Bloom Filters, Count-Min Sketch, HyperLogLog",
+              "description": "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📝 Full written breakdown: https://hellointerview.com/youtube/data-structures-for-big-data/description\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+              "url": "https://youtube.com/watch?v=IgyU0iFIoqM",
+              "thumbnail": "https://i.ytimg.com/vi/IgyU0iFIoqM/hqdefault.jpg",
+              "duration_secs": 1551,
+              "published_at": "2025-02-15T17:00:18Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 65216,
+              "like_count": 1169,
+              "recording_date": null,
+              "sequence": 1,
+              "watched": false,
+              "labels": [
+                "large-scale-data-structures"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "y-tA2NW4LNY",
+              "title": "Top-K System Design Interview Breakdown w/ Ex-Meta Senior Manager",
+              "revised_title_from_ai": "Top-K System Design Interview Breakdown w/ Ex-Meta Senior Manager",
+              "description": "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📝 Full written breakdown: https://hellointerview.com/youtube/top-k/description\n💪 Practice this problem with live AI feedback: https://hellointerview.com/practice/youtube\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+              "url": "https://youtube.com/watch?v=y-tA2NW4LNY",
+              "thumbnail": "https://i.ytimg.com/vi/y-tA2NW4LNY/hqdefault.jpg",
+              "duration_secs": 5498,
+              "published_at": "2025-10-19T15:01:41Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 98846,
+              "like_count": 1558,
+              "recording_date": null,
+              "sequence": 2,
+              "watched": false,
+              "labels": [
+                "large-scale-data-structures"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "y1NNF1ZDGSg",
+              "title": "Bloom Filters: Why They Allow False Positives But Never False Negatives",
+              "revised_title_from_ai": "Bloom Filters: Why They Allow False Positives But Never False Negatives",
+              "description": "Ever wonder how Chrome checks every URL you visit against a list of millions of malicious sites — instantly, without sending your browsing history to Google's servers?",
+              "url": "https://youtube.com/watch?v=y1NNF1ZDGSg",
+              "thumbnail": "https://i.ytimg.com/vi/y1NNF1ZDGSg/hqdefault.jpg",
+              "duration_secs": 120,
+              "published_at": "2026-06-11T16:01:48Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 54957,
+              "like_count": 2954,
+              "recording_date": null,
+              "sequence": 3,
+              "watched": false,
+              "labels": [
+                "large-scale-data-structures"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "4p9PY-4YboA",
+              "title": "Why System Design Interviews Ask You to Count Billions of Users Without a HashSet",
+              "revised_title_from_ai": "Why System Design Interviews Ask You to Count Billions of Users Without a HashSet",
+              "description": "Your interviewer asks you to count how many unique requests your site had today. Easy, I'll throw their IDs in a HashSet. Done.",
+              "url": "https://youtube.com/watch?v=4p9PY-4YboA",
+              "thumbnail": "https://i.ytimg.com/vi/4p9PY-4YboA/hqdefault.jpg",
+              "duration_secs": 78,
+              "published_at": "2026-06-16T16:01:39Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 88310,
+              "like_count": 4031,
+              "recording_date": null,
+              "sequence": 4,
+              "watched": false,
+              "labels": [
+                "large-scale-data-structures"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "f1209f4a-eba8-432f-96ad-5a448671b560",
+      "title": "System Design Case Studies",
+      "description": "End-to-end system design walkthroughs, mocks, and real-world architecture case studies.",
+      "logo_url": "https://yt3.ggpht.com/EF0G_E_LsoqwayBpT8S4WheoMyMQHOhL6TMeM3sHZlew4Kmv7l7sTigvFv8MIudBSoOIbRyS=s800-c-k-c0x00ffffff-no-rj",
+      "icon_key": "case-study",
+      "sequence": 2,
+      "labels": [
+        "system-design",
+        "case-studies",
+        "mock-interviews"
+      ],
+      "last_played_video_id": null,
+      "last_played_position_secs": null,
+      "last_played_at": null,
+      "created_at": "2026-08-12T07:26:00Z",
+      "updated_at": "2026-08-12T07:26:00Z",
+      "source_channels": [
+        {
+          "channel_id": "UC3kf-QFT6FZzDk9JsPg8Svg",
+          "title": "Hello Interview",
+          "url": "https://youtube.com/channel/UC3kf-QFT6FZzDk9JsPg8Svg",
+          "thumbnail": "https://yt3.ggpht.com/EF0G_E_LsoqwayBpT8S4WheoMyMQHOhL6TMeM3sHZlew4Kmv7l7sTigvFv8MIudBSoOIbRyS=s800-c-k-c0x00ffffff-no-rj",
+          "video_count": 124,
+          "videos_count": 124,
+          "source_created_at": "2022-03-04T18:07:00.28683Z",
+          "last_video_published_at": "2026-08-06T15:00:36Z",
+          "last_synced_at": null,
+          "last_feed_checked_at": null,
+          "playlists": []
+        }
+      ],
+      "new_video_feeds": [],
+      "modules": [
+        {
+          "id": "8d172328-7c2d-4a12-9136-fe0b1dbc97a4",
+          "title": "Scale & Infrastructure Case Studies",
+          "sequence": 1,
+          "labels": [
+            "scale-case-studies"
+          ],
+          "videos": [
+            {
+              "video_id": "iUU4O1sWtJA",
+              "title": "Beginner System Design Interview: Design Bitly w/ a Ex-Meta Staff Engineer",
+              "revised_title_from_ai": "Beginner System Design Interview: Design Bitly w/ a Ex-Meta Staff Engineer",
+              "description": "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📝 Full written breakdown: https://hellointerview.com/youtube/bitly/description\n💪 Practice this problem with live AI feedback: https://hellointerview.com/practice/youtube\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+              "url": "https://youtube.com/watch?v=iUU4O1sWtJA",
+              "thumbnail": "https://i.ytimg.com/vi/iUU4O1sWtJA/hqdefault.jpg",
+              "duration_secs": 3570,
+              "published_at": "2024-11-03T18:00:32Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 345363,
+              "like_count": 8436,
+              "recording_date": null,
+              "sequence": 1,
+              "watched": false,
+              "labels": [
+                "scale-case-studies"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "MIJFyUPG4Z4",
+              "title": "Design a Distributed Rate Limiter w/ a Ex-Meta Staff Engineer: System Design Breakdown",
+              "revised_title_from_ai": "Design a Distributed Rate Limiter w/ a Ex-Meta Staff Engineer: System Design Breakdown",
+              "description": "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📝 Full written breakdown: https://hellointerview.com/youtube/distributed-rate-limiter/description\n💪 Practice this problem with live AI feedback: https://hellointerview.com/practice/youtube\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+              "url": "https://youtube.com/watch?v=MIJFyUPG4Z4",
+              "thumbnail": "https://i.ytimg.com/vi/MIJFyUPG4Z4/hqdefault.jpg",
+              "duration_secs": 3358,
+              "published_at": "2025-08-19T15:00:41Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 236533,
+              "like_count": 5776,
+              "recording_date": null,
+              "sequence": 2,
+              "watched": false,
+              "labels": [
+                "scale-case-studies"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "ik-jcWtTtgU",
+              "title": "How Slack scaled MySQL to 1.5 billion messages a day",
+              "revised_title_from_ai": "How Slack scaled MySQL to 1.5 billion messages a day",
+              "description": "Slack's MySQL database handles 1.5 billion messages every single day. On a relational database.",
+              "url": "https://youtube.com/watch?v=ik-jcWtTtgU",
+              "thumbnail": "https://i.ytimg.com/vi/ik-jcWtTtgU/hqdefault.jpg",
+              "duration_secs": 87,
+              "published_at": "2026-03-24T16:03:24Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 106820,
+              "like_count": 4460,
+              "recording_date": null,
+              "sequence": 3,
+              "watched": false,
+              "labels": [
+                "scale-case-studies"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "rXgqzbkN6NU",
+              "title": "Most engineers get this wrong in an interview",
+              "revised_title_from_ai": "Most engineers get this wrong in an interview",
+              "description": "Google Docs solved a problem that most senior engineers can't explain in an interview.",
+              "url": "https://youtube.com/watch?v=rXgqzbkN6NU",
+              "thumbnail": "https://i.ytimg.com/vi/rXgqzbkN6NU/hqdefault.jpg",
+              "duration_secs": 83,
+              "published_at": "2026-04-16T16:03:49Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 151688,
+              "like_count": 3270,
+              "recording_date": null,
+              "sequence": 4,
+              "watched": false,
+              "labels": [
+                "scale-case-studies"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            }
+          ]
+        },
+        {
+          "id": "db7ae1a1-b3a2-4c16-aaf4-90273bec594a",
+          "title": "Social, Feeds & Collaboration",
+          "sequence": 2,
+          "labels": [
+            "social-collaboration"
+          ],
+          "videos": [
+            {
+              "video_id": "Nfa-uUHuFHg",
+              "title": "System Design Interview Walkthrough: Design Twitter",
+              "revised_title_from_ai": "System Design Interview Walkthrough: Design Twitter",
+              "description": "**Designing Twitter's System Architecture: A Deep Dive**",
+              "url": "https://youtube.com/watch?v=Nfa-uUHuFHg",
+              "thumbnail": "https://i.ytimg.com/vi/Nfa-uUHuFHg/hqdefault.jpg",
+              "duration_secs": 1384,
+              "published_at": "2023-09-12T16:02:51Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 286794,
+              "like_count": 5603,
+              "recording_date": null,
+              "sequence": 1,
+              "watched": false,
+              "labels": [
+                "social-collaboration"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "tgSe27eoBG0",
+              "title": "Design FB Live Comments: Hello Interview Mock",
+              "revised_title_from_ai": "Design FB Live Comments: Hello Interview Mock",
+              "description": "This is an anonymized recording of a real mock interview conducted on www.hellointerview.com. This is being shared in an anonymized fashion with the written consent of the candidate. ",
+              "url": "https://youtube.com/watch?v=tgSe27eoBG0",
+              "thumbnail": "https://i.ytimg.com/vi/tgSe27eoBG0/hqdefault.jpg",
+              "duration_secs": 3590,
+              "published_at": "2024-02-27T20:34:23Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 118063,
+              "like_count": 1566,
+              "recording_date": null,
+              "sequence": 2,
+              "watched": false,
+              "labels": [
+                "social-collaboration"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "18Fg5Akhkqw",
+              "title": "System Design Interview: Design Tinder w/ a Ex-Meta Staff Engineer",
+              "revised_title_from_ai": "System Design Interview: Design Tinder w/ a Ex-Meta Staff Engineer",
+              "description": "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📝 Full written breakdown: https://hellointerview.com/youtube/tinder/description\n💪 Practice this problem with live AI feedback: https://hellointerview.com/practice/youtube\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+              "url": "https://youtube.com/watch?v=18Fg5Akhkqw",
+              "thumbnail": "https://i.ytimg.com/vi/18Fg5Akhkqw/hqdefault.jpg",
+              "duration_secs": 4402,
+              "published_at": "2024-09-22T17:00:02Z",
+              "tags": [],
+              "category_id": "24",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 155139,
+              "like_count": 3576,
+              "recording_date": null,
+              "sequence": 3,
+              "watched": false,
+              "labels": [
+                "social-collaboration"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "cr6p0n0N-VA",
+              "title": "Design Whatsapp: System Design Interview w/ a Ex-Meta Senior Manager",
+              "revised_title_from_ai": "Design Whatsapp: System Design Interview w/ a Ex-Meta Senior Manager",
+              "description": "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📝 Full written breakdown: https://hellointerview.com/youtube/whatsapp/description\n💪 Practice this problem with live AI feedback: https://hellointerview.com/practice/youtube\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+              "url": "https://youtube.com/watch?v=cr6p0n0N-VA",
+              "thumbnail": "https://i.ytimg.com/vi/cr6p0n0N-VA/hqdefault.jpg",
+              "duration_secs": 3492,
+              "published_at": "2024-12-20T19:00:21Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 300077,
+              "like_count": 5228,
+              "recording_date": null,
+              "sequence": 4,
+              "watched": false,
+              "labels": [
+                "social-collaboration"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "LjLx0fCd1k8",
+              "title": "System Design Interview: Design Live Comments w/ a Ex-Meta Staff Engineer",
+              "revised_title_from_ai": "System Design Interview: Design Live Comments w/ a Ex-Meta Staff Engineer",
+              "description": "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📝 Full written breakdown: https://hellointerview.com/youtube/fb-live-comments/description\n💪 Practice this problem with live AI feedback: https://hellointerview.com/practice/youtube\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+              "url": "https://youtube.com/watch?v=LjLx0fCd1k8",
+              "thumbnail": "https://i.ytimg.com/vi/LjLx0fCd1k8/hqdefault.jpg",
+              "duration_secs": 3375,
+              "published_at": "2025-01-12T16:00:30Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 130126,
+              "like_count": 2889,
+              "recording_date": null,
+              "sequence": 5,
+              "watched": false,
+              "labels": [
+                "social-collaboration"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "Qj4-GruzyDU",
+              "title": "Design FB News Feed System Design Interview w/ ex: Meta Senior Manager",
+              "revised_title_from_ai": "Design FB News Feed System Design Interview w/ ex: Meta Senior Manager",
+              "description": "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📝 Full written breakdown: https://hellointerview.com/youtube/fb-news-feed/description\n💪 Practice this problem with live AI feedback: https://hellointerview.com/practice/youtube\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+              "url": "https://youtube.com/watch?v=Qj4-GruzyDU",
+              "thumbnail": "https://i.ytimg.com/vi/Qj4-GruzyDU/hqdefault.jpg",
+              "duration_secs": 1572,
+              "published_at": "2025-06-05T16:00:49Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 121961,
+              "like_count": 1784,
+              "recording_date": null,
+              "sequence": 6,
+              "watched": false,
+              "labels": [
+                "social-collaboration"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "EX5uZV3Tzss",
+              "title": "Real-Time Collaboration Explained - System Design",
+              "revised_title_from_ai": "Real-Time Collaboration Explained - System Design",
+              "description": "🧠 Want more system design content? Head over to https://www.hellointerview.com/youtube/collab-editing",
+              "url": "https://youtube.com/watch?v=EX5uZV3Tzss",
+              "thumbnail": "https://i.ytimg.com/vi/EX5uZV3Tzss/hqdefault.jpg",
+              "duration_secs": 936,
+              "published_at": "2026-04-14T16:04:08Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 36748,
+              "like_count": 1155,
+              "recording_date": null,
+              "sequence": 7,
+              "watched": false,
+              "labels": [
+                "social-collaboration"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "IMOmtAd2aUE",
+              "title": "How Instagram handles celebrities with 500M followers without melting their servers",
+              "revised_title_from_ai": "How Instagram handles celebrities with 500M followers without melting their servers",
+              "description": "Taylor Swift has 300 million followers, how do we keep our system from falling over when she posts to all of them?",
+              "url": "https://youtube.com/watch?v=IMOmtAd2aUE",
+              "thumbnail": "https://i.ytimg.com/vi/IMOmtAd2aUE/hqdefault.jpg",
+              "duration_secs": 79,
+              "published_at": "2026-04-21T16:05:51Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 25889,
+              "like_count": 1141,
+              "recording_date": null,
+              "sequence": 8,
+              "watched": false,
+              "labels": [
+                "social-collaboration"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            }
+          ]
+        },
+        {
+          "id": "6d3d3209-d236-4d3a-8818-76aab30171d6",
+          "title": "Media, Storage & Developer Platforms",
+          "sequence": 3,
+          "labels": [
+            "media-platforms"
+          ],
+          "videos": [
+            {
+              "video_id": "_UZ1ngy-kOI",
+              "title": "Design Dropbox or Google Drive w/ a Ex-Meta Staff Engineer System Design Interview",
+              "revised_title_from_ai": "Design Dropbox or Google Drive w/ a Ex-Meta Staff Engineer System Design Interview",
+              "description": "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📝 Full written breakdown: https://hellointerview.com/youtube/dropbox/description\n💪 Practice this problem with live AI feedback: https://hellointerview.com/practice/youtube\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+              "url": "https://youtube.com/watch?v=_UZ1ngy-kOI",
+              "thumbnail": "https://i.ytimg.com/vi/_UZ1ngy-kOI/hqdefault.jpg",
+              "duration_secs": 3488,
+              "published_at": "2024-04-24T23:07:51Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 381197,
+              "like_count": 6903,
+              "recording_date": null,
+              "sequence": 1,
+              "watched": false,
+              "labels": [
+                "media-platforms"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "1xHADtekTNg",
+              "title": "System Design Interview: Design LeetCode (Online Judge) w/ a Ex-Meta Staff Engineer",
+              "revised_title_from_ai": "System Design Interview: Design LeetCode (Online Judge) w/ a Ex-Meta Staff Engineer",
+              "description": "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📝 Full written breakdown: https://hellointerview.com/youtube/leetcode/description\n💪 Practice this problem with live AI feedback: https://hellointerview.com/practice/youtube\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+              "url": "https://youtube.com/watch?v=1xHADtekTNg",
+              "thumbnail": "https://i.ytimg.com/vi/1xHADtekTNg/hqdefault.jpg",
+              "duration_secs": 3814,
+              "published_at": "2024-08-14T20:23:36Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 156401,
+              "like_count": 3373,
+              "recording_date": null,
+              "sequence": 2,
+              "watched": false,
+              "labels": [
+                "media-platforms"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "IUrQ5_g3XKs",
+              "title": "System Design Interview: Design YouTube w/ a Ex-Meta Staff Engineer",
+              "revised_title_from_ai": "System Design Interview: Design YouTube w/ a Ex-Meta Staff Engineer",
+              "description": "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📝 Full written breakdown: https://hellointerview.com/youtube/youtube/description\n💪 Practice this problem with live AI feedback: https://hellointerview.com/practice/youtube\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+              "url": "https://youtube.com/watch?v=IUrQ5_g3XKs",
+              "thumbnail": "https://i.ytimg.com/vi/IUrQ5_g3XKs/hqdefault.jpg",
+              "duration_secs": 2559,
+              "published_at": "2025-03-09T16:00:30Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 223991,
+              "like_count": 5145,
+              "recording_date": null,
+              "sequence": 3,
+              "watched": false,
+              "labels": [
+                "media-platforms"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "hMTOYedA818",
+              "title": "YouTube Upload",
+              "revised_title_from_ai": "YouTube Upload",
+              "description": "What actually happens in YouTube's backend after a user clicks upload?",
+              "url": "https://youtube.com/watch?v=hMTOYedA818",
+              "thumbnail": "https://i.ytimg.com/vi/hMTOYedA818/hqdefault.jpg",
+              "duration_secs": 66,
+              "published_at": "2026-05-21T16:01:59Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 22342,
+              "like_count": 1394,
+              "recording_date": null,
+              "sequence": 4,
+              "watched": false,
+              "labels": [
+                "media-platforms"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "KDLfKu1Pgag",
+              "title": "How to Design ChatGPT",
+              "revised_title_from_ai": "How to Design ChatGPT",
+              "description": "How I'd answer Design ChatGPT in a system design interview #shorts",
+              "url": "https://youtube.com/watch?v=KDLfKu1Pgag",
+              "thumbnail": "https://i.ytimg.com/vi/KDLfKu1Pgag/hqdefault.jpg",
+              "duration_secs": 73,
+              "published_at": "2026-07-02T16:01:37Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 31940,
+              "like_count": 1490,
+              "recording_date": null,
+              "sequence": 5,
+              "watched": false,
+              "labels": [
+                "media-platforms"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            }
+          ]
+        },
+        {
+          "id": "e0e43d40-9f55-4472-9590-14e17737c013",
+          "title": "Search, Location & Discovery",
+          "sequence": 4,
+          "labels": [
+            "search-location"
+          ],
+          "videos": [
+            {
+              "video_id": "lsKU38RKQSo",
+              "title": "Design Uber w/ a Ex-Meta Staff Engineer: System Design Interview breakdown",
+              "revised_title_from_ai": "Design Uber w/ a Ex-Meta Staff Engineer: System Design Interview breakdown",
+              "description": "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📝 Full written breakdown: https://hellointerview.com/youtube/uber/description\n💪 Practice this problem with live AI feedback: https://hellointerview.com/practice/youtube\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+              "url": "https://youtube.com/watch?v=lsKU38RKQSo",
+              "thumbnail": "https://i.ytimg.com/vi/lsKU38RKQSo/hqdefault.jpg",
+              "duration_secs": 3785,
+              "published_at": "2024-04-03T21:07:16Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 525717,
+              "like_count": 10945,
+              "recording_date": null,
+              "sequence": 1,
+              "watched": false,
+              "labels": [
+                "search-location"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "krsuaUp__pM",
+              "title": "Design a Web Crawler System Design Interview w/ a Ex-Meta Staff Engineer",
+              "revised_title_from_ai": "Design a Web Crawler System Design Interview w/ a Ex-Meta Staff Engineer",
+              "description": "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📝 Full written breakdown: https://hellointerview.com/youtube/web-crawler/description\n💪 Practice this problem with live AI feedback: https://hellointerview.com/practice/youtube\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+              "url": "https://youtube.com/watch?v=krsuaUp__pM",
+              "thumbnail": "https://i.ytimg.com/vi/krsuaUp__pM/hqdefault.jpg",
+              "duration_secs": 3904,
+              "published_at": "2024-06-16T19:52:34Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 210745,
+              "like_count": 3559,
+              "recording_date": null,
+              "sequence": 2,
+              "watched": false,
+              "labels": [
+                "search-location"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "pFTyGG4mORk",
+              "title": "Design Yelp, Meta Staff Product Architecture: Hello Interview Mock",
+              "revised_title_from_ai": "Design Yelp, Meta Staff Product Architecture: Hello Interview Mock",
+              "description": "This is an anonymized recording of a real mock interview conducted on www.hellointerview.com. This is being shared in an anonymized fashion with the written consent of the candidate. ",
+              "url": "https://youtube.com/watch?v=pFTyGG4mORk",
+              "thumbnail": "https://i.ytimg.com/vi/pFTyGG4mORk/hqdefault.jpg",
+              "duration_secs": 3804,
+              "published_at": "2024-08-19T23:50:44Z",
+              "tags": [],
+              "category_id": "24",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 43695,
+              "like_count": 684,
+              "recording_date": null,
+              "sequence": 3,
+              "watched": false,
+              "labels": [
+                "search-location"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "yz1jtze4qr8",
+              "title": "System Design Mock Interview: Design Yelp w/ Meta Staff Engineer",
+              "revised_title_from_ai": "System Design Mock Interview: Design Yelp w/ Meta Staff Engineer",
+              "description": "Watch Evan, former Meta Staff Engineer, walk through the Guided Practice for the common system design interview question Design Yelp.",
+              "url": "https://youtube.com/watch?v=yz1jtze4qr8",
+              "thumbnail": "https://i.ytimg.com/vi/yz1jtze4qr8/hqdefault.jpg",
+              "duration_secs": 2290,
+              "published_at": "2025-06-15T16:01:27Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 39792,
+              "like_count": 796,
+              "recording_date": null,
+              "sequence": 4,
+              "watched": false,
+              "labels": [
+                "search-location"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "l38XL9914fs",
+              "title": "Design FB Post Search: System Design Interview breakdown w/ ex Meta Interviewer",
+              "revised_title_from_ai": "Design FB Post Search: System Design Interview breakdown w/ ex Meta Interviewer",
+              "description": "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📝 Full written breakdown: https://hellointerview.com/youtube/fb-post-search/description\n💪 Practice this problem with live AI feedback: https://hellointerview.com/practice/youtube\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+              "url": "https://youtube.com/watch?v=l38XL9914fs",
+              "thumbnail": "https://i.ytimg.com/vi/l38XL9914fs/hqdefault.jpg",
+              "duration_secs": 4107,
+              "published_at": "2025-06-19T17:01:03Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 73273,
+              "like_count": 1282,
+              "recording_date": null,
+              "sequence": 5,
+              "watched": false,
+              "labels": [
+                "search-location"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            }
+          ]
+        },
+        {
+          "id": "67a73ee1-bc54-427e-b7fe-94a1e5eec64b",
+          "title": "Commerce, Marketplaces & Traffic Spikes",
+          "sequence": 5,
+          "labels": [
+            "commerce-scale"
+          ],
+          "videos": [
+            {
+              "video_id": "fhdPyoO6aXI",
+              "title": "System Design Interview: Design Ticketmaster w/ a Ex-Meta Staff Engineer",
+              "revised_title_from_ai": "System Design Interview: Design Ticketmaster w/ a Ex-Meta Staff Engineer",
+              "description": "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📝 Full written breakdown: https://hellointerview.com/youtube/ticketmaster/description\n💪 Practice this problem with live AI feedback: https://hellointerview.com/practice/youtube\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+              "url": "https://youtube.com/watch?v=fhdPyoO6aXI",
+              "thumbnail": "https://i.ytimg.com/vi/fhdPyoO6aXI/hqdefault.jpg",
+              "duration_secs": 3519,
+              "published_at": "2024-03-14T15:58:19Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 871141,
+              "like_count": 15942,
+              "recording_date": null,
+              "sequence": 1,
+              "watched": false,
+              "labels": [
+                "commerce-scale"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "Zcv_899yqhI",
+              "title": "Design an Ad Click Aggregator w/ a Ex-Meta Staff Engineer System Design Interview",
+              "revised_title_from_ai": "Design an Ad Click Aggregator w/ a Ex-Meta Staff Engineer System Design Interview",
+              "description": "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n📝 Full written breakdown: https://hellointerview.com/youtube/ad-click-aggregator/description\n💪 Practice this problem with live AI feedback: https://hellointerview.com/practice/youtube\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+              "url": "https://youtube.com/watch?v=Zcv_899yqhI",
+              "thumbnail": "https://i.ytimg.com/vi/Zcv_899yqhI/hqdefault.jpg",
+              "duration_secs": 3742,
+              "published_at": "2024-05-15T14:10:35Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 245098,
+              "like_count": 4358,
+              "recording_date": null,
+              "sequence": 2,
+              "watched": false,
+              "labels": [
+                "commerce-scale"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "o8nSXW-B7Rw",
+              "title": "OpenAI & Meta Senior/Staff System Design Mock Interview: Design Online Auction",
+              "revised_title_from_ai": "OpenAI & Meta Senior/Staff System Design Mock Interview: Design Online Auction",
+              "description": "This is an anonymized recording of a real mock interview conducted on www.hellointerview.com. This is being shared in an anonymized fashion with the written consent of the candidate. ",
+              "url": "https://youtube.com/watch?v=o8nSXW-B7Rw",
+              "thumbnail": "https://i.ytimg.com/vi/o8nSXW-B7Rw/hqdefault.jpg",
+              "duration_secs": 3773,
+              "published_at": "2025-06-10T16:45:09Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 60631,
+              "like_count": 793,
+              "recording_date": null,
+              "sequence": 3,
+              "watched": false,
+              "labels": [
+                "commerce-scale"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "RuGY_1pap74",
+              "title": "Senior System Design Mock Interview: Design an e-commerce platform",
+              "revised_title_from_ai": "Senior System Design Mock Interview: Design an e-commerce platform",
+              "description": "This is an anonymized recording of a real mock interview conducted on www.hellointerview.com being posted with written consent from both the coach and the candidate. This is being shared in an anonymized fashion with the written consent of the candidate. ",
+              "url": "https://youtube.com/watch?v=RuGY_1pap74",
+              "thumbnail": "https://i.ytimg.com/vi/RuGY_1pap74/hqdefault.jpg",
+              "duration_secs": 4293,
+              "published_at": "2026-04-26T15:00:42Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 26003,
+              "like_count": 379,
+              "recording_date": null,
+              "sequence": 4,
+              "watched": false,
+              "labels": [
+                "commerce-scale"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "9j4K_Gu0ZdI",
+              "title": "One ad goes viral and takes down your database — here's the fix",
+              "revised_title_from_ai": "One ad goes viral and takes down your database — here's the fix",
+              "description": "One viral ad just took down your entire database.",
+              "url": "https://youtube.com/watch?v=9j4K_Gu0ZdI",
+              "thumbnail": "https://i.ytimg.com/vi/9j4K_Gu0ZdI/hqdefault.jpg",
+              "duration_secs": 96,
+              "published_at": "2026-06-09T16:02:19Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 30322,
+              "like_count": 1901,
+              "recording_date": null,
+              "sequence": 5,
+              "watched": false,
+              "labels": [
+                "commerce-scale"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "CheTuMvFXwc",
+              "title": "Why Shopify Moved Inventory Reservations from Redis to MySQL",
+              "revised_title_from_ai": "Why Shopify Moved Inventory Reservations from Redis to MySQL",
+              "description": "📖 Read the full breakdown: https://www.hellointerview.com/youtube/shopify-inventory-reservations/description",
+              "url": "https://youtube.com/watch?v=CheTuMvFXwc",
+              "thumbnail": "https://i.ytimg.com/vi/CheTuMvFXwc/hqdefault.jpg",
+              "duration_secs": 820,
+              "published_at": "2026-08-06T15:00:36Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 15602,
+              "like_count": 660,
+              "recording_date": null,
+              "sequence": 6,
+              "watched": false,
+              "labels": [
+                "commerce-scale"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c9338ba6-1a32-4568-8b4f-727750738dad",
+      "title": "Low-Level Design",
+      "description": "Low-level and object-oriented design practice, including concurrency and complete design exercises.",
+      "logo_url": "https://yt3.ggpht.com/EF0G_E_LsoqwayBpT8S4WheoMyMQHOhL6TMeM3sHZlew4Kmv7l7sTigvFv8MIudBSoOIbRyS=s800-c-k-c0x00ffffff-no-rj",
+      "icon_key": "object-design",
+      "sequence": 3,
+      "labels": [
+        "low-level-design",
+        "oop",
+        "concurrency"
+      ],
+      "last_played_video_id": null,
+      "last_played_position_secs": null,
+      "last_played_at": null,
+      "created_at": "2026-08-12T07:26:00Z",
+      "updated_at": "2026-08-12T07:26:00Z",
+      "source_channels": [
+        {
+          "channel_id": "UC3kf-QFT6FZzDk9JsPg8Svg",
+          "title": "Hello Interview",
+          "url": "https://youtube.com/channel/UC3kf-QFT6FZzDk9JsPg8Svg",
+          "thumbnail": "https://yt3.ggpht.com/EF0G_E_LsoqwayBpT8S4WheoMyMQHOhL6TMeM3sHZlew4Kmv7l7sTigvFv8MIudBSoOIbRyS=s800-c-k-c0x00ffffff-no-rj",
+          "video_count": 124,
+          "videos_count": 124,
+          "source_created_at": "2022-03-04T18:07:00.28683Z",
+          "last_video_published_at": "2026-08-06T15:00:36Z",
+          "last_synced_at": null,
+          "last_feed_checked_at": null,
+          "playlists": []
+        }
+      ],
+      "new_video_feeds": [],
+      "modules": [
+        {
+          "id": "9c5f1ac4-9738-4559-9284-906963225f11",
+          "title": "LLD Fundamentals & Concurrency",
+          "sequence": 1,
+          "labels": [
+            "lld-concurrency"
+          ],
+          "videos": [
+            {
+              "video_id": "d8rmosXttTE",
+              "title": "Concurrency in Low-level Design Interviews w/ Staff Engineer",
+              "revised_title_from_ai": "Concurrency in Low-level Design Interviews w/ Staff Engineer",
+              "description": "Concurrency questions trip up a lot of candidates because they don't know what to look for. In this video, I'll give you a framework that makes these problems predictable.",
+              "url": "https://youtube.com/watch?v=d8rmosXttTE",
+              "thumbnail": "https://i.ytimg.com/vi/d8rmosXttTE/hqdefault.jpg",
+              "duration_secs": 1351,
+              "published_at": "2026-01-29T16:00:56Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 137517,
+              "like_count": 4086,
+              "recording_date": null,
+              "sequence": 1,
+              "watched": false,
+              "labels": [
+                "lld-concurrency"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            }
+          ]
+        },
+        {
+          "id": "a7bf1e58-c1af-4b5e-8b66-ca10aa4e47ac",
+          "title": "Object-Oriented Design Exercises",
+          "sequence": 2,
+          "labels": [
+            "oop-design-exercises"
+          ],
+          "videos": [
+            {
+              "video_id": "9UI4ikKP3Ws",
+              "title": "Low-Level Design Interview: Design Connect Four w/ a Ex-Meta Staff Engineer",
+              "revised_title_from_ai": "Low-Level Design Interview: Design Connect Four w/ a Ex-Meta Staff Engineer",
+              "description": "00:00 - Intro\n02:08 - Requirements\n06:40 - Entities \n08:49 - Class Design\n26:22 - Implementation\n50:36 - Extensibility\n59:03 - Conclusion",
+              "url": "https://youtube.com/watch?v=9UI4ikKP3Ws",
+              "thumbnail": "https://i.ytimg.com/vi/9UI4ikKP3Ws/hqdefault.jpg",
+              "duration_secs": 3590,
+              "published_at": "2026-01-01T16:00:15Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 48713,
+              "like_count": 1189,
+              "recording_date": null,
+              "sequence": 1,
+              "watched": false,
+              "labels": [
+                "oop-design-exercises"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "s6nGkoGJhXk",
+              "title": "Low-Level Design Interview: Design Amazon Locker w/ a Ex-Meta Staff Engineer",
+              "revised_title_from_ai": "Low-Level Design Interview: Design Amazon Locker w/ a Ex-Meta Staff Engineer",
+              "description": "00:00 - Intro\n01:12: The Approach\n03:10 - Requirements\n08:01 - Entities \n12:16 - Class Design\n21:25 - Implementation\n40:52 - Extensibility\n49:55 - Conclusion",
+              "url": "https://youtube.com/watch?v=s6nGkoGJhXk",
+              "thumbnail": "https://i.ytimg.com/vi/s6nGkoGJhXk/hqdefault.jpg",
+              "duration_secs": 3056,
+              "published_at": "2026-01-13T16:01:26Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 36693,
+              "like_count": 857,
+              "recording_date": null,
+              "sequence": 2,
+              "watched": false,
+              "labels": [
+                "oop-design-exercises"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "fODT0ldeBiU",
+              "title": "Low-Level Design Interview: Design an Elevator w/ a Ex-Meta Staff Engineer",
+              "revised_title_from_ai": "Low-Level Design Interview: Design an Elevator w/ a Ex-Meta Staff Engineer",
+              "description": "00:00 - Intro\n01:38: Delivery Framework\n03:35 - Requirements\n10:11 - Entities \n13:33 - Class Design\n23:54 - Implementation\n53:38 - Extensibility\n1:01:00 - Conclusion",
+              "url": "https://youtube.com/watch?v=fODT0ldeBiU",
+              "thumbnail": "https://i.ytimg.com/vi/fODT0ldeBiU/hqdefault.jpg",
+              "duration_secs": 3687,
+              "published_at": "2026-03-25T15:05:17Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 61212,
+              "like_count": 984,
+              "recording_date": null,
+              "sequence": 3,
+              "watched": false,
+              "labels": [
+                "oop-design-exercises"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ccb52a18-0778-4c0f-987d-b0cfe79cc78a",
+      "title": "Coding Interviews & DSA",
+      "description": "Coding interview practice across trees, graphs, dynamic programming, stacks, greedy methods, backtracking, and AI-enabled interview formats.",
+      "logo_url": "https://yt3.ggpht.com/EF0G_E_LsoqwayBpT8S4WheoMyMQHOhL6TMeM3sHZlew4Kmv7l7sTigvFv8MIudBSoOIbRyS=s800-c-k-c0x00ffffff-no-rj",
+      "icon_key": "code",
+      "sequence": 4,
+      "labels": [
+        "coding-interview",
+        "dsa",
+        "algorithms"
+      ],
+      "last_played_video_id": null,
+      "last_played_position_secs": null,
+      "last_played_at": null,
+      "created_at": "2026-08-12T07:26:00Z",
+      "updated_at": "2026-08-12T07:26:00Z",
+      "source_channels": [
+        {
+          "channel_id": "UC3kf-QFT6FZzDk9JsPg8Svg",
+          "title": "Hello Interview",
+          "url": "https://youtube.com/channel/UC3kf-QFT6FZzDk9JsPg8Svg",
+          "thumbnail": "https://yt3.ggpht.com/EF0G_E_LsoqwayBpT8S4WheoMyMQHOhL6TMeM3sHZlew4Kmv7l7sTigvFv8MIudBSoOIbRyS=s800-c-k-c0x00ffffff-no-rj",
+          "video_count": 124,
+          "videos_count": 124,
+          "source_created_at": "2022-03-04T18:07:00.28683Z",
+          "last_video_published_at": "2026-08-06T15:00:36Z",
+          "last_synced_at": null,
+          "last_feed_checked_at": null,
+          "playlists": []
+        }
+      ],
+      "new_video_feeds": [],
+      "modules": [
+        {
+          "id": "14e558f6-f21f-4bd5-811f-616df416b396",
+          "title": "Trees & Graphs",
+          "sequence": 1,
+          "labels": [
+            "trees-graphs"
+          ],
+          "videos": [
+            {
+              "video_id": "ZztKT-KVqwA",
+              "title": "Coding Interview Fundamentals: Depth-First Search and Recursion (Binary Trees)",
+              "revised_title_from_ai": "Coding Interview Fundamentals: Depth-First Search and Recursion (Binary Trees)",
+              "description": "Depth-First Search and Recursion are the two most important topics for the coding interview, as they can be used to solve a wide variety of problems. This video will give you a strong foundation in both topics by teaching you how to solve Binary Tree problems using recursion.",
+              "url": "https://youtube.com/watch?v=ZztKT-KVqwA",
+              "thumbnail": "https://i.ytimg.com/vi/ZztKT-KVqwA/hqdefault.jpg",
+              "duration_secs": 1288,
+              "published_at": "2024-09-01T14:00:27Z",
+              "tags": [],
+              "category_id": "24",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 13075,
+              "like_count": 405,
+              "recording_date": null,
+              "sequence": 1,
+              "watched": false,
+              "labels": [
+                "trees-graphs"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "suPO02S0cR8",
+              "title": "Coding Interview Fundamentals: Post-Order Traversal",
+              "revised_title_from_ai": "Coding Interview Fundamentals: Post-Order Traversal",
+              "description": "00:00 Intro\n00:45 Diameter of a Binary Tree (Easy)\n02:21 Brute-Force Approach \n04:20 Optimal Approach (Bottom-up, Post-Order Traversal)\n06:50 Visualizing Optimal Solution\n10:30 When to use Post-Order Traversal\n11:54 Practice Q1: Binary Tree Tilt (Easy)\n14:58 Practice Q2: Longest Univalue Path (Medium)\n21:33 Practice Q3: Binary Tree Maximum Path Sum (HARD)\n24:29 Conclusion",
+              "url": "https://youtube.com/watch?v=suPO02S0cR8",
+              "thumbnail": "https://i.ytimg.com/vi/suPO02S0cR8/hqdefault.jpg",
+              "duration_secs": 1568,
+              "published_at": "2024-09-18T16:52:11Z",
+              "tags": [],
+              "category_id": "24",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 12883,
+              "like_count": 210,
+              "recording_date": null,
+              "sequence": 2,
+              "watched": false,
+              "labels": [
+                "trees-graphs"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "tgJKcKH_Ap8",
+              "title": "Leetcode 200: Number of Islands - Coding Question Walkthrough",
+              "revised_title_from_ai": "Leetcode 200: Number of Islands - Coding Question Walkthrough",
+              "description": "In this video Minh for Coding with Minmer breaks down the common interview question, Number of Islands. Learn the fundamentals of Depth First Search as he walks through this question and common variants asked in recent interviews.",
+              "url": "https://youtube.com/watch?v=tgJKcKH_Ap8",
+              "thumbnail": "https://i.ytimg.com/vi/tgJKcKH_Ap8/hqdefault.jpg",
+              "duration_secs": 1463,
+              "published_at": "2025-07-20T16:30:18Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 19056,
+              "like_count": 224,
+              "recording_date": null,
+              "sequence": 3,
+              "watched": false,
+              "labels": [
+                "trees-graphs"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "XcnAXpZZQRE",
+              "title": "Binary Trees in under 60s",
+              "revised_title_from_ai": "Binary Trees in under 60s",
+              "description": "Binary trees show up in interviews at almost every major tech company.",
+              "url": "https://youtube.com/watch?v=XcnAXpZZQRE",
+              "thumbnail": "https://i.ytimg.com/vi/XcnAXpZZQRE/hqdefault.jpg",
+              "duration_secs": 62,
+              "published_at": "2026-03-05T17:00:30Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 13080,
+              "like_count": 341,
+              "recording_date": null,
+              "sequence": 4,
+              "watched": false,
+              "labels": [
+                "trees-graphs"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "vQN6FvYZBss",
+              "title": "Network Delay Time | Dijkstra's algo",
+              "revised_title_from_ai": "Network Delay Time | Dijkstra's algo",
+              "description": "You've got a network of servers. One sends a signal. That signal hops across connections until every machine has it. Each connection has a latency. Your job: find the total time for the signal to reach every node.",
+              "url": "https://youtube.com/watch?v=vQN6FvYZBss",
+              "thumbnail": "https://i.ytimg.com/vi/vQN6FvYZBss/hqdefault.jpg",
+              "duration_secs": 130,
+              "published_at": "2026-06-13T16:01:31Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 23421,
+              "like_count": 997,
+              "recording_date": null,
+              "sequence": 5,
+              "watched": false,
+              "labels": [
+                "trees-graphs"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            }
+          ]
+        },
+        {
+          "id": "81384386-98f4-4518-82cf-10a9862f85ae",
+          "title": "Arrays, Stacks, Greedy, Backtracking & Intervals",
+          "sequence": 2,
+          "labels": [
+            "coding-patterns"
+          ],
+          "videos": [
+            {
+              "video_id": "wbeTbgxOtvc",
+              "title": "Intervals most important patterns",
+              "revised_title_from_ai": "Intervals most important patterns",
+              "description": "Interval problems show up constantly in FAANG interviews. Meeting rooms, scheduling conflicts, merging time ranges.",
+              "url": "https://youtube.com/watch?v=wbeTbgxOtvc",
+              "thumbnail": "https://i.ytimg.com/vi/wbeTbgxOtvc/hqdefault.jpg",
+              "duration_secs": 90,
+              "published_at": "2026-03-12T16:00:55Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 17826,
+              "like_count": 609,
+              "recording_date": null,
+              "sequence": 1,
+              "watched": false,
+              "labels": [
+                "coding-patterns"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "BTrxVlkYOf0",
+              "title": "Word Search Explained: Backtracking Is Just Two Lines of Code",
+              "revised_title_from_ai": "Word Search Explained: Backtracking Is Just Two Lines of Code",
+              "description": "You're given a grid of letters and a word. Move through neighboring cells, up, down, left, right, and spell the word without visiting the same cell twice. That's the whole problem.",
+              "url": "https://youtube.com/watch?v=BTrxVlkYOf0",
+              "thumbnail": "https://i.ytimg.com/vi/BTrxVlkYOf0/hqdefault.jpg",
+              "duration_secs": 72,
+              "published_at": "2026-04-26T16:02:53Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 21659,
+              "like_count": 491,
+              "recording_date": null,
+              "sequence": 2,
+              "watched": false,
+              "labels": [
+                "coding-patterns"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "h-tLxMBKA0g",
+              "title": "Longest Valid Parentheses | Hard",
+              "revised_title_from_ai": "Longest Valid Parentheses | Hard",
+              "description": "Longest Valid Parentheses is rated hard problem. Most people look at it and think \"stack problem, I'll push and pop characters.\" That gets you nowhere.",
+              "url": "https://youtube.com/watch?v=h-tLxMBKA0g",
+              "thumbnail": "https://i.ytimg.com/vi/h-tLxMBKA0g/hqdefault.jpg",
+              "duration_secs": 96,
+              "published_at": "2026-05-15T16:00:29Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 40620,
+              "like_count": 1681,
+              "recording_date": null,
+              "sequence": 3,
+              "watched": false,
+              "labels": [
+                "coding-patterns"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "iZnrKImzrlM",
+              "title": "Jump Game | Greedy",
+              "revised_title_from_ai": "Jump Game | Greedy",
+              "description": "Most people see this problem and immediately think DP. You've got choices at every step, you want a minimum, it screams overlapping subproblems. But it's actually greedy, and once you see why, you can't unsee it.",
+              "url": "https://youtube.com/watch?v=iZnrKImzrlM",
+              "thumbnail": "https://i.ytimg.com/vi/iZnrKImzrlM/hqdefault.jpg",
+              "duration_secs": 92,
+              "published_at": "2026-05-30T16:01:08Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 21307,
+              "like_count": 624,
+              "recording_date": null,
+              "sequence": 4,
+              "watched": false,
+              "labels": [
+                "coding-patterns"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "q0wMdnKYt4M",
+              "title": "Daily Temperatures",
+              "revised_title_from_ai": "Daily Temperatures",
+              "description": "You're given a list of daily temperatures. For each day, find how many days until it gets warmer. If it never does, return zero.",
+              "url": "https://youtube.com/watch?v=q0wMdnKYt4M",
+              "thumbnail": "https://i.ytimg.com/vi/q0wMdnKYt4M/hqdefault.jpg",
+              "duration_secs": 83,
+              "published_at": "2026-07-23T16:08:31Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 17581,
+              "like_count": 741,
+              "recording_date": null,
+              "sequence": 5,
+              "watched": false,
+              "labels": [
+                "coding-patterns"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            }
+          ]
+        },
+        {
+          "id": "ef09562e-ab88-4717-a66a-439e3850b0ad",
+          "title": "Dynamic Programming",
+          "sequence": 3,
+          "labels": [
+            "dynamic-programming"
+          ],
+          "videos": [
+            {
+              "video_id": "conYkW6FAmk",
+              "title": "Dynamic Programming in under 60 seconds",
+              "revised_title_from_ai": "Dynamic Programming in under 60 seconds",
+              "description": "Dynamic Programming in under 60 seconds | Unique Paths Explained",
+              "url": "https://youtube.com/watch?v=conYkW6FAmk",
+              "thumbnail": "https://i.ytimg.com/vi/conYkW6FAmk/hqdefault.jpg",
+              "duration_secs": 60,
+              "published_at": "2026-03-19T16:00:25Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 45351,
+              "like_count": 1334,
+              "recording_date": null,
+              "sequence": 1,
+              "watched": false,
+              "labels": [
+                "dynamic-programming"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "H_JCFKfNA5s",
+              "title": "Maximal Square DP in under 60 seconds",
+              "revised_title_from_ai": "Maximal Square DP in under 60 seconds",
+              "description": "You have a binary matrix full of zeros and ones. Find the largest square made entirely of ones. What's its area?",
+              "url": "https://youtube.com/watch?v=H_JCFKfNA5s",
+              "thumbnail": "https://i.ytimg.com/vi/H_JCFKfNA5s/hqdefault.jpg",
+              "duration_secs": 67,
+              "published_at": "2026-03-26T16:00:29Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 141940,
+              "like_count": 2167,
+              "recording_date": null,
+              "sequence": 2,
+              "watched": false,
+              "labels": [
+                "dynamic-programming"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "646JqBD6Wxo",
+              "title": "Longest Increasing Subsequence | Dynamic Programming Explained",
+              "revised_title_from_ai": "Longest Increasing Subsequence | Dynamic Programming Explained",
+              "description": "Given an integer array nums, find the length of the longest increasing subsequence (LIS). The subsequence doesn't have to be contiguous, but every element must be strictly increasing.",
+              "url": "https://youtube.com/watch?v=646JqBD6Wxo",
+              "thumbnail": "https://i.ytimg.com/vi/646JqBD6Wxo/hqdefault.jpg",
+              "duration_secs": 72,
+              "published_at": "2026-04-02T16:04:10Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 18675,
+              "like_count": 589,
+              "recording_date": null,
+              "sequence": 3,
+              "watched": false,
+              "labels": [
+                "dynamic-programming"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "oT51NIpw7iE",
+              "title": "Maximum Profit in Job Scheduling | Dynamic Programming Explained",
+              "revised_title_from_ai": "Maximum Profit in Job Scheduling | Dynamic Programming Explained",
+              "description": "Sort the jobs by end time. That's the first move most people miss.",
+              "url": "https://youtube.com/watch?v=oT51NIpw7iE",
+              "thumbnail": "https://i.ytimg.com/vi/oT51NIpw7iE/hqdefault.jpg",
+              "duration_secs": 75,
+              "published_at": "2026-04-12T16:04:29Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 40087,
+              "like_count": 839,
+              "recording_date": null,
+              "sequence": 4,
+              "watched": false,
+              "labels": [
+                "dynamic-programming"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "HUY_YZX9oWs",
+              "title": "Partition Equal Subset Sum Explained | Dynamic Programming (Subset Sum Pattern)",
+              "revised_title_from_ai": "Partition Equal Subset Sum Explained | Dynamic Programming (Subset Sum Pattern)",
+              "description": "Title: Partition Equal Subset Sum Explained | Dynamic Programming (Subset Sum Pattern)",
+              "url": "https://youtube.com/watch?v=HUY_YZX9oWs",
+              "thumbnail": "https://i.ytimg.com/vi/HUY_YZX9oWs/hqdefault.jpg",
+              "duration_secs": 74,
+              "published_at": "2026-04-18T16:02:52Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 26650,
+              "like_count": 577,
+              "recording_date": null,
+              "sequence": 5,
+              "watched": false,
+              "labels": [
+                "dynamic-programming"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "XNzXB5cAE_s",
+              "title": "Paint House | Dynamic Programming | Hello Interview",
+              "revised_title_from_ai": "Paint House | Dynamic Programming | Hello Interview",
+              "description": "You have a row of houses. Each one can be painted red, blue, or green, with a different cost per house. The constraint: no two neighboring houses can share the same color. Find the minimum total cost to paint them all.",
+              "url": "https://youtube.com/watch?v=XNzXB5cAE_s",
+              "thumbnail": "https://i.ytimg.com/vi/XNzXB5cAE_s/hqdefault.jpg",
+              "duration_secs": 79,
+              "published_at": "2026-05-02T16:05:27Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 24250,
+              "like_count": 539,
+              "recording_date": null,
+              "sequence": 6,
+              "watched": false,
+              "labels": [
+                "dynamic-programming"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "r5fooD_Fxkg",
+              "title": "Minimum Window Subsequence | DP | Hard",
+              "revised_title_from_ai": "Minimum Window Subsequence | DP | Hard",
+              "description": "Minimum Window Subsequence is rated Hard, but the trick makes it feel like a Medium once you see it.",
+              "url": "https://youtube.com/watch?v=r5fooD_Fxkg",
+              "thumbnail": "https://i.ytimg.com/vi/r5fooD_Fxkg/hqdefault.jpg",
+              "duration_secs": 107,
+              "published_at": "2026-06-05T16:04:45Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 32716,
+              "like_count": 1052,
+              "recording_date": null,
+              "sequence": 7,
+              "watched": false,
+              "labels": [
+                "dynamic-programming"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            }
+          ]
+        },
+        {
+          "id": "4995b91d-b017-4af1-ba7e-2a7d14d7f757",
+          "title": "AI-Enabled Coding Interviews",
+          "sequence": 4,
+          "labels": [
+            "ai-coding-interviews"
+          ],
+          "videos": [
+            {
+              "video_id": "ssoYRvLdTV4",
+              "title": "Meta's AI-Enabled Coding Interview",
+              "revised_title_from_ai": "Meta's AI-Enabled Coding Interview",
+              "description": "Meta has a new style of coding interview that tries to blend the practical reality of having AI support with the challenges of evaluating the human behind the keyboard. More discussion in the full Q&A video!",
+              "url": "https://youtube.com/watch?v=ssoYRvLdTV4",
+              "thumbnail": "https://i.ytimg.com/vi/ssoYRvLdTV4/hqdefault.jpg",
+              "duration_secs": 94,
+              "published_at": "2025-10-31T16:49:08Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 44411,
+              "like_count": 843,
+              "recording_date": null,
+              "sequence": 1,
+              "watched": false,
+              "labels": [
+                "ai-coding-interviews"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "A1kX8fJx53c",
+              "title": "AI Coding Interview w/ Meta Staff Engineer",
+              "revised_title_from_ai": "AI Coding Interview w/ Meta Staff Engineer",
+              "description": "💻 Try AI Coding questions yourself here: https://www.hellointerview.com/practice/ai-coding",
+              "url": "https://youtube.com/watch?v=A1kX8fJx53c",
+              "thumbnail": "https://i.ytimg.com/vi/A1kX8fJx53c/hqdefault.jpg",
+              "duration_secs": 3202,
+              "published_at": "2026-05-18T14:56:19Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 70953,
+              "like_count": 1389,
+              "recording_date": null,
+              "sequence": 2,
+              "watched": false,
+              "labels": [
+                "ai-coding-interviews"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "2a150219-46b2-48fc-ab41-12f78d0400e1",
+      "title": "ML System Design",
+      "description": "Machine-learning system design topics including recommendation infrastructure, bot detection, and content moderation.",
+      "logo_url": "https://yt3.ggpht.com/EF0G_E_LsoqwayBpT8S4WheoMyMQHOhL6TMeM3sHZlew4Kmv7l7sTigvFv8MIudBSoOIbRyS=s800-c-k-c0x00ffffff-no-rj",
+      "icon_key": "ml",
+      "sequence": 5,
+      "labels": [
+        "ml-system-design",
+        "machine-learning"
+      ],
+      "last_played_video_id": null,
+      "last_played_position_secs": null,
+      "last_played_at": null,
+      "created_at": "2026-08-12T07:26:00Z",
+      "updated_at": "2026-08-12T07:26:00Z",
+      "source_channels": [
+        {
+          "channel_id": "UC3kf-QFT6FZzDk9JsPg8Svg",
+          "title": "Hello Interview",
+          "url": "https://youtube.com/channel/UC3kf-QFT6FZzDk9JsPg8Svg",
+          "thumbnail": "https://yt3.ggpht.com/EF0G_E_LsoqwayBpT8S4WheoMyMQHOhL6TMeM3sHZlew4Kmv7l7sTigvFv8MIudBSoOIbRyS=s800-c-k-c0x00ffffff-no-rj",
+          "video_count": 124,
+          "videos_count": 124,
+          "source_created_at": "2022-03-04T18:07:00.28683Z",
+          "last_video_published_at": "2026-08-06T15:00:36Z",
+          "last_synced_at": null,
+          "last_feed_checked_at": null,
+          "playlists": []
+        }
+      ],
+      "new_video_feeds": [],
+      "modules": [
+        {
+          "id": "fea24bec-e08d-4ebc-aab2-87c98fb38b72",
+          "title": "ML Infrastructure Foundations",
+          "sequence": 1,
+          "labels": [
+            "ml-infrastructure"
+          ],
+          "videos": [
+            {
+              "video_id": "GncgOIiMII8",
+              "title": "Recommendation System Infra Basics 1",
+              "revised_title_from_ai": "Recommendation System Infra Basics 1",
+              "description": "0:00 Introduction\n1:40 Naive approaches and why they don't work\n4:34 Candidate generation\n6:00 Similarity search in candidate generation\n7:03 Multi-Stage Architecture in Recommendation Systems",
+              "url": "https://youtube.com/watch?v=GncgOIiMII8",
+              "thumbnail": "https://i.ytimg.com/vi/GncgOIiMII8/hqdefault.jpg",
+              "duration_secs": 584,
+              "published_at": "2025-01-26T21:30:01Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 59613,
+              "like_count": 1950,
+              "recording_date": null,
+              "sequence": 1,
+              "watched": false,
+              "labels": [
+                "ml-infrastructure"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            }
+          ]
+        },
+        {
+          "id": "d25c3b05-4f6e-4b3b-ab13-fac81017ebdf",
+          "title": "Detection & Moderation Systems",
+          "sequence": 2,
+          "labels": [
+            "detection-moderation"
+          ],
+          "videos": [
+            {
+              "video_id": "9KUC_nHydZg",
+              "title": "Harmful Content Detection / Content Moderation | ML System Design Problem Breakdown",
+              "revised_title_from_ai": "Harmful Content Detection / Content Moderation | ML System Design Problem Breakdown",
+              "description": "00:00 - Intro\n03:06 - ML System Design Delivery Framework\n06:43 - Problem Framing\n13:06 - High Level Design\n14:50 - Data and Features\n23:01 - Modeling\n33:44 - Inference and Evaluation\n42:26 - Deep Dives\n47:49 - Assessment\n50:19 - Conclusion",
+              "url": "https://youtube.com/watch?v=9KUC_nHydZg",
+              "thumbnail": "https://i.ytimg.com/vi/9KUC_nHydZg/hqdefault.jpg",
+              "duration_secs": 3215,
+              "published_at": "2025-05-04T16:00:10Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 57409,
+              "like_count": 1237,
+              "recording_date": null,
+              "sequence": 1,
+              "watched": false,
+              "labels": [
+                "detection-moderation"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "wI4L11EoW3I",
+              "title": "Bot Detection | ML System Design Problem Breakdown",
+              "revised_title_from_ai": "Bot Detection | ML System Design Problem Breakdown",
+              "description": "00:00 Introduction\n01:09 Delivery Framework\n04:10 Problem Clarification and Objectives\n15:22 High Level Design\n21:18 Data and Features\n29:37 Modeling\n40:56 Inference and Evaluation\n49:13 Deep Dive: Anomaly Detection\n59:23 Wrap-up",
+              "url": "https://youtube.com/watch?v=wI4L11EoW3I",
+              "thumbnail": "https://i.ytimg.com/vi/wI4L11EoW3I/hqdefault.jpg",
+              "duration_secs": 3674,
+              "published_at": "2026-01-18T17:01:22Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 25651,
+              "like_count": 390,
+              "recording_date": null,
+              "sequence": 2,
+              "watched": false,
+              "labels": [
+                "detection-moderation"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "1e1ee2cf-689b-46a5-bb01-78a62e9022a8",
+      "title": "Behavioral, Career & Interview Strategy",
+      "description": "Behavioral interview preparation, people-manager interviews, career progression, and industry Q&A.",
+      "logo_url": "https://yt3.ggpht.com/EF0G_E_LsoqwayBpT8S4WheoMyMQHOhL6TMeM3sHZlew4Kmv7l7sTigvFv8MIudBSoOIbRyS=s800-c-k-c0x00ffffff-no-rj",
+      "icon_key": "people",
+      "sequence": 6,
+      "labels": [
+        "behavioral",
+        "career",
+        "interview-strategy"
+      ],
+      "last_played_video_id": null,
+      "last_played_position_secs": null,
+      "last_played_at": null,
+      "created_at": "2026-08-12T07:26:00Z",
+      "updated_at": "2026-08-12T07:26:00Z",
+      "source_channels": [
+        {
+          "channel_id": "UC3kf-QFT6FZzDk9JsPg8Svg",
+          "title": "Hello Interview",
+          "url": "https://youtube.com/channel/UC3kf-QFT6FZzDk9JsPg8Svg",
+          "thumbnail": "https://yt3.ggpht.com/EF0G_E_LsoqwayBpT8S4WheoMyMQHOhL6TMeM3sHZlew4Kmv7l7sTigvFv8MIudBSoOIbRyS=s800-c-k-c0x00ffffff-no-rj",
+          "video_count": 124,
+          "videos_count": 124,
+          "source_created_at": "2022-03-04T18:07:00.28683Z",
+          "last_video_published_at": "2026-08-06T15:00:36Z",
+          "last_synced_at": null,
+          "last_feed_checked_at": null,
+          "playlists": []
+        }
+      ],
+      "new_video_feeds": [],
+      "modules": [
+        {
+          "id": "cb0974dd-1d83-4c59-bb2d-4363a68956a4",
+          "title": "Behavioral Interview Fundamentals",
+          "sequence": 1,
+          "labels": [
+            "behavioral-fundamentals"
+          ],
+          "videos": [
+            {
+              "video_id": "bBvPQZmPXwQ",
+              "title": "Behavioral Interview Discussion with Ex-Meta Hiring Committee Member",
+              "revised_title_from_ai": "Behavioral Interview Discussion with Ex-Meta Hiring Committee Member",
+              "description": "In this conversation, Stefan Mai interviews Austen McDonald, a former senior engineering manager and hiring committee member at Meta, about the how behavioral interviews are assessed, what you should do to prepare, and common red flags. ",
+              "url": "https://youtube.com/watch?v=bBvPQZmPXwQ",
+              "thumbnail": "https://i.ytimg.com/vi/bBvPQZmPXwQ/hqdefault.jpg",
+              "duration_secs": 2410,
+              "published_at": "2025-02-04T21:00:24Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 187095,
+              "like_count": 4650,
+              "recording_date": null,
+              "sequence": 1,
+              "watched": false,
+              "labels": [
+                "behavioral-fundamentals"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "CAda15Tawlg",
+              "title": "Behavioral Interview: Common Questions Broken Down by Ex-Meta & Amazon Senior Managers",
+              "revised_title_from_ai": "Behavioral Interview: Common Questions Broken Down by Ex-Meta & Amazon Senior Managers",
+              "description": "Austen and Stefan break down what interviewers are looking for in common interview questions. ",
+              "url": "https://youtube.com/watch?v=CAda15Tawlg",
+              "thumbnail": "https://i.ytimg.com/vi/CAda15Tawlg/hqdefault.jpg",
+              "duration_secs": 4009,
+              "published_at": "2025-10-24T15:00:19Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 153206,
+              "like_count": 3155,
+              "recording_date": null,
+              "sequence": 2,
+              "watched": false,
+              "labels": [
+                "behavioral-fundamentals"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "8Pls8YVRYE4",
+              "title": "Helping guide the interviewer in Behavioral interviews",
+              "revised_title_from_ai": "Helping guide the interviewer in Behavioral interviews",
+              "description": "Guiding the interviewer toward the most interesting aspects of your experience is one of the key challenges for candidates. If you don't do this well, interviewers will wander through questions never uncovering the most important parts of your experience!",
+              "url": "https://youtube.com/watch?v=8Pls8YVRYE4",
+              "thumbnail": "https://i.ytimg.com/vi/8Pls8YVRYE4/hqdefault.jpg",
+              "duration_secs": 51,
+              "published_at": "2025-10-24T21:34:44Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 7664,
+              "like_count": 122,
+              "recording_date": null,
+              "sequence": 3,
+              "watched": false,
+              "labels": [
+                "behavioral-fundamentals"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "V0ouYSQxeBc",
+              "title": "How to become good at behavioral interviews",
+              "revised_title_from_ai": "How to become good at behavioral interviews",
+              "description": "A lot of the core skills necessary to progress as an engineer make a showing in your behavioral interview: how do you deliver results under ambiguity, how do you build trust with your leadership, how can you collaborate well with teammates. Being able to introspect on what worked and what didn't is part of the \"inner loop\" of career optimization and, by doing it well, you'll be well-positioned to crush your behavioral interviews.",
+              "url": "https://youtube.com/watch?v=V0ouYSQxeBc",
+              "thumbnail": "https://i.ytimg.com/vi/V0ouYSQxeBc/hqdefault.jpg",
+              "duration_secs": 40,
+              "published_at": "2025-10-28T16:53:41Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 26768,
+              "like_count": 423,
+              "recording_date": null,
+              "sequence": 4,
+              "watched": false,
+              "labels": [
+                "behavioral-fundamentals"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "l7Wxupuhduk",
+              "title": "Answering When You Don't Have Experience",
+              "revised_title_from_ai": "Answering When You Don't Have Experience",
+              "description": "Oftentimes your experience with technologies lags your knowledge. That's ok! Interviewers want to see how you're drawing connections and thinking about tradeoffs.",
+              "url": "https://youtube.com/watch?v=l7Wxupuhduk",
+              "thumbnail": "https://i.ytimg.com/vi/l7Wxupuhduk/hqdefault.jpg",
+              "duration_secs": 66,
+              "published_at": "2025-11-01T15:01:22Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 19582,
+              "like_count": 499,
+              "recording_date": null,
+              "sequence": 5,
+              "watched": false,
+              "labels": [
+                "behavioral-fundamentals"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "bLQdbxkxTAk",
+              "title": "\"Give an Example of Critical Feedback You Received\"",
+              "revised_title_from_ai": "\"Give an Example of Critical Feedback You Received\"",
+              "description": "Answering questions like this is less about obscuring your weaknesses and more about showing that you're proactive in your own development and growth.",
+              "url": "https://youtube.com/watch?v=bLQdbxkxTAk",
+              "thumbnail": "https://i.ytimg.com/vi/bLQdbxkxTAk/hqdefault.jpg",
+              "duration_secs": 60,
+              "published_at": "2026-01-14T17:01:08Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 22070,
+              "like_count": 598,
+              "recording_date": null,
+              "sequence": 6,
+              "watched": false,
+              "labels": [
+                "behavioral-fundamentals"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            }
+          ]
+        },
+        {
+          "id": "be11d156-f2bf-452e-9664-006b189aeed9",
+          "title": "Leadership & People-Manager Interviews",
+          "sequence": 2,
+          "labels": [
+            "leadership-interviews"
+          ],
+          "videos": [
+            {
+              "video_id": "dYrMSHZnqw0",
+              "title": "The Art of People Manager Interviews: Tips and Tricks with Ex-Meta and Amazon Leader",
+              "revised_title_from_ai": "The Art of People Manager Interviews: Tips and Tricks with Ex-Meta and Amazon Leader",
+              "description": "In this conversation, Gilad Naor shares insights on how to excel in manager interviews, emphasizing the importance of demonstrating change, empathy, and specific examples. He discusses the balance between strategy and tactics, identifies common red flags, and offers advice for new managers and those transitioning from long-term roles. The conversation also highlights the necessity of maintaining technical skills and preparing for coding interviews, while addressing the importance of storytelling in conveying managerial experiences.",
+              "url": "https://youtube.com/watch?v=dYrMSHZnqw0",
+              "thumbnail": "https://i.ytimg.com/vi/dYrMSHZnqw0/hqdefault.jpg",
+              "duration_secs": 1968,
+              "published_at": "2025-05-18T16:00:56Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 36426,
+              "like_count": 713,
+              "recording_date": null,
+              "sequence": 1,
+              "watched": false,
+              "labels": [
+                "leadership-interviews"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "lpAsR_z206M",
+              "title": "Red Flags in People Manager Interviews #engineeringleadership #interviews",
+              "revised_title_from_ai": "Red Flags in People Manager Interviews #engineeringleadership #interviews",
+              "description": "In people manager interviews, it's easy to open up negative assumptions from your interviewer if you aren't careful to share your thinking and important behaviors. In the full video, Gilad and Stefan talk about the challenges of people manager interviews and how to navigate these tricky loops.",
+              "url": "https://youtube.com/watch?v=lpAsR_z206M",
+              "thumbnail": "https://i.ytimg.com/vi/lpAsR_z206M/hqdefault.jpg",
+              "duration_secs": 46,
+              "published_at": "2025-05-18T16:30:30Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 37326,
+              "like_count": 460,
+              "recording_date": null,
+              "sequence": 2,
+              "watched": false,
+              "labels": [
+                "leadership-interviews"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "ozIjy8J2t_c",
+              "title": "What are People Manager interviewers assessing?",
+              "revised_title_from_ai": "What are People Manager interviewers assessing?",
+              "description": "Growing talent, performance management, recruiting, collaboration and cross-functional alignment, and execution to land real business impact.",
+              "url": "https://youtube.com/watch?v=ozIjy8J2t_c",
+              "thumbnail": "https://i.ytimg.com/vi/ozIjy8J2t_c/hqdefault.jpg",
+              "duration_secs": 91,
+              "published_at": "2025-11-04T16:01:31Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 10592,
+              "like_count": 136,
+              "recording_date": null,
+              "sequence": 3,
+              "watched": false,
+              "labels": [
+                "leadership-interviews"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "_Zi7DskZSmo",
+              "title": "Tips for Technical Project Retrospectives",
+              "revised_title_from_ai": "Tips for Technical Project Retrospectives",
+              "description": "Got your own questions? Have some thoughts? Add/upvote/answer at hellointerview.com/community/discussion",
+              "url": "https://youtube.com/watch?v=_Zi7DskZSmo",
+              "thumbnail": "https://i.ytimg.com/vi/_Zi7DskZSmo/hqdefault.jpg",
+              "duration_secs": 77,
+              "published_at": "2025-11-07T22:23:39Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 15992,
+              "like_count": 341,
+              "recording_date": null,
+              "sequence": 4,
+              "watched": false,
+              "labels": [
+                "leadership-interviews"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            }
+          ]
+        },
+        {
+          "id": "9b8b57ed-7fd5-4fc0-b61f-f2b374bc5d37",
+          "title": "Career Growth & Interview Dynamics",
+          "sequence": 3,
+          "labels": [
+            "career-growth"
+          ],
+          "videos": [
+            {
+              "video_id": "MqQrnxFPCvE",
+              "title": "Handling Toxic Interviewers",
+              "revised_title_from_ai": "Handling Toxic Interviewers",
+              "description": "Some interviewers just suck. More on how to handle bad interviewers on our blog. https://www.hellointerview.com/blog/dealing-with-bad-interviewers",
+              "url": "https://youtube.com/watch?v=MqQrnxFPCvE",
+              "thumbnail": "https://i.ytimg.com/vi/MqQrnxFPCvE/hqdefault.jpg",
+              "duration_secs": 147,
+              "published_at": "2025-11-02T16:00:38Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 19421,
+              "like_count": 506,
+              "recording_date": null,
+              "sequence": 1,
+              "watched": false,
+              "labels": [
+                "career-growth"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "99Jbzb6uJRs",
+              "title": "Are AI's going to take over behavioral interviews?",
+              "revised_title_from_ai": "Are AI's going to take over behavioral interviews?",
+              "description": "Not right now. Maybe for companies that need to hire candidates in the thousands in short timeframes (like Amazon fulfillment center workers around the holidays). For the rest of jobs (and especially SWE), finding top talent can't be outsourced to mediocre AI.",
+              "url": "https://youtube.com/watch?v=99Jbzb6uJRs",
+              "thumbnail": "https://i.ytimg.com/vi/99Jbzb6uJRs/hqdefault.jpg",
+              "duration_secs": 102,
+              "published_at": "2025-11-05T16:00:12Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 11104,
+              "like_count": 156,
+              "recording_date": null,
+              "sequence": 2,
+              "watched": false,
+              "labels": [
+                "career-growth"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "Axqe_tLUJ6M",
+              "title": "Advice for experienced engineers stuck at Senior",
+              "revised_title_from_ai": "Advice for experienced engineers stuck at Senior",
+              "description": "Getting to staff requires a different set of skills. The same things that got you here won't take you there. Zooming out to get company context, scaling yourself by creating projects with other engineers, and sometimes a change in team and a focus on building leadership perception are key to making a change when you get stuck.",
+              "url": "https://youtube.com/watch?v=Axqe_tLUJ6M",
+              "thumbnail": "https://i.ytimg.com/vi/Axqe_tLUJ6M/hqdefault.jpg",
+              "duration_secs": 117,
+              "published_at": "2025-11-06T16:00:30Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 36433,
+              "like_count": 918,
+              "recording_date": null,
+              "sequence": 3,
+              "watched": false,
+              "labels": [
+                "career-growth"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "LjCVenIae7g",
+              "title": "What interviewers actually expect at mid-level vs senior vs staff engineer",
+              "revised_title_from_ai": "What interviewers actually expect at mid-level vs senior vs staff engineer",
+              "description": "As a senior hiring manager I've noticed that most system design material is written for one level [chuckle), and it's probably not yours.",
+              "url": "https://youtube.com/watch?v=LjCVenIae7g",
+              "thumbnail": "https://i.ytimg.com/vi/LjCVenIae7g/hqdefault.jpg",
+              "duration_secs": 75,
+              "published_at": "2026-04-07T16:06:11Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 31916,
+              "like_count": 994,
+              "recording_date": null,
+              "sequence": 4,
+              "watched": false,
+              "labels": [
+                "career-growth"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            }
+          ]
+        },
+        {
+          "id": "c09cbaec-355c-4cd6-8d8f-6292a811e7aa",
+          "title": "Industry Conversations & Q&A",
+          "sequence": 4,
+          "labels": [
+            "industry-qa"
+          ],
+          "videos": [
+            {
+              "video_id": "3Hb5An-NaX8",
+              "title": "Interview with a Meta EM: AI Impact on SWEs, Team Match, Ramp-Up, How to Learn",
+              "revised_title_from_ai": "Interview with a Meta EM: AI Impact on SWEs, Team Match, Ramp-Up, How to Learn",
+              "description": "In the first of our Hello Interviews series, Stefan interviews Christian, an EM at Meta, about his career path, the role of software engineers in the tech industry, and how to be effective in a big company. ",
+              "url": "https://youtube.com/watch?v=3Hb5An-NaX8",
+              "thumbnail": "https://i.ytimg.com/vi/3Hb5An-NaX8/hqdefault.jpg",
+              "duration_secs": 2714,
+              "published_at": "2024-07-05T18:00:02Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 29374,
+              "like_count": 517,
+              "recording_date": null,
+              "sequence": 1,
+              "watched": false,
+              "labels": [
+                "industry-qa"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "_6TBDy_V-bo",
+              "title": "[Recording] Live Q&A with FAANG Engineers and Managers 2024/07/18",
+              "revised_title_from_ai": "[Recording] Live Q&A with FAANG Engineers and Managers 2024/07/18",
+              "description": "00:00 Intro\n03:19 Preparing for staff interviews\n09:02 Role of a manager\n11:10 How to handle questions you haven't seen before\n16:45 Interview debrief process\n20:50 Question you haven't seen pt. 2\n24:10 What to cover in DB deep dives (system design)\n28:15 How interviewers choose questions\n33:25 Meta team match advice\n37:58 Meta product architecture vs system design\n41:28 Thriving at staff\n44:53 How to deal with tough interviewers \n50:40 Navigating bureaucracy\n53:42 Conclusion",
+              "url": "https://youtube.com/watch?v=_6TBDy_V-bo",
+              "thumbnail": "https://i.ytimg.com/vi/_6TBDy_V-bo/hqdefault.jpg",
+              "duration_secs": 3277,
+              "published_at": "2024-07-19T12:06:11Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 7162,
+              "like_count": 171,
+              "recording_date": null,
+              "sequence": 2,
+              "watched": false,
+              "labels": [
+                "industry-qa"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "7SyaOty3rjk",
+              "title": "[Recording] Live Q&A with FAANG Engineers and Managers 2024/08/15",
+              "revised_title_from_ai": "[Recording] Live Q&A with FAANG Engineers and Managers 2024/08/15",
+              "description": "Live stream with the hellointerview.com co-founders Stefan and Evan. Stefan is a former Amazon and Meta Sr. Hiring Manager and Evan a former Meta Staff Engineer. ",
+              "url": "https://youtube.com/watch?v=7SyaOty3rjk",
+              "thumbnail": "https://i.ytimg.com/vi/7SyaOty3rjk/hqdefault.jpg",
+              "duration_secs": 3676,
+              "published_at": "2024-08-16T12:15:48Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 5262,
+              "like_count": 148,
+              "recording_date": null,
+              "sequence": 3,
+              "watched": false,
+              "labels": [
+                "industry-qa"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "6lj7Z5dWC-I",
+              "title": "[Recording] Live Q&A with FAANG Engineers and Managers 2024/10/17",
+              "revised_title_from_ai": "[Recording] Live Q&A with FAANG Engineers and Managers 2024/10/17",
+              "description": "Live stream with the hellointerview.com co-founders Stefan and Evan. Stefan is a former Amazon Bar Raiser and Meta Sr. Hiring Manager and Evan a former Meta Staff Engineer. ",
+              "url": "https://youtube.com/watch?v=6lj7Z5dWC-I",
+              "thumbnail": "https://i.ytimg.com/vi/6lj7Z5dWC-I/hqdefault.jpg",
+              "duration_secs": 3926,
+              "published_at": "2024-10-18T13:08:28Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 6012,
+              "like_count": 117,
+              "recording_date": null,
+              "sequence": 4,
+              "watched": false,
+              "labels": [
+                "industry-qa"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "qJ9_ABtT6RQ",
+              "title": "Interview with a Databricks Head of Applied AI: Industry Trends, How to Move Ahead, and Keeping Sane",
+              "revised_title_from_ai": "Interview with a Databricks Head of Applied AI: Industry Trends, How to Move Ahead, and Keeping Sane",
+              "description": "Stefan interviews Ritendra Datta who is the head of applied AI at Databricks and formerly Meta eng director and Google senior staff engineer, about the evolution of the industry, how to be effective, and how to position yourself for the future.",
+              "url": "https://youtube.com/watch?v=qJ9_ABtT6RQ",
+              "thumbnail": "https://i.ytimg.com/vi/qJ9_ABtT6RQ/hqdefault.jpg",
+              "duration_secs": 1691,
+              "published_at": "2024-10-22T18:05:00Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 15767,
+              "like_count": 322,
+              "recording_date": null,
+              "sequence": 5,
+              "watched": false,
+              "labels": [
+                "industry-qa"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "FbEKrBcrLiI",
+              "title": "Live Q&A with FAANG Engineers and Managers 2025/01/16",
+              "revised_title_from_ai": "Live Q&A with FAANG Engineers and Managers 2025/01/16",
+              "description": "Live stream with the hellointerview.com co-founders Stefan and Evan. Stefan is a former Amazon Bar Raiser and Meta Sr. Hiring Manager and Evan a former Meta Staff Engineer. ",
+              "url": "https://youtube.com/watch?v=FbEKrBcrLiI",
+              "thumbnail": "https://i.ytimg.com/vi/FbEKrBcrLiI/hqdefault.jpg",
+              "duration_secs": 3825,
+              "published_at": "2025-01-17T13:42:04Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 7295,
+              "like_count": 141,
+              "recording_date": null,
+              "sequence": 6,
+              "watched": false,
+              "labels": [
+                "industry-qa"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            },
+            {
+              "video_id": "2eGYK_-r4Hc",
+              "title": "Live Q&A with FAANG Engineers and Managers 2025/10/30",
+              "revised_title_from_ai": "Live Q&A with FAANG Engineers and Managers 2025/10/30",
+              "description": "Live stream with the hellointerview.com co-founders Stefan and Evan. Stefan is a former Amazon Bar Raiser and Meta Sr. Hiring Manager and Evan a former Meta Staff Engineer. ",
+              "url": "https://youtube.com/watch?v=2eGYK_-r4Hc",
+              "thumbnail": "https://i.ytimg.com/vi/2eGYK_-r4Hc/hqdefault.jpg",
+              "duration_secs": 3651,
+              "published_at": "2025-10-31T00:06:48Z",
+              "tags": [],
+              "category_id": "22",
+              "caption_available": false,
+              "embeddable": true,
+              "view_count": 9604,
+              "like_count": 174,
+              "recording_date": null,
+              "sequence": 7,
+              "watched": false,
+              "labels": [
+                "industry-qa"
+              ],
+              "last_played_position_secs": null,
+              "last_played_at": null
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
