@@ -424,6 +424,27 @@ function FolderPreviewTree({ node, landingPath, selectedPath, onSelect, depth = 
   </div>
 }
 
+function PreviewOnThisPage({ note, headings, headingIdPrefix }) {
+  const [query, setQuery] = React.useState('')
+  React.useEffect(() => setQuery(''), [note?.path])
+  const normalizedQuery = query.trim().toLowerCase()
+  const visibleHeadingTree = filterHeadingTree(headingTree(headings), normalizedQuery)
+  const selectHeading = heading => document.getElementById(`${headingIdPrefix}${heading.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  return <aside className="notes-preview-outline" aria-label="On this page">
+    <div className="notes-preview-outline-header"><span>On this page</span><strong>{note?.title || 'Note outline'}</strong></div>
+    <label className="notes-outline-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg><input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Find a heading…" aria-label="Search headings in this preview"/></label>
+    {visibleHeadingTree.length ? <nav><OutlineHeadingTree nodes={visibleHeadingTree} onSelectHeading={selectHeading}/></nav> : <p>{headings.length ? 'No headings match your search.' : 'No headings in this note.'}</p>}
+  </aside>
+}
+
+function PreviewMarkdownLayout({ note, headings, index, onOpenLink }) {
+  const headingIdPrefix = 'notes-link-preview-heading-'
+  return <div className="notes-preview-markdown-layout">
+    <div className="notes-preview-markdown-content"><article className="markdown-body notes-link-note-preview"><MarkdownContent note={note} headings={headings} headingIdPrefix={headingIdPrefix} index={index} onOpenLink={onOpenLink}/></article></div>
+    <PreviewOnThisPage note={note} headings={headings} headingIdPrefix={headingIdPrefix}/>
+  </div>
+}
+
 function LinkPreviewDrawer({ preview, repositoryId, source, index, onClose, onNavigate, onPreviewLink, canGoBack, onBack }) {
   const [previewNote, setPreviewNote] = React.useState(null)
   const [folderSelectedPath, setFolderSelectedPath] = React.useState('')
@@ -469,8 +490,8 @@ function LinkPreviewDrawer({ preview, repositoryId, source, index, onClose, onNa
         <button type="button" className="notes-link-close" onClick={onClose} aria-label="Close link preview">×</button>
       </header>
       <div className="notes-link-drawer-body">
-        {preview.type === 'note' && (loading ? <div className="note-reader-status"><span className="spinner" /> Loading linked note…</div> : error ? <DismissibleError message={error}/> : previewNote ? <article className="markdown-body notes-link-note-preview"><MarkdownContent note={previewNote} headings={previewHeadings} index={index} onOpenLink={onPreviewLink}/></article> : null)}
-        {preview.type === 'folder' && <div className="notes-folder-master-detail"><aside className="notes-folder-master"><header><span><LinkBrandIcon type="folder"/></span><div><h2>{preview.title}</h2><p>{folderNotes.length} Markdown notes</p></div></header><div className="notes-folder-master-tree">{folderTree && <FolderPreviewTree node={folderTree} landingPath={preview.path} selectedPath={folderSelectedPath} onSelect={setFolderSelectedPath}/>}</div></aside><section className="notes-folder-detail"><header><span>Note preview</span><strong>{previewNote?.title || folderNotes.find(item => item.path === folderSelectedPath)?.title || 'Select a note'}</strong><small>{folderSelectedPath}</small></header><div className="notes-folder-detail-content">{loading ? <div className="note-reader-status"><span className="spinner" /> Loading note…</div> : error ? <DismissibleError message={error}/> : previewNote ? <article className="markdown-body notes-link-note-preview"><MarkdownContent note={previewNote} headings={previewHeadings} index={index} onOpenLink={onPreviewLink}/></article> : <div className="note-reader-status">Select a note from the folder tree.</div>}</div></section></div>}
+        {preview.type === 'note' && (loading ? <div className="note-reader-status"><span className="spinner" /> Loading linked note…</div> : error ? <DismissibleError message={error}/> : previewNote ? <PreviewMarkdownLayout note={previewNote} headings={previewHeadings} index={index} onOpenLink={onPreviewLink}/> : null)}
+        {preview.type === 'folder' && <div className="notes-folder-master-detail"><aside className="notes-folder-master"><header><span><LinkBrandIcon type="folder"/></span><div><h2>{preview.title}</h2><p>{folderNotes.length} Markdown notes</p></div></header><div className="notes-folder-master-tree">{folderTree && <FolderPreviewTree node={folderTree} landingPath={preview.path} selectedPath={folderSelectedPath} onSelect={setFolderSelectedPath}/>}</div></aside><section className="notes-folder-detail"><header><span>Note preview</span><strong>{previewNote?.title || folderNotes.find(item => item.path === folderSelectedPath)?.title || 'Select a note'}</strong><small>{folderSelectedPath}</small></header><div className="notes-folder-detail-content">{loading ? <div className="note-reader-status"><span className="spinner" /> Loading note…</div> : error ? <DismissibleError message={error}/> : previewNote ? <PreviewMarkdownLayout note={previewNote} headings={previewHeadings} index={index} onOpenLink={onPreviewLink}/> : <div className="note-reader-status">Select a note from the folder tree.</div>}</div></section></div>}
         {preview.type === 'youtube-post' && <div className="notes-youtube-post-preview"><span><LinkBrandIcon type="youtube-post"/></span><h2>Community post</h2><p>YouTube does not provide a video-player embed for Community posts. Open the post on YouTube to view its text, images, poll, and discussion.</p></div>}
         {preview.type === 'youtube' && <div className="notes-external-preview"><iframe key={preview.url} className="notes-external-frame" src={youtubeEmbedUrl(preview.videoId)} title={`${labels.youtube}: ${preview.title || preview.hostname}`} loading="eager" referrerPolicy="strict-origin-when-cross-origin" sandbox="allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-presentation allow-same-origin allow-scripts" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen/></div>}
         {!['note', 'folder', 'youtube', 'youtube-post'].includes(preview.type) && <div className="notes-external-preview"><ExternalReaderPreview preview={preview}/></div>}
@@ -485,12 +506,13 @@ function LinkPreviewDrawer({ preview, repositoryId, source, index, onClose, onNa
   </div>
 }
 
-function MarkdownContent({ note, headings, index, onOpenLink, titleNavigation }) {
+function MarkdownContent({ note, headings, headingIdPrefix = '', index, onOpenLink, titleNavigation }) {
   let headingIndex = 0
   let titleNavigationRendered = false
   const heading = level => ({ children, ...props }) => {
     const Tag = `h${level}`
-    const id = headings[headingIndex]?.id
+    const headingId = headings[headingIndex]?.id
+    const id = headingId ? `${headingIdPrefix}${headingId}` : undefined
     headingIndex += 1
     if (level === 1 && titleNavigation && !titleNavigationRendered) {
       titleNavigationRendered = true
@@ -568,11 +590,11 @@ function filterHeadingTree(nodes, query) {
   })
 }
 
-function OutlineHeadingTree({ nodes, depth = 0, onNavigate }) {
+function OutlineHeadingTree({ nodes, depth = 0, onNavigate, onSelectHeading }) {
   return <ol className={depth === 0 ? 'notes-outline-tree' : 'notes-outline-branch'}>{nodes.map(node => {
     return <li key={node.id}>
-      <button type="button" className={`outline-heading-level-${node.level}`} onClick={() => { document.getElementById(node.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); onNavigate?.() }} title={node.title}><span className="notes-outline-heading-title">{node.title}</span></button>
-      {node.children.length > 0 && <OutlineHeadingTree nodes={node.children} depth={depth + 1} onNavigate={onNavigate}/>}
+      <button type="button" className={`outline-heading-level-${node.level}`} onClick={() => { if (onSelectHeading) onSelectHeading(node); else document.getElementById(node.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); onNavigate?.() }} title={node.title}><span className="notes-outline-heading-title">{node.title}</span></button>
+      {node.children.length > 0 && <OutlineHeadingTree nodes={node.children} depth={depth + 1} onNavigate={onNavigate} onSelectHeading={onSelectHeading}/>}
     </li>
   })}</ol>
 }
@@ -647,7 +669,7 @@ function RepositoryDropdown({ repositories, selected, onSelect }) {
     {open && <div className="notes-repository-menu" role="menu" aria-label="Switch notes repository">
       <strong>Switch learning notes</strong>
       <label><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg><input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Search repositories…"/></label>
-      <div className="notes-repository-menu-list">{visible.map(repository => <button type="button" role="menuitem" style={repositoryStyle(repository.id)} className={repository.id === selected?.id ? 'active' : ''} key={repository.id} onClick={() => choose(repository)}><span className="notes-repository-option-visual"><RepositoryMark repositoryId={repository.id}/><span className="notes-author-avatar" aria-hidden="true"><b>{repository.owner.slice(0, 1).toUpperCase()}</b><img src={`https://github.com/${encodeURIComponent(repository.owner)}.png?size=96`} alt="" loading="lazy"/></span></span><span className="notes-repository-option-copy"><b>{repository.name}</b><small>{repository.description}</small><span className="notes-repository-option-author">@{repository.owner}</span></span></button>)}{!visible.length && <p>No repositories match your search.</p>}</div>
+      <div className="notes-repository-menu-list">{visible.map(repository => <button type="button" role="menuitem" style={repositoryStyle(repository.id)} className={repository.id === selected?.id ? 'active' : ''} key={repository.id} onClick={() => choose(repository)}><span className="notes-repository-option-visual"><span className="notes-author-avatar" aria-hidden="true"><b>{repository.owner.slice(0, 1).toUpperCase()}</b><img src={`https://github.com/${encodeURIComponent(repository.owner)}.png?size=96`} alt="" loading="lazy"/></span></span><span className="notes-repository-option-copy"><b>{repository.name}</b><small>{repository.description}</small><span className="notes-repository-option-author">@{repository.owner}</span></span></button>)}{!visible.length && <p>No repositories match your search.</p>}</div>
     </div>}
   </div>
 }

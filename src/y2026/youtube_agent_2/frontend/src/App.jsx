@@ -29,17 +29,45 @@ import appLogo from '../app-logo.png'
 
 const AI_ENABLED = import.meta.env.VITE_ENABLE_AI === 'true'
 
-function useTheme() {
-  const [theme, setTheme] = React.useState(() => localStorage.getItem('yt_theme') || 'light')
+function useAppearance() {
+  const storedTheme = React.useMemo(() => localStorage.getItem('yt_theme'), [])
+  const [theme, setTheme] = React.useState(() => storedTheme === 'pale' ? 'light' : storedTheme || 'system')
+  const [intensity, setIntensity] = React.useState(() => localStorage.getItem('yt_color_intensity') || (storedTheme === 'pale' ? 'pale' : 'balanced'))
+  const [contrast, setContrast] = React.useState(() => localStorage.getItem('yt_contrast') || 'standard')
+  const [accent, setAccent] = React.useState(() => localStorage.getItem('yt_accent') || 'heritage')
+  const [systemDark, setSystemDark] = React.useState(() => window.matchMedia('(prefers-color-scheme: dark)').matches)
 
   React.useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme)
+    const media = window.matchMedia('(prefers-color-scheme: dark)')
+    const updateSystemTheme = event => setSystemDark(event.matches)
+    setSystemDark(media.matches)
+    media.addEventListener('change', updateSystemTheme)
+    return () => media.removeEventListener('change', updateSystemTheme)
+  }, [])
+
+  const resolvedTheme = theme === 'system' ? (systemDark ? 'dark' : 'light') : theme
+
+  React.useEffect(() => {
+    const root = document.documentElement
+    root.setAttribute('data-theme', resolvedTheme)
+    root.setAttribute('data-theme-mode', theme)
+    root.setAttribute('data-intensity', intensity)
+    root.setAttribute('data-contrast', contrast)
+    root.setAttribute('data-accent', accent)
     localStorage.setItem('yt_theme', theme)
-  }, [theme])
+    localStorage.setItem('yt_color_intensity', intensity)
+    localStorage.setItem('yt_contrast', contrast)
+    localStorage.setItem('yt_accent', accent)
+  }, [accent, contrast, intensity, resolvedTheme, theme])
 
-  const toggleTheme = () => setTheme(current => current === 'light' ? 'dark' : 'light')
+  const resetAppearance = () => {
+    setTheme('system')
+    setIntensity('balanced')
+    setContrast('standard')
+    setAccent('heritage')
+  }
 
-  return { theme, setTheme, toggleTheme }
+  return { theme, setTheme, intensity, setIntensity, contrast, setContrast, accent, setAccent, resetAppearance }
 }
 
 function useFontSize() {
@@ -55,7 +83,7 @@ function useFontSize() {
 
 function ThemeIcon({ theme }) {
   if (theme === 'dark') return <svg viewBox="0 0 24 24"><path d="M20.5 15.5A8.5 8.5 0 0 1 8.5 3.5 8.5 8.5 0 1 0 20.5 15.5Z" /></svg>
-  if (theme === 'pale') return <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" /><path d="M12 2v2m0 16v2M2 12h2m16 0h2" /></svg>
+  if (theme === 'system') return <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8m-4-4v4"/></svg>
   return <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" /><path d="M12 1v3m0 16v3M1 12h3m16 0h3" /></svg>
 }
 
@@ -430,7 +458,7 @@ function GlobalSearchDrawer({ plans, onClose, onNavigate }) {
 }
 
 function AppLayout() {
-  const { theme, setTheme } = useTheme()
+  const { theme, setTheme, intensity, setIntensity, contrast, setContrast, accent, setAccent, resetAppearance } = useAppearance()
   const { fontSize, setFontSize } = useFontSize()
   const dispatch = useDispatch()
   const plans = useSelector(state => state.plans.items)
@@ -866,7 +894,20 @@ function AppLayout() {
         <div className="drawer-footer"><button className="btn btn-secondary" onClick={closeCreatePlanDrawer} disabled={creatingPlan}>Cancel</button><button className="btn btn-primary" onClick={submitNewPlan} disabled={creatingPlan}>{creatingPlan ? <><span className="spinner" /> Creating...</> : 'Create Plan'}</button></div>
       </aside></>}
       {AI_ENABLED && auth && showAiModelDrawer && <AiModelConfigDrawer onClose={() => setShowAiModelDrawer(false)} />}
-      {showSettingsDrawer && <><div className="drawer-overlay" onClick={() => setShowSettingsDrawer(false)} /><aside className="drawer settings-drawer" role="dialog" aria-modal="true" aria-labelledby="settings-drawer-title"><div className="drawer-header"><div><h2 id="settings-drawer-title">Settings</h2><p>Personalize your learning workspace.</p></div><button className="btn btn-secondary btn-sm" onClick={() => setShowSettingsDrawer(false)} aria-label="Close"><CloseIcon /></button></div><div className="drawer-body settings-drawer-body"><section className="settings-section"><div><h3>Font size</h3><p>Adjust text sizing across the application.</p></div><div className="settings-option-grid" role="group" aria-label="Global font size">{[['small', 'Small', 'Aa'], ['medium', 'Medium', 'Aa'], ['large', 'Large', 'Aa']].map(([size, label, sample]) => <button type="button" key={size} className={fontSize === size ? 'active' : ''} onClick={() => setFontSize(size)} aria-pressed={fontSize === size}><span className={`settings-font-sample ${size}`}>{sample}</span><strong>{label}</strong></button>)}</div></section><section className="settings-section"><div><h3>Theme</h3><p>Choose the color theme used throughout the application.</p></div><div className="settings-option-grid" role="group" aria-label="Theme">{['light', 'pale', 'dark'].map(value => <button type="button" key={value} className={theme === value ? 'active' : ''} onClick={() => setTheme(value)} aria-pressed={theme === value}><span className={`settings-theme-preview ${value}`}><ThemeIcon theme={value} /></span><strong>{value}</strong></button>)}</div></section></div><div className="drawer-footer"><button className="btn btn-primary" onClick={() => setShowSettingsDrawer(false)}>Done</button></div></aside></>}
+      {showSettingsDrawer && <>
+        <div className="drawer-overlay" onClick={() => setShowSettingsDrawer(false)} />
+        <aside className="drawer settings-drawer" role="dialog" aria-modal="true" aria-labelledby="settings-drawer-title">
+          <div className="drawer-header"><div><h2 id="settings-drawer-title">Appearance</h2><p>Changes preview instantly and stay on this device.</p></div><button className="btn btn-secondary btn-sm" onClick={() => setShowSettingsDrawer(false)} aria-label="Close"><CloseIcon /></button></div>
+          <div className="drawer-body settings-drawer-body">
+            <section className="settings-section"><div><h3>Mode</h3><p>Follow your device or choose a fixed light or dark appearance.</p></div><div className="settings-option-grid" role="group" aria-label="Appearance mode">{['system', 'light', 'dark'].map(value => <button type="button" key={value} className={theme === value ? 'active' : ''} onClick={() => setTheme(value)} aria-pressed={theme === value}><span className={`settings-theme-preview ${value}`}><ThemeIcon theme={value} /></span><strong>{value}</strong></button>)}</div></section>
+            <section className="settings-section"><div><h3>Color intensity</h3><p>Control how softly or vividly surfaces use the selected accent.</p></div><div className="settings-option-grid" role="group" aria-label="Color intensity">{['pale', 'balanced', 'vibrant'].map(value => <button type="button" key={value} className={intensity === value ? 'active' : ''} onClick={() => setIntensity(value)} aria-pressed={intensity === value}><span className={`settings-intensity-preview ${value}`}><i/><i/><i/></span><strong>{value}</strong></button>)}</div></section>
+            <section className="settings-section"><div><h3>Contrast</h3><p>Increase text and edge separation when you need stronger visibility.</p></div><div className="settings-option-grid two" role="group" aria-label="Contrast">{['standard', 'high'].map(value => <button type="button" key={value} className={contrast === value ? 'active' : ''} onClick={() => setContrast(value)} aria-pressed={contrast === value}><span className={`settings-contrast-preview ${value}`}><i/><i/></span><strong>{value}</strong></button>)}</div></section>
+            <section className="settings-section"><div><h3>Accent</h3><p>Apply one accent consistently to navigation, focus states, and controls.</p></div><div className="settings-option-grid four" role="group" aria-label="Accent color">{[['heritage', '#8b5e34'], ['violet', '#7c3aed'], ['ocean', '#0284c7'], ['emerald', '#059669']].map(([value, color]) => <button type="button" key={value} className={accent === value ? 'active' : ''} onClick={() => setAccent(value)} aria-pressed={accent === value}><span className="settings-accent-preview" style={{ '--settings-accent': color }}><i/></span><strong>{value}</strong></button>)}</div></section>
+            <section className="settings-section"><div><h3>Font size</h3><p>Adjust text sizing across the application.</p></div><div className="settings-option-grid" role="group" aria-label="Global font size">{[['small', 'Small', 'Aa'], ['medium', 'Medium', 'Aa'], ['large', 'Large', 'Aa']].map(([size, label, sample]) => <button type="button" key={size} className={fontSize === size ? 'active' : ''} onClick={() => setFontSize(size)} aria-pressed={fontSize === size}><span className={`settings-font-sample ${size}`}>{sample}</span><strong>{label}</strong></button>)}</div></section>
+          </div>
+          <div className="drawer-footer settings-drawer-footer"><button className="btn btn-secondary" onClick={() => { resetAppearance(); setFontSize('medium') }}>Reset</button><button className="btn btn-primary" onClick={() => setShowSettingsDrawer(false)}>Done</button></div>
+        </aside>
+      </>}
       {auth && showSourceSyncDrawer && <><div className="drawer-overlay" onClick={() => setShowSourceSyncDrawer(false)} /><aside className="drawer source-sync-drawer"><div className="drawer-header"><div><h2>Source feed inbox</h2><p>Pull new YouTube feeds, then route them to a course for review.</p></div><button className="btn btn-secondary btn-sm" onClick={() => setShowSourceSyncDrawer(false)} aria-label="Close"><CloseIcon /></button></div><LoadingBar active={sourceInboxLoading} label={sourceInboxLoadingLabel} className="drawer-loading-wait-bar" /><div className="drawer-body source-sync-body">
         <DismissibleError message={sourceSyncError} />
         <section className="source-sync-channel-section">
