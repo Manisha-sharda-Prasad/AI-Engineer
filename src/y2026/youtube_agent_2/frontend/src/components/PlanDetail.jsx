@@ -96,7 +96,7 @@ function CollapsedVideoDescription({ description, onShowMore }) {
   </>
 }
 
-export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId, workspaceActionHost, workspaceOutlineHost, workspaceToolbarHost, isCourseEditing = false, onToggleCourseEditing, onActiveModuleChange, onActiveVideoChange }) {
+export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId, workspaceActionHost, workspaceOutlineHost, workspaceToolbarHost, requestedModuleSelection, isCourseEditing = false, onToggleCourseEditing, onActiveModuleChange, onActiveVideoChange }) {
   const dispatch = useDispatch()
   const rememberedWorkspace = useSelector(state => workspaceCourseId
     ? selectWorkspaceState(state, plan.id, workspaceCourseId)
@@ -632,6 +632,18 @@ export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId
   const activeModuleSequence = activeModule ? (activeModule.sequence || activeCourse.modules.indexOf(activeModule) + 1) : null
   const activeVideoSequence = activeVideo && activeModule ? (activeVideo.sequence || activeModule.videos.findIndex(video => video.video_id === activeVideo.video_id) + 1) : null
   useEffect(() => {
+    if (!workspaceCourseId || !requestedModuleSelection?.moduleId) return
+    const requestedModule = activeCourse?.modules?.find(module => module.id === requestedModuleSelection.moduleId)
+    if (!requestedModule) return
+    const requestedVideo = requestedModule.videos?.find(video => video.video_id === requestedModuleSelection.videoId)
+    const currentVideo = requestedModule.videos?.find(video => video.video_id === activeVideo?.video_id)
+    const nextVideo = requestedVideo || currentVideo || requestedModule.videos?.[0] || null
+    setExpandedModules({ [requestedModule.id]: true })
+    setActiveVideo(nextVideo)
+    onActiveModuleChange?.({ sequence: requestedModule.sequence || activeCourse.modules.indexOf(requestedModule) + 1, total: activeCourse.modules.length, title: requestedModule.title })
+    onActiveVideoChange?.(nextVideo ? { sequence: nextVideo.sequence || requestedModule.videos.indexOf(nextVideo) + 1, total: requestedModule.videos.length, title: nextVideo.title } : null)
+  }, [requestedModuleSelection?.requestId])
+  useEffect(() => {
     if (!activeModule?.id) return
     const desktopTreeVisible = window.matchMedia('(min-width: 901px)').matches
     if (!desktopTreeVisible && !showModuleTree) return
@@ -703,11 +715,11 @@ export default function PlanDetail({ plan, onUpdate, onDelete, workspaceCourseId
   const workspaceFilterAction = activeCourse && <button className="btn btn-secondary btn-sm icon-button" title="Filter videos" aria-label="Filter videos" disabled={bulkVideoUpdating} onClick={() => setShowVideoFilter(true)}><WorkspaceIcon name="filter" /></button>
   const workspaceActions = activeCourse && <>{!workspaceOutlineHost && workspaceOutlineAction}{workspaceFilterAction}</>
   const workspaceTreeToolbar = activeCourse && <div className="workspace-tree-toolbar">
+    <div className="workspace-module-search"><input type="search" value={courseSearch} onChange={event => setCourseSearch(event.target.value)} placeholder="Search modules or videos..." aria-label="Search modules or videos" disabled={bulkVideoUpdating} /></div>
     <div className="workspace-tree-actions">
       <button type="button" className="btn btn-secondary btn-sm icon-button" title={allModulesExpanded ? 'Collapse all modules' : 'Expand all modules'} aria-label={allModulesExpanded ? 'Collapse all modules' : 'Expand all modules'} disabled={bulkVideoUpdating} onClick={allModulesExpanded ? collapseAllModules : expandAllModules}><span className={`toolbar-expand-icon ${allModulesExpanded ? 'expanded' : ''}`} aria-hidden="true">▶</span></button>
       <button type="button" className={`btn btn-secondary btn-sm icon-button ${isCourseEditing ? 'active' : ''}`} title={isCourseEditing ? 'Finish editing course outline' : 'Edit course outline'} aria-label={isCourseEditing ? 'Finish editing course outline' : 'Edit course outline'} aria-pressed={isCourseEditing} disabled={bulkVideoUpdating} onClick={onToggleCourseEditing}><WorkspaceIcon name="edit" /></button>
     </div>
-    <div className="workspace-module-search"><input type="search" value={courseSearch} onChange={event => setCourseSearch(event.target.value)} placeholder="Search modules or videos..." aria-label="Search modules or videos" disabled={bulkVideoUpdating} /></div>
     {isCourseEditing && <div className="workspace-inline-bulk-actions">
       <span title={`${selectedVideoIds.length} selected`}>{selectedVideoIds.length}</span>
       <div className="workspace-bulk-action-picker" onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setWorkspaceBulkMenuOpen(false) }}>

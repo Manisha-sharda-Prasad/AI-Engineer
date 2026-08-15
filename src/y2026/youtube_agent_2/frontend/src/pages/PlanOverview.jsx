@@ -3,9 +3,10 @@ import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, useParams } from "react-router-dom";
 import AddCourseModal from "../components/AddCourseModal";
 import AiCourseModal from "../components/AiCourseModal";
-import { updatePlan } from "../store/plansSlice";
+import { deletePlan as removePlan, updatePlan } from "../store/plansSlice";
 import {
   deleteCourses,
+  deletePlan as deletePlanRequest,
   publishPlan,
   replacePlan,
   unpublishPlan,
@@ -18,6 +19,7 @@ import EditMetadataDrawer from "../components/EditMetadataDrawer";
 import LoadingBar from "../components/LoadingBar";
 import PrivatePlanSyncStatus from "../components/PrivatePlanSyncStatus";
 import { CloseIcon, EditIcon, LabelIcon, WorkspaceIcon } from "../components/Icons";
+import WorkspaceBookmarksDrawer, { collectBookmarkItems } from "../components/WorkspaceBookmarksDrawer";
 import {
   CourseViewDropdown,
   LearningPlanDropdown,
@@ -26,6 +28,7 @@ import {
   rememberLearningLocation,
   selectPlanPageState,
   updatePlanPage,
+  updateWorkspace,
 } from "../store/learningUiSlice";
 import { getProgressEligibleVideos, getVideoProgress } from "../utils/videoProgress";
 
@@ -443,7 +446,7 @@ function LearningPlanOverviewDrawer({
         <div className="drawer-header">
           <h2>Plan information</h2>
           <div className="plan-info-drawer-actions">
-            <button className="btn btn-secondary btn-sm" onClick={onEdit}><EditIcon /> Edit plan</button>
+            <button className="btn btn-secondary btn-sm" onClick={onEdit}><EditIcon /></button>
             <button className="btn btn-secondary btn-sm" onClick={onClose} aria-label="Close plan information"><CloseIcon /></button>
           </div>
         </div>
@@ -635,7 +638,7 @@ function LearningPlanOverviewDrawer({
   );
 }
 
-function PrivatePlanActionMenu({ label, icon, tone = "secondary", children }) {
+function PrivatePlanActionMenu({ label, icon, tone = "secondary", iconOnly = false, children }) {
   const [open, setOpen] = React.useState(false);
   const menuRef = React.useRef(null);
 
@@ -648,17 +651,19 @@ function PrivatePlanActionMenu({ label, icon, tone = "secondary", children }) {
   }, []);
 
   return (
-    <div className={`private-plan-action-menu is-${tone}`} ref={menuRef}>
+    <div className={`private-plan-action-menu is-${tone} ${iconOnly ? "icon-only" : ""}`} ref={menuRef}>
       <button
         type="button"
-        className="private-plan-action-menu-trigger"
+        className={`private-plan-action-menu-trigger ${iconOnly ? "icon-button" : ""}`}
+        title={iconOnly ? label : undefined}
+        aria-label={iconOnly ? label : undefined}
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((current) => !current)}
       >
         {icon}
-        <span>{label}</span>
-        <svg className="private-plan-action-menu-chevron" viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4" /></svg>
+        {!iconOnly && <span>{label}</span>}
+        {!iconOnly && <svg className="private-plan-action-menu-chevron" viewBox="0 0 16 16" aria-hidden="true"><path d="m4 6 4 4 4-4" /></svg>}
       </button>
       {open && <div className="private-plan-action-menu-popover" role="menu" onClick={(event) => {
         if (event.target.closest("button")) setOpen(false);
@@ -699,6 +704,9 @@ export default function PlanOverview({ loading = false }) {
   const [showSortFilter, setShowSortFilter] = React.useState(false);
   const [labelSearch, setLabelSearch] = React.useState("");
   const [showMobileActions, setShowMobileActions] = React.useState(false);
+  const [showBookmarks, setShowBookmarks] = React.useState(false);
+  const [bookmarkQuery, setBookmarkQuery] = React.useState("");
+  const [bookmarkType, setBookmarkType] = React.useState("all");
   const [selectedCourseKeys, setSelectedCourseKeys] = React.useState([]);
   const [bulkAction, setBulkAction] = React.useState("label:mark_for_delete");
   const [bulkCustomLabel, setBulkCustomLabel] = React.useState("");
@@ -903,9 +911,70 @@ export default function PlanOverview({ loading = false }) {
     ),
     0,
   );
+  const planProgressVideos = getProgressEligibleVideos(
+    (plan?.courses || []).flatMap((course) =>
+      (course.modules || []).flatMap((module) => module.videos || []),
+    ),
+  );
+  const {
+    watched: planWatchedVideoCount,
+    total: planProgressVideoCount,
+    progress: planProgress,
+  } = getVideoProgress(planProgressVideos);
+  const bookmarkItems = collectBookmarkItems(isAllPlans ? allPlans : [plan]);
+
+  const openBookmark = (item) => {
+    setShowBookmarks(false);
+    setShowMobileActions(false);
+    const ownerPlanId = item.plan.id;
+    const destination = `/plans/${ownerPlanId}/courses/${item.course.id}/learn`;
+    if (item.type !== "course") {
+      const videoId = item.video?.video_id || item.module.videos?.[0]?.video_id || null;
+      dispatch(updateWorkspace({
+        planId: ownerPlanId,
+        courseId: item.course.id,
+        changes: {
+          activeModuleId: item.module.id,
+          activeVideoId: videoId,
+          expandedModuleIds: [item.module.id],
+        },
+      }));
+    }
+    navigate(destination);
+  };
+
+  const openBookmarks = () => {
+    setBookmarkQuery("");
+    setBookmarkType("all");
+    setShowMobileActions(false);
+    setShowBookmarks(true);
+  };
 
   const renderCourseActions = (className = "") => (
     <div className={`plan-action-panel ${className}`}>
+      <input
+        value={query}
+        onChange={(event) => updatePageState({ query: event.target.value })}
+        placeholder="Search courses..."
+        aria-label="Search courses"
+      />
+      <button
+        className="btn btn-secondary btn-sm icon-button workspace-bookmarks-button"
+        title="Open bookmarks"
+        aria-label="Open bookmarks"
+        onClick={openBookmarks}
+      >
+        <LabelIcon label="bookmarked" />
+        {bookmarkItems.length > 0 && <span className="workspace-bookmarks-count">{bookmarkItems.length}</span>}
+      </button>
+      <button
+        className={`btn btn-secondary btn-sm icon-button ${labelFilters.length ? "active" : ""}`}
+        title="Sort and filter courses"
+        aria-label="Sort and filter courses"
+        onClick={() => setShowSortFilter(true)}
+      >
+        <WorkspaceIcon name="sort" />
+      </button>
       {!isAllPlans && <button
         className="btn btn-secondary btn-sm icon-button"
         title="Learning plan overview"
@@ -947,21 +1016,6 @@ export default function PlanOverview({ loading = false }) {
         <span>AI Request Status</span>
       </button>}
 
-      <input
-        value={query}
-        onChange={(event) => updatePageState({ query: event.target.value })}
-        placeholder="Search courses..."
-        aria-label="Search courses"
-      />
-      <button
-        className={`btn btn-secondary btn-sm icon-button ${labelFilters.length ? "active" : ""}`}
-        title="Sort and Filter ourses"
-        aria-label="Sort and filter courses"
-        onClick={() => setShowSortFilter(true)}
-      >
-        <WorkspaceIcon name="sort" />
-      </button>
-
     </div>
   );
 
@@ -1001,6 +1055,15 @@ export default function PlanOverview({ loading = false }) {
           aria-label="Search courses"
         />
         <button
+          className="btn btn-secondary btn-sm icon-button workspace-bookmarks-button"
+          title="Open bookmarks"
+          aria-label="Open bookmarks"
+          onClick={openBookmarks}
+        >
+          <LabelIcon label="bookmarked" />
+          {bookmarkItems.length > 0 && <span className="workspace-bookmarks-count">{bookmarkItems.length}</span>}
+        </button>
+        <button
           className={`btn btn-secondary btn-sm icon-button ${labelFilters.length ? "active" : ""}`}
           title="Sort and filter courses"
           aria-label="Sort and filter courses"
@@ -1024,9 +1087,7 @@ export default function PlanOverview({ loading = false }) {
         >
           <WorkspaceIcon name="share" />
         </button>
-      </div>
-      <div className="private-plan-hero-action-bottom">
-        <PrivatePlanActionMenu label="Add course" tone="primary" icon={<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>}>
+        <PrivatePlanActionMenu label="Add course" tone="primary" iconOnly icon={<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>}>
           <button type="button" role="menuitem" onClick={() => setShowManual(true)}>
             <WorkspaceIcon name="manual" />
             <span><strong>Manual course</strong><small>Build a course and add its content yourself</small></span>
@@ -1036,7 +1097,7 @@ export default function PlanOverview({ loading = false }) {
             <span><strong>AI suggested course</strong><small>Generate a course structure with AI</small></span>
           </button>}
         </PrivatePlanActionMenu>
-        <PrivatePlanActionMenu label="Manage" icon={<WorkspaceIcon name="menu" />}>
+        <PrivatePlanActionMenu label="Manage" iconOnly icon={<WorkspaceIcon name="menu" />}>
           <div className="private-plan-manage-options">{renderCourseSelectionControls()}</div>
           {AI_ENABLED && <button type="button" role="menuitem"
             onClick={() => navigate(`/plans/${planId}/ai-requests`)}
@@ -1045,6 +1106,18 @@ export default function PlanOverview({ loading = false }) {
             <span><strong>AI request status</strong><small>Review generated-course requests</small></span>
           </button>}
         </PrivatePlanActionMenu>
+        <span
+          className="module-progress-ring private-plan-progress-ring"
+          style={{ "--module-progress": `${planProgress}%` }}
+          title={`${planWatchedVideoCount} of ${planProgressVideoCount} plan videos watched`}
+          role="progressbar"
+          aria-label={`${plan.name} progress`}
+          aria-valuemin="0"
+          aria-valuemax="100"
+          aria-valuenow={planProgress}
+        >
+          <span>{planProgress}%</span>
+        </span>
       </div>
     </div>
   );
@@ -1387,6 +1460,17 @@ export default function PlanOverview({ loading = false }) {
           </aside>
         </>
       )}
+      {showBookmarks && (
+        <WorkspaceBookmarksDrawer
+          items={bookmarkItems}
+          query={bookmarkQuery}
+          onQueryChange={setBookmarkQuery}
+          type={bookmarkType}
+          onTypeChange={setBookmarkType}
+          onOpen={openBookmark}
+          onClose={() => setShowBookmarks(false)}
+        />
+      )}
       {!isAllPlans && showManual && (
         <AddCourseModal
           plan={plan}
@@ -1427,6 +1511,17 @@ export default function PlanOverview({ loading = false }) {
             const response = await updatePlanLabels(plan.id, form.labels);
             dispatch(updatePlan(response.plan));
             setShowPlanEdit(false);
+          }}
+          onDelete={async () => {
+            if (!window.confirm(`Delete learning plan “${plan.name}”? This permanently removes all of its courses, modules, and videos.`)) return;
+            try {
+              await deletePlanRequest(plan.id);
+              dispatch(removePlan(plan.id));
+              setShowPlanEdit(false);
+              navigate("/plans");
+            } catch (error) {
+              window.alert(error.message || "Unable to delete this learning plan.");
+            }
           }}
         />
       )}

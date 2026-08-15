@@ -237,6 +237,45 @@ export function CourseDropdown({ plan, course, mode = 'overview', onSelect }) {
   )
 }
 
+export function ModuleDropdown({ course, module, onSelect }) {
+  const [open, setOpen] = React.useState(false)
+  const pickerRef = React.useRef(null)
+  const modules = [...(course?.modules || [])].sort((left, right) => (
+    (left.sequence || 0) - (right.sequence || 0)
+    || (left.title || '').localeCompare(right.title || '')
+  ))
+
+  React.useEffect(() => {
+    const close = event => {
+      if (!pickerRef.current?.contains(event.target)) setOpen(false)
+    }
+    document.addEventListener('pointerdown', close)
+    return () => document.removeEventListener('pointerdown', close)
+  }, [])
+
+  const choose = selectedModule => {
+    onSelect(selectedModule)
+    setOpen(false)
+  }
+
+  return <div className="learning-path-picker module-path-picker" ref={pickerRef}>
+    <button type="button" className={`learning-path-trigger current-module ${module ? '' : 'empty-course'}`.trim()} aria-haspopup="menu" aria-expanded={open} disabled={!module} onClick={() => setOpen(value => !value)}>
+      <ItemLogo item={module} fallback={module ? String(modules.indexOf(module) + 1) : '—'}/>
+      <span>{module?.title || 'No modules'}</span>
+      {module && <DropdownCount count={modules.length}/>}
+      {module && <ChevronIcon/>}
+    </button>
+    {open && module && <div className="learning-path-menu module-path-menu" role="menu" aria-label={`Switch module in ${course.title}`}>
+      <strong>Modules in {course.title}</strong>
+      {modules.map((item, index) => <button type="button" role="menuitem" className={`learning-path-menu-item-with-logo ${item.id === module.id ? 'active' : ''}`} key={item.id} onClick={() => choose(item)}>
+        <span className="learning-path-menu-check">{item.id === module.id && <CheckIcon/>}</span>
+        <ItemLogo item={item} fallback={String(index + 1)}/>
+        <span><b>{item.title}</b><small>{item.videos?.length || 0} videos</small></span>
+      </button>)}
+    </div>}
+  </div>
+}
+
 export default function LearningPathNav({ plan, course, mode = 'overview', actions = null, showHome = true, className = '' }) {
   const navigate = useNavigate()
   const plans = useSelector(state => state.plans.items)

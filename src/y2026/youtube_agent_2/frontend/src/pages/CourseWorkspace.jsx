@@ -2,13 +2,14 @@ import React from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import PlanDetail from '../components/PlanDetail'
-import { CloseIcon, WorkspaceIcon } from '../components/Icons'
-import { LearningPlanDropdown, CourseViewDropdown, CourseDropdown } from '../components/LearningPathNav'
+import { CloseIcon, LabelIcon, WorkspaceIcon } from '../components/Icons'
+import { LearningPlanDropdown, CourseViewDropdown, CourseDropdown, ModuleDropdown } from '../components/LearningPathNav'
 import { submitCourseRefreshFeed } from '../api/client'
 import { updatePlan } from '../store/plansSlice'
-import { rememberLearningLocation, selectPlanPageState, selectWorkspaceState, updatePlanPage } from '../store/learningUiSlice'
+import { rememberLearningLocation, selectPlanPageState, selectWorkspaceState, updatePlanPage, updateWorkspace } from '../store/learningUiSlice'
 import { getVideoProgress } from '../utils/videoProgress'
 import PrivatePlanSyncStatus from '../components/PrivatePlanSyncStatus'
+import WorkspaceBookmarksDrawer, { collectBookmarkItems, COURSE_BOOKMARK_TYPES } from '../components/WorkspaceBookmarksDrawer'
 import { firebaseAuth } from '../firebase'
 
 export default function CourseWorkspace() {
@@ -33,6 +34,10 @@ export default function CourseWorkspace() {
   const [workspaceActionHost, setWorkspaceActionHost] = React.useState(null)
   const [workspaceOutlineHost, setWorkspaceOutlineHost] = React.useState(null)
   const [workspaceToolbarHost, setWorkspaceToolbarHost] = React.useState(null)
+  const [moduleSelectionRequest, setModuleSelectionRequest] = React.useState(null)
+  const [showBookmarks, setShowBookmarks] = React.useState(false)
+  const [bookmarkQuery, setBookmarkQuery] = React.useState('')
+  const [bookmarkType, setBookmarkType] = React.useState('all')
   const [isCompactWorkspace, setIsCompactWorkspace] = React.useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 900px)').matches)
   const [authState, setAuthState] = React.useState(() => ({ resolved: !firebaseAuth, user: firebaseAuth?.currentUser || null }))
 
@@ -57,6 +62,7 @@ export default function CourseWorkspace() {
     setShowFeedReview(false)
     setIsCourseEditing(false)
     setRefreshError('')
+    setModuleSelectionRequest(null)
   }, [planId, courseId])
 
   React.useEffect(() => {
@@ -82,6 +88,10 @@ export default function CourseWorkspace() {
   }
 
   const course = plan.courses.find(item => item.id === courseId)
+  const activeBreadcrumbModule = course.modules?.find(module => module.id === rememberedWorkspace.activeModuleId)
+    || course.modules?.find(module => module.videos?.some(video => video.video_id === rememberedWorkspace.activeVideoId))
+    || course.modules?.[0]
+    || null
   const videos = course.modules?.flatMap(module => module.videos || []) || []
   const { watched, total: progressVideoCount, progress } = getVideoProgress(videos)
   const bookmarked = videos.filter(video => video.labels?.includes('bookmarked')).length
@@ -154,9 +164,43 @@ export default function CourseWorkspace() {
     || visibleBreadcrumbCourses[0]
     || null;
 
+  const bookmarkItems = collectBookmarkItems([plan], { courseId, includeCourses: false })
+
+  function openBookmark(item) {
+    setShowBookmarks(false)
+    setShowMobileActions(false)
+    const destination = `/plans/${item.plan.id}/courses/${item.course.id}/learn`
+    if (item.type === 'course') {
+      navigate(destination)
+      return
+    }
+
+    const videoId = item.video?.video_id || item.module.videos?.[0]?.video_id || null
+    if (item.plan.id === planId && item.course.id === courseId) {
+      setModuleSelectionRequest(current => ({
+        moduleId: item.module.id,
+        videoId,
+        requestId: (current?.requestId || 0) + 1,
+      }))
+      return
+    }
+
+    dispatch(updateWorkspace({
+      planId: item.plan.id,
+      courseId: item.course.id,
+      changes: {
+        activeModuleId: item.module.id,
+        activeVideoId: videoId,
+        expandedModuleIds: [item.module.id],
+      },
+    }))
+    navigate(destination)
+  }
+
   const renderCourseActions = (className = "") => (
     <div className={`workspace-action-panel ${className}`}>
-      <button className={`btn btn-secondary btn-sm icon-button ${refreshNeeded ? 'refresh-needed' : ''}`} title={refreshNeeded ? 'Course refresh needed' : 'Course overview'} aria-label="Course overview" onClick={() => setShowOverview(true)}><WorkspaceIcon name="info" /></button>
+      <button className="btn btn-secondary btn-sm icon-button workspace-bookmarks-button" title="Open bookmarks" aria-label="Open bookmarks" onClick={() => { setBookmarkQuery(''); setBookmarkType('all'); setShowBookmarks(true) }}><LabelIcon label="bookmarked" />{bookmarkItems.length > 0 && <span className="workspace-bookmarks-count">{bookmarkItems.length}</span>}</button>
+      <button className={`btn btn-secondary btn-sm icon-button workspace-course-info-button ${refreshNeeded ? 'refresh-needed' : ''}`} title={refreshNeeded ? 'Course refresh needed' : 'Course overview'} aria-label="Course overview" onClick={() => setShowOverview(true)}><WorkspaceIcon name="info" /></button>
     </div>
   );
 
@@ -200,6 +244,12 @@ export default function CourseWorkspace() {
             navigate(`/plans/${planId}/courses/${selectedCourse.id}/learn`);
           }}
         />
+        <span className="learning-path-separator" aria-hidden="true">/</span>
+        <ModuleDropdown
+          course={course}
+          module={activeBreadcrumbModule}
+          onSelect={(selectedModule) => setModuleSelectionRequest(current => ({ moduleId: selectedModule.id, requestId: (current?.requestId || 0) + 1 }))}
+        />
       </div>
       <PrivatePlanSyncStatus planId={planId} />
     </nav>
@@ -225,8 +275,9 @@ export default function CourseWorkspace() {
       </div>
     </section>
     <div className="workspace-plan-detail">
-      <PlanDetail key={`${planId}:${courseId}`} plan={plan} workspaceCourseId={courseId} workspaceActionHost={workspaceActionHost} workspaceOutlineHost={workspaceOutlineHost} workspaceToolbarHost={workspaceToolbarHost} isCourseEditing={isCourseEditing} onToggleCourseEditing={() => setIsCourseEditing(value => !value)} onUpdate={updated => dispatch(updatePlan(updated))} onDelete={() => {}} />
+      <PlanDetail key={`${planId}:${courseId}`} plan={plan} workspaceCourseId={courseId} workspaceActionHost={workspaceActionHost} workspaceOutlineHost={workspaceOutlineHost} workspaceToolbarHost={workspaceToolbarHost} requestedModuleSelection={moduleSelectionRequest} isCourseEditing={isCourseEditing} onToggleCourseEditing={() => setIsCourseEditing(value => !value)} onUpdate={updated => dispatch(updatePlan(updated))} onDelete={() => {}} />
     </div>
+    {showBookmarks && <WorkspaceBookmarksDrawer items={bookmarkItems} query={bookmarkQuery} onQueryChange={setBookmarkQuery} type={bookmarkType} onTypeChange={setBookmarkType} types={COURSE_BOOKMARK_TYPES} description="Jump directly to saved modules and videos in this course." onOpen={openBookmark} onClose={() => setShowBookmarks(false)} />}
     {showOverview && <><div className="drawer-overlay" onClick={() => setShowOverview(false)} /><aside className="drawer"><div className="drawer-header course-overview-drawer-header"><div><h2>{course.title}</h2>{course.description && <p>{course.description}</p>}</div><button className="btn btn-secondary btn-sm" onClick={() => setShowOverview(false)}><CloseIcon /></button></div><div className="drawer-body">
       {refreshError && <div className="alert alert-error">{refreshError}</div>}
       {stagedVideoCount > 0 && <section className="refresh-review refresh-review-notification"><div><h3>⚠️ New video feed ready</h3><p>{stagedVideoCount} new video{stagedVideoCount === 1 ? '' : 's'} staged across {stagedFeeds.length} source{stagedFeeds.length === 1 ? '' : 's'}.</p></div><button className="btn btn-secondary btn-sm" onClick={() => { setFeedReviewTab('visual'); setFeedReviewSearch(''); setFeedReviewSort('name'); setShowFeedReview(true) }}>Review new videos</button></section>}
