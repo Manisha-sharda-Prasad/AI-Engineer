@@ -1,15 +1,17 @@
 """HTTP routes for learning plans, courses, and workspace mutations."""
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Query, Response
 
 from src.y2026.youtube_agent_2.backend.services.plans.app.domain import plans as service
 from src.y2026.youtube_agent_2.backend.services.plans.app.models import (
+    BulkProgressUpdateRequest,
     CourseDeleteRequest,
     Course,
     LabelsUpdateRequest,
     LearningPlan,
     MetadataUpdateRequest,
     PlaybackUpdateRequest,
+    VideoBulkMoveRequest,
     VideoReorderRequest,
 )
 
@@ -30,6 +32,49 @@ def list_plans():
 @router.get("/api/plans/{plan_id}")
 def get_plan(plan_id: str):
     return service.get_plan(plan_id)
+
+
+@router.post("/api/plans/{plan_id}/publication", tags=["publication"])
+def publish_plan(plan_id: str):
+    plan = service.publish_plan(plan_id)
+    return {
+        "share_id": plan.public_share_id,
+        "public_url": f"/public/plans/{plan.public_share_id}",
+        "published_at": plan.published_at,
+        "plan": plan,
+    }
+
+
+@router.delete("/api/plans/{plan_id}/publication", tags=["publication"])
+def unpublish_plan(plan_id: str):
+    return {"plan": service.unpublish_plan(plan_id)}
+
+
+@router.get("/public-api/plans", tags=["public-plans"])
+def list_public_plans(
+    response: Response,
+    limit: int = Query(default=20, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+):
+    response.headers["Cache-Control"] = "public, max-age=60"
+    return service.list_public_plans(limit=limit, offset=offset)
+
+
+@router.head("/public-api/plans", tags=["public-plans"])
+def head_public_plans():
+    return Response(status_code=200, headers={"Cache-Control": "public, max-age=60"})
+
+
+@router.get("/public-api/plans/{share_id}", tags=["public-plans"])
+def get_public_plan(share_id: str, response: Response):
+    response.headers["Cache-Control"] = "public, max-age=60"
+    return service.get_public_plan(share_id)
+
+
+@router.head("/public-api/plans/{share_id}", tags=["public-plans"])
+def head_public_plan(share_id: str):
+    service.get_public_plan(share_id)
+    return Response(status_code=200, headers={"Cache-Control": "public, max-age=60"})
 
 
 @router.patch("/api/plans/{plan_id}")
@@ -91,6 +136,22 @@ def update_video_playback(plan_id: str, course_id: str, module_id: str, video_id
     return {"plan": service.update_video_playback(plan_id, course_id, module_id, video_id, request)}
 
 
+@router.patch("/api/plans/{plan_id}/progress", tags=["videos"])
+def update_plan_progress(plan_id: str, request: BulkProgressUpdateRequest):
+    plan, updated_count, had_remote_changes = service.update_plan_progress(plan_id, request)
+    return {
+        "plan": plan,
+        "updated_count": updated_count,
+        "had_remote_changes": had_remote_changes,
+    }
+
+
 @router.patch("/api/plans/{plan_id}/courses/{course_id}/videos/reorder", tags=["courses"])
 def reorder_course_videos(plan_id: str, course_id: str, request: VideoReorderRequest):
     return {"plan": service.reorder_course_videos(plan_id, course_id, request)}
+
+
+@router.patch("/api/plans/{plan_id}/videos/move", tags=["courses"])
+def move_plan_videos(plan_id: str, request: VideoBulkMoveRequest):
+    plan, moved_count = service.move_plan_videos(plan_id, request)
+    return {"plan": plan, "moved_count": moved_count}

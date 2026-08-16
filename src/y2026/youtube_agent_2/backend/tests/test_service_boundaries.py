@@ -36,7 +36,7 @@ class ServiceBoundaryTests(unittest.TestCase):
 
     def test_youtube_service_owns_only_integration_and_catalog_features(self):
         paths = route_paths(youtube_app)
-        self.assertIn("/auth/google/callback", paths)
+        self.assertNotIn("/auth/google/callback", paths)
         self.assertIn("/api/channels", paths)
         self.assertNotIn("/api/plans", paths)
         self.assertNotIn("/api/sources/sync-metadata", paths)
@@ -50,7 +50,7 @@ class ServiceBoundaryTests(unittest.TestCase):
         self.assertNotIn("/api/channels", paths)
 
     def test_gateway_routes_requests_to_the_owning_service(self):
-        self.assertEqual(select_upstream("/auth/google/callback")[0], "youtube-service")
+        self.assertEqual(select_upstream("/auth/google/callback")[0], "")
         self.assertEqual(select_upstream("/api/channels")[0], "youtube-service")
         self.assertEqual(
             select_upstream("/api/channel-1/playlists")[0], "youtube-service"

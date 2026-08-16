@@ -10,29 +10,64 @@ import CourseOverview from './pages/CourseOverview'
 import CourseWorkspace from './pages/CourseWorkspace'
 import Profile from './pages/Profile'
 import AiRequests from './pages/AiRequests'
+import Notes from './pages/Notes'
+import PublicPlan from './pages/PublicPlan'
+import PublicPlans from './pages/PublicPlans'
 import { CloseIcon, WorkspaceIcon } from './components/Icons'
 import SourceFeedPreviewDialog from './components/SourceFeedPreviewDialog'
 import AiModelConfigDrawer from './components/AiModelConfigDrawer'
 import DismissibleError from './components/DismissibleError'
 import LoadingBar from './components/LoadingBar'
-import { confirmSourceFeedOrganization, createPlan, getPlans, getSourceSyncMetadata, organizeNewSourceFeeds, pushNewSourceFeeds, setAccessTokenProvider, syncSourceMetadata } from './api/client'
-import { addPlan, setPlans } from './store/plansSlice'
+import { confirmSourceFeedOrganization, createPlan, getPlans, getSourceSyncMetadata, organizeNewSourceFeeds, pushNewSourceFeeds, setAccessTokenProvider, setApiStatusListener, syncSourceMetadata } from './api/client'
+import { addPlan, applyPendingPlanProgress, setPlans } from './store/plansSlice'
 import { setSourceSyncMetadata } from './store/sourcesSlice'
 import { loadAiModels } from './store/aiModelsSlice'
+import { endPrivateSyncSession, setApiAvailability, setNetworkOnline, startPrivateSyncSession } from './store/privatePlanSyncSlice'
+import { loadPrivatePlanCache, savePrivatePlanCache } from './utils/privatePlanCache'
 import { firebaseAuth } from './firebase'
 import appLogo from '../app-logo.png'
 
-function useTheme() {
-  const [theme, setTheme] = React.useState(() => localStorage.getItem('yt_theme') || 'light')
+const AI_ENABLED = import.meta.env.VITE_ENABLE_AI === 'true'
+
+function useAppearance() {
+  const storedTheme = React.useMemo(() => localStorage.getItem('yt_theme'), [])
+  const [theme, setTheme] = React.useState(() => storedTheme === 'pale' ? 'light' : storedTheme || 'system')
+  const [intensity, setIntensity] = React.useState(() => localStorage.getItem('yt_color_intensity') || (storedTheme === 'pale' ? 'pale' : 'balanced'))
+  const [contrast, setContrast] = React.useState(() => localStorage.getItem('yt_contrast') || 'standard')
+  const [accent, setAccent] = React.useState(() => localStorage.getItem('yt_accent') || 'heritage')
+  const [systemDark, setSystemDark] = React.useState(() => window.matchMedia('(prefers-color-scheme: dark)').matches)
 
   React.useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme)
+    const media = window.matchMedia('(prefers-color-scheme: dark)')
+    const updateSystemTheme = event => setSystemDark(event.matches)
+    setSystemDark(media.matches)
+    media.addEventListener('change', updateSystemTheme)
+    return () => media.removeEventListener('change', updateSystemTheme)
+  }, [])
+
+  const resolvedTheme = theme === 'system' ? (systemDark ? 'dark' : 'light') : theme
+
+  React.useEffect(() => {
+    const root = document.documentElement
+    root.setAttribute('data-theme', resolvedTheme)
+    root.setAttribute('data-theme-mode', theme)
+    root.setAttribute('data-intensity', intensity)
+    root.setAttribute('data-contrast', contrast)
+    root.setAttribute('data-accent', accent)
     localStorage.setItem('yt_theme', theme)
-  }, [theme])
+    localStorage.setItem('yt_color_intensity', intensity)
+    localStorage.setItem('yt_contrast', contrast)
+    localStorage.setItem('yt_accent', accent)
+  }, [accent, contrast, intensity, resolvedTheme, theme])
 
-  const toggleTheme = () => setTheme(current => current === 'light' ? 'dark' : 'light')
+  const resetAppearance = () => {
+    setTheme('system')
+    setIntensity('balanced')
+    setContrast('standard')
+    setAccent('heritage')
+  }
 
-  return { theme, setTheme, toggleTheme }
+  return { theme, setTheme, intensity, setIntensity, contrast, setContrast, accent, setAccent, resetAppearance }
 }
 
 function useFontSize() {
@@ -48,12 +83,39 @@ function useFontSize() {
 
 function ThemeIcon({ theme }) {
   if (theme === 'dark') return <svg viewBox="0 0 24 24"><path d="M20.5 15.5A8.5 8.5 0 0 1 8.5 3.5 8.5 8.5 0 1 0 20.5 15.5Z" /></svg>
-  if (theme === 'pale') return <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" /><path d="M12 2v2m0 16v2M2 12h2m16 0h2" /></svg>
+  if (theme === 'system') return <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8m-4-4v4"/></svg>
   return <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" /><path d="M12 1v3m0 16v3M1 12h3m16 0h3" /></svg>
 }
 
 function SourceInboxIcon() {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM4 14h5l1.5 2h3L15 14h5M12 3v8m0 0-3-3m3 3 3-3" /></svg>
+}
+
+function AiModelConfigIcon() {
+  return <svg className="ai-model-config-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="3"/><path d="M9 2v3m6-3v3M9 19v3m6-3v3M2 9h3m-3 6h3m14-6h3m-3 6h3M9 12h6M12 9v6"/><circle cx="18.5" cy="5.5" r="2.2"/></svg>
+}
+
+function LearningNotesIcon() {
+  return <svg className="learning-notes-nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+    <defs>
+      <linearGradient id="learning-notes-nav-gradient" x1="4" y1="4" x2="20" y2="21" gradientUnits="userSpaceOnUse">
+        <stop stopColor="#8b5cf6" />
+        <stop offset="0.52" stopColor="#ec4899" />
+        <stop offset="1" stopColor="#f59e0b" />
+      </linearGradient>
+    </defs>
+    <path className="notes-icon-pages" d="M3.75 5.6c2.75-.95 5.5-.45 8.25 1.48 2.75-1.93 5.5-2.43 8.25-1.48v13.1c-2.75-.8-5.5-.25-8.25 1.65-2.75-1.9-5.5-2.45-8.25-1.65V5.6Z" />
+    <path className="notes-icon-fold" d="M12 7.08v13.27M6.5 9.1c1.3-.2 2.4.05 3.4.65M6.5 12.15c1.3-.2 2.4.05 3.4.65M14.1 11.2c1-.6 2.1-.85 3.4-.65M14.1 14.25c1-.6 2.1-.85 3.4-.65" />
+    <path className="notes-icon-spark" d="m18.35 2.4.43 1.18 1.18.43-1.18.43-.43 1.18-.43-1.18-1.18-.43 1.18-.43.43-1.18Z" />
+  </svg>
+}
+
+function PublicPlansIcon() {
+  return <svg className="public-plans-nav-icon" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M4.5 4.5h10A3.5 3.5 0 0 1 18 8v11H6.5a2 2 0 0 1-2-2V4.5Zm2 0V17a2 2 0 0 0-2-2" />
+    <circle cx="15.5" cy="11.5" r="5" />
+    <path d="M10.8 10h9.4m-9.4 3h9.4M15.5 6.5c1.2 1.3 1.8 3 1.8 5s-.6 3.7-1.8 5m0-10c-1.2 1.3-1.8 3-1.8 5s.6 3.7 1.8 5" />
+  </svg>
 }
 
 function formatRelativeAge(value) {
@@ -76,7 +138,7 @@ function formatRelativeAge(value) {
   return 'just now'
 }
 
-function PlansRoute({ newPlanRequest, onRefresh, refreshing }) {
+function PlansRoute({ newPlanRequest, onRefresh, refreshing, auth, authResolved }) {
   const plans = useSelector(state => state.plans.items)
   const lastLocation = useSelector(state => state.learningUi.currentLocation)
   const lastPlanId = lastLocation.planId
@@ -90,7 +152,7 @@ function PlansRoute({ newPlanRequest, onRefresh, refreshing }) {
     return <Navigate to={`/plans/${targetPlan.id}/courses/${targetCourse.id}/learn`} replace />
   }
   if (targetPlan) return <Navigate to={`/plans/${targetPlan.id}`} replace />
-  return <Plans newPlanRequest={newPlanRequest} onRefresh={onRefresh} refreshing={refreshing} />
+  return <Plans newPlanRequest={newPlanRequest} onRefresh={onRefresh} refreshing={refreshing} auth={auth} authResolved={authResolved} />
 }
 
 const GLOBAL_SEARCH_SCOPE_OPTIONS = [
@@ -396,12 +458,14 @@ function GlobalSearchDrawer({ plans, onClose, onNavigate }) {
 }
 
 function AppLayout() {
-  const { theme, setTheme } = useTheme()
+  const { theme, setTheme, intensity, setIntensity, contrast, setContrast, accent, setAccent, resetAppearance } = useAppearance()
   const { fontSize, setFontSize } = useFontSize()
   const dispatch = useDispatch()
   const plans = useSelector(state => state.plans.items)
   const syncMetadata = useSelector(state => state.sources.syncMetadata)
+  const privatePlanSync = useSelector(state => state.privatePlanSync)
   const [auth, setAuth] = React.useState(null)
+  const [authResolved, setAuthResolved] = React.useState(() => !firebaseAuth)
   const [showCreatePlanDrawer, setShowCreatePlanDrawer] = React.useState(false)
   const [createPlanForm, setCreatePlanForm] = React.useState({ name: '', description: '', logoUrl: 'https://skillicons.dev/icons?i=' })
   const [createPlanError, setCreatePlanError] = React.useState('')
@@ -425,7 +489,9 @@ function AppLayout() {
   const [showPlanSwitcher, setShowPlanSwitcher] = React.useState(false)
   const [showSettingsDrawer, setShowSettingsDrawer] = React.useState(false)
   const [showAiModelDrawer, setShowAiModelDrawer] = React.useState(false)
+  const [showMobileNav, setShowMobileNav] = React.useState(false)
   const sourceBootstrapUserRef = React.useRef(null)
+  const privateCacheUserRef = React.useRef(null)
   const navigate = useNavigate()
   const location = useLocation()
   const profileOpen = location.pathname === '/profile'
@@ -433,6 +499,24 @@ function AppLayout() {
   const routedLocation = profileOpen
     ? (profileBackgroundLocation || { pathname: '/', search: '', hash: '', state: null, key: 'profile-background' })
     : location
+
+  React.useEffect(() => {
+    if (window.matchMedia('(max-width: 900px)').matches) setShowMobileNav(false)
+  }, [location.pathname])
+
+  React.useEffect(() => {
+    if (!showMobileNav) return undefined
+    const closeOnEscape = event => {
+      if (event.key === 'Escape') setShowMobileNav(false)
+    }
+    document.addEventListener('keydown', closeOnEscape)
+    return () => document.removeEventListener('keydown', closeOnEscape)
+  }, [showMobileNav])
+
+  const closeNavigationAfterAction = event => {
+    if (!event.target.closest('button')) return
+    if (window.matchMedia('(max-width: 900px)').matches) setShowMobileNav(false)
+  }
 
   const openProfile = () => {
     if (profileOpen) return
@@ -451,7 +535,12 @@ function AppLayout() {
     setPlansLoading(true)
     try {
       const data = await getPlans()
-      dispatch(setPlans(Array.isArray(data) ? data : data.plans || []))
+      const loadedPlans = Array.isArray(data) ? data : data.plans || []
+      dispatch(setPlans(loadedPlans))
+      const pendingByPlan = store.getState().privatePlanSync.pendingByPlan
+      Object.entries(pendingByPlan).forEach(([planId, pending]) => {
+        dispatch(applyPendingPlanProgress({ planId, videos: pending.videos }))
+      })
     } catch (error) {
       console.error('Unable to load learning plans:', error)
     } finally {
@@ -490,21 +579,83 @@ function AppLayout() {
   }
 
   React.useEffect(() => {
-    if (!firebaseAuth) return undefined
-    setAccessTokenProvider(() => firebaseAuth.currentUser?.getIdToken() || Promise.resolve(null))
-    return firebaseAuth.onIdTokenChanged(user => setAuth(user))
-  }, [])
+    setApiStatusListener(status => dispatch(setApiAvailability(status)))
+    const markOffline = () => dispatch(setNetworkOnline(false))
+    const markOnline = () => {
+      dispatch(setNetworkOnline(true))
+      if (firebaseAuth?.currentUser) {
+        firebaseAuth.currentUser.getIdToken(true)
+          .then(() => dispatch(setApiAvailability({ networkOnline: true, authAvailable: true, reason: null })))
+          .catch(() => dispatch(setApiAvailability({ authAvailable: false, reason: 'auth' })))
+      }
+    }
+    window.addEventListener('offline', markOffline)
+    window.addEventListener('online', markOnline)
+    return () => {
+      setApiStatusListener(null)
+      window.removeEventListener('offline', markOffline)
+      window.removeEventListener('online', markOnline)
+    }
+  }, [dispatch])
 
   React.useEffect(() => {
-    if (auth && plans.length === 0) loadPlans()
+    if (!firebaseAuth) return undefined
+    let active = true
+    setAccessTokenProvider(() => firebaseAuth.currentUser?.getIdToken() || Promise.resolve(null))
+    const unsubscribe = firebaseAuth.onIdTokenChanged(async user => {
+      setAuth(user)
+      setAuthResolved(true)
+      if (!user) {
+        privateCacheUserRef.current = null
+        dispatch(endPrivateSyncSession())
+        dispatch(setPlans([]))
+        return
+      }
+      dispatch(setApiAvailability({ authAvailable: true, reason: navigator.onLine ? null : 'network' }))
+      if (privateCacheUserRef.current === user.uid) return
+      privateCacheUserRef.current = user.uid
+      try {
+        const cached = await loadPrivatePlanCache(user.uid)
+        if (!active) return
+        if (store.getState().plans.items.length === 0 && cached.plans?.length) {
+          dispatch(setPlans(cached.plans))
+          Object.entries(cached.pendingByPlan || {}).forEach(([planId, pending]) => {
+            dispatch(applyPendingPlanProgress({ planId, videos: pending.videos }))
+          })
+        }
+        dispatch(startPrivateSyncSession({ userId: user.uid, pendingByPlan: cached.pendingByPlan || {} }))
+      } catch {
+        if (active) dispatch(startPrivateSyncSession({ userId: user.uid, pendingByPlan: {} }))
+      }
+    })
+    return () => { active = false; unsubscribe() }
+  }, [dispatch])
+
+  React.useEffect(() => {
+    if (!auth?.uid || !privatePlanSync.hydrated || privatePlanSync.userId !== auth.uid) return undefined
+    const timeout = window.setTimeout(() => {
+      savePrivatePlanCache(auth.uid, plans, privatePlanSync.pendingByPlan).catch(error => console.warn('Unable to persist offline learning-plan state:', error))
+    }, 250)
+    return () => window.clearTimeout(timeout)
+  }, [auth?.uid, plans, privatePlanSync.hydrated, privatePlanSync.pendingByPlan, privatePlanSync.userId])
+
+  React.useEffect(() => {
+    if (auth) return
+    setShowCreatePlanDrawer(false)
+    setShowSourceSyncDrawer(false)
+    setShowAiModelDrawer(false)
   }, [auth?.uid])
 
   React.useEffect(() => {
-    if (auth) dispatch(loadAiModels())
+    if (auth && privatePlanSync.hydrated) loadPlans()
+  }, [auth?.uid, privatePlanSync.hydrated])
+
+  React.useEffect(() => {
+    if (AI_ENABLED && auth) dispatch(loadAiModels())
   }, [auth?.uid, dispatch])
 
   React.useEffect(() => {
-    if (location.pathname !== '/ai-model-configs') return
+    if (!AI_ENABLED || location.pathname !== '/ai-model-configs') return
     setShowAiModelDrawer(true)
     navigate('/', { replace: true })
   }, [location.pathname, navigate])
@@ -694,26 +845,45 @@ function AppLayout() {
 
   return (
     <div className="app-layout">
-      <aside className="right-nav">
+      <aside className={`right-nav ${showMobileNav ? 'mobile-nav-open' : ''}`}>
         <div className="right-nav-actions">
+          <div className="right-nav-mobile-bar">
+            <button type="button" className="app-logo-nav-button" title="YouTube Learning home" aria-label="YouTube Learning home" onClick={() => navigate('/')}><img src={appLogo} alt="" /></button>
+            <button type="button" className={`mobile-nav-menu-button ${showMobileNav ? 'expanded' : ''}`} aria-label={showMobileNav ? 'Collapse navigation' : 'Expand navigation'} aria-expanded={showMobileNav} onClick={() => setShowMobileNav(value => !value)}>
+              <svg className="navigation-slide-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7" /></svg>
+            </button>
+          </div>
+          <div className="right-nav-menu-panel" aria-label="Application navigation" onClick={closeNavigationAfterAction}>
+          <button type="button" className="mobile-nav-drawer-close" aria-label="Collapse navigation" onClick={() => setShowMobileNav(false)}><svg className="navigation-slide-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7" /></svg></button>
+          <button type="button" className="mobile-nav-home-item" onClick={() => navigate('/')}><img src={appLogo} alt="" /><span className="mobile-nav-item-label">Home</span></button>
           <div className="right-nav-top">
-          <button type="button" className="app-logo-nav-button" title="YouTube Learning home" aria-label="YouTube Learning home" onClick={() => navigate('/')}><img src={appLogo} alt="" /></button>
-          <button type="button" className={`home-nav-button nav-color-plans ${location.pathname.startsWith('/plans') ? 'active' : ''}`} title="Learning Plans" aria-label="Learning Plans" onClick={() => navigate('/plans')}><svg viewBox="0 0 24 24"><path d="M5 4h11a3 3 0 0 1 3 3v13H7a2 2 0 0 1-2-2V4Zm2 0v14a2 2 0 0 0-2-2m4-7h5m-5 4h5" /></svg></button>
-          <button type="button" className="add-plan-nav-button nav-color-create" title="Create learning plan" aria-label="Create learning plan" onClick={() => { setCreatePlanError(''); setShowCreatePlanDrawer(true) }}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg></button>
-          <button type="button" className="refresh-plans nav-color-inbox" onClick={() => { setSourceSyncError(''); setShowSourceSyncDrawer(true) }} aria-label="Open source feed inbox" title="Source feed inbox">
-            <SourceInboxIcon />
-          </button>
-          <button type="button" className="quick-plan-button nav-color-search" onClick={() => setShowPlanSwitcher(true)} aria-label="Open global search" title="Global search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m15.5 15.5 5 5" /></svg></button>
+          <div className="right-nav-workspace-group" role="group" aria-label="Learning workspace" title="Learning workspace">
+            <span className="mobile-nav-group-title">Learning workspace</span>
+            <button type="button" className={`home-nav-button nav-color-plans ${location.pathname.startsWith('/plans') ? 'active' : ''}`} title="Learning Plans" aria-label="Learning Plans" onClick={() => navigate('/plans')}><svg viewBox="0 0 24 24"><path d="M5 4h11a3 3 0 0 1 3 3v13H7a2 2 0 0 1-2-2V4Zm2 0v14a2 2 0 0 0-2-2m4-7h5m-5 4h5" /></svg><span className="mobile-nav-item-label">Learning plans</span></button>
+            <button type="button" className="quick-plan-button nav-color-search" onClick={() => setShowPlanSwitcher(true)} aria-label="Open global search" title="Global search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m15.5 15.5 5 5" /></svg><span className="mobile-nav-item-label">Global search</span></button>
+            {auth && <button type="button" className="add-plan-nav-button nav-color-create" title="Create learning plan" aria-label="Create learning plan" onClick={() => { setCreatePlanError(''); setShowCreatePlanDrawer(true) }}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg><span className="mobile-nav-item-label">Create learning plan</span></button>}
+            {auth && <button type="button" className="refresh-plans nav-color-inbox" onClick={() => { setSourceSyncError(''); setShowSourceSyncDrawer(true) }} aria-label="Open source feed inbox" title="Source feed inbox">
+              <SourceInboxIcon /><span className="mobile-nav-item-label">Source feed inbox</span>
+            </button>}
+          </div>
+          <div className="right-nav-public-group" role="group" aria-label="Public learning library" title="Public learning library">
+            <span className="mobile-nav-group-title">Public learning library</span>
+            <button type="button" className={`home-nav-button nav-color-public-plans ${location.pathname.startsWith('/public/plans') ? 'active' : ''}`} title="Public learning plans" aria-label="Public learning plans" onClick={() => navigate('/public/plans')}><PublicPlansIcon /><span className="mobile-nav-item-label">Public learning plans</span></button>
+            <button type="button" className={`home-nav-button nav-color-notes ${location.pathname.startsWith('/notes') ? 'active' : ''}`} title="Learning Notes" aria-label="Learning Notes" onClick={() => navigate('/notes')}><LearningNotesIcon /><span className="mobile-nav-item-label">Learning notes</span></button>
+          </div>
           </div>
           <div className="right-nav-bottom">
-          <button type="button" className={`home-nav-button nav-color-ai ${showAiModelDrawer ? 'active' : ''}`} title="AI model configurations" aria-label="AI model configurations" onClick={() => setShowAiModelDrawer(true)}>AI</button>
-          <button type="button" className="home-nav-button settings-nav-button nav-color-settings" title="Settings" aria-label="Settings" onClick={() => setShowSettingsDrawer(true)}><WorkspaceIcon name="settings" /></button>
-          <button type="button" className={`profile-nav-button ${profileOpen ? 'active' : ''}`} title={auth?.displayName || auth?.email || 'Profile'} aria-label="Profile" aria-expanded={profileOpen} onClick={openProfile}>{auth?.photoURL ? <img src={auth.photoURL} alt="" /> : <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></svg>}</button>
+          <span className="mobile-nav-group-title">Account and settings</span>
+          {AI_ENABLED && auth && <button type="button" className={`home-nav-button nav-color-ai ${showAiModelDrawer ? 'active' : ''}`} title="AI model configurations" aria-label="AI model configurations" onClick={() => setShowAiModelDrawer(true)}><AiModelConfigIcon /><span className="mobile-nav-item-label">AI model configurations</span></button>}
+          <button type="button" className="home-nav-button settings-nav-button nav-color-settings" title="Settings" aria-label="Settings" onClick={() => setShowSettingsDrawer(true)}><WorkspaceIcon name="settings" /><span className="mobile-nav-item-label">Settings</span></button>
+          <button type="button" className={`profile-nav-button ${profileOpen ? 'active' : ''}`} title={auth?.displayName || auth?.email || 'Profile'} aria-label="Profile" aria-expanded={profileOpen} onClick={openProfile}>{auth?.photoURL ? <img src={auth.photoURL} alt="" /> : <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></svg>}<span className="mobile-nav-item-label">{auth?.displayName || auth?.email || 'Profile'}</span></button>
+          </div>
           </div>
         </div>
       </aside>
+      {showMobileNav && <button type="button" className="mobile-nav-overlay" aria-label="Close navigation menu" onClick={() => setShowMobileNav(false)} />}
       {profileOpen && <><div className="drawer-overlay profile-drawer-overlay" onClick={closeProfile} /><aside className="drawer profile-drawer" role="dialog" aria-modal="true" aria-labelledby="profile-drawer-title"><div className="drawer-header"><div><h2 id="profile-drawer-title">Profile</h2><p>Manage your account and connected services.</p></div><button className="btn btn-secondary btn-sm" onClick={closeProfile} aria-label="Close"><CloseIcon /></button></div><div className="drawer-body"><Profile showTitle={false} /></div></aside></>}
-      {showCreatePlanDrawer && <><div className="drawer-overlay" onClick={closeCreatePlanDrawer} /><aside className="drawer create-plan-drawer" role="dialog" aria-modal="true" aria-labelledby="create-plan-title">
+      {auth && showCreatePlanDrawer && <><div className="drawer-overlay" onClick={closeCreatePlanDrawer} /><aside className="drawer create-plan-drawer" role="dialog" aria-modal="true" aria-labelledby="create-plan-title">
         <div className="drawer-header"><h2 id="create-plan-title">Create Learning Plan</h2><button className="btn btn-secondary btn-sm" onClick={closeCreatePlanDrawer} aria-label="Close"><CloseIcon /></button></div>
         <div className="drawer-body">
           <DismissibleError message={createPlanError} />
@@ -723,9 +893,22 @@ function AppLayout() {
         </div>
         <div className="drawer-footer"><button className="btn btn-secondary" onClick={closeCreatePlanDrawer} disabled={creatingPlan}>Cancel</button><button className="btn btn-primary" onClick={submitNewPlan} disabled={creatingPlan}>{creatingPlan ? <><span className="spinner" /> Creating...</> : 'Create Plan'}</button></div>
       </aside></>}
-      {showAiModelDrawer && <AiModelConfigDrawer onClose={() => setShowAiModelDrawer(false)} />}
-      {showSettingsDrawer && <><div className="drawer-overlay" onClick={() => setShowSettingsDrawer(false)} /><aside className="drawer settings-drawer" role="dialog" aria-modal="true" aria-labelledby="settings-drawer-title"><div className="drawer-header"><div><h2 id="settings-drawer-title">Settings</h2><p>Personalize your learning workspace.</p></div><button className="btn btn-secondary btn-sm" onClick={() => setShowSettingsDrawer(false)} aria-label="Close"><CloseIcon /></button></div><div className="drawer-body settings-drawer-body"><section className="settings-section"><div><h3>Font size</h3><p>Adjust text sizing across the application.</p></div><div className="settings-option-grid" role="group" aria-label="Global font size">{[['small', 'Small', 'Aa'], ['medium', 'Medium', 'Aa'], ['large', 'Large', 'Aa']].map(([size, label, sample]) => <button type="button" key={size} className={fontSize === size ? 'active' : ''} onClick={() => setFontSize(size)} aria-pressed={fontSize === size}><span className={`settings-font-sample ${size}`}>{sample}</span><strong>{label}</strong></button>)}</div></section><section className="settings-section"><div><h3>Theme</h3><p>Choose the color theme used throughout the application.</p></div><div className="settings-option-grid" role="group" aria-label="Theme">{['light', 'pale', 'dark'].map(value => <button type="button" key={value} className={theme === value ? 'active' : ''} onClick={() => setTheme(value)} aria-pressed={theme === value}><span className={`settings-theme-preview ${value}`}><ThemeIcon theme={value} /></span><strong>{value}</strong></button>)}</div></section></div><div className="drawer-footer"><button className="btn btn-primary" onClick={() => setShowSettingsDrawer(false)}>Done</button></div></aside></>}
-      {showSourceSyncDrawer && <><div className="drawer-overlay" onClick={() => setShowSourceSyncDrawer(false)} /><aside className="drawer source-sync-drawer"><div className="drawer-header"><div><h2>Source feed inbox</h2><p>Pull new YouTube feeds, then route them to a course for review.</p></div><button className="btn btn-secondary btn-sm" onClick={() => setShowSourceSyncDrawer(false)} aria-label="Close"><CloseIcon /></button></div><LoadingBar active={sourceInboxLoading} label={sourceInboxLoadingLabel} className="drawer-loading-wait-bar" /><div className="drawer-body source-sync-body">
+      {AI_ENABLED && auth && showAiModelDrawer && <AiModelConfigDrawer onClose={() => setShowAiModelDrawer(false)} />}
+      {showSettingsDrawer && <>
+        <div className="drawer-overlay" onClick={() => setShowSettingsDrawer(false)} />
+        <aside className="drawer settings-drawer" role="dialog" aria-modal="true" aria-labelledby="settings-drawer-title">
+          <div className="drawer-header"><div><h2 id="settings-drawer-title">Appearance</h2><p>Changes preview instantly and stay on this device.</p></div><button className="btn btn-secondary btn-sm" onClick={() => setShowSettingsDrawer(false)} aria-label="Close"><CloseIcon /></button></div>
+          <div className="drawer-body settings-drawer-body">
+            <section className="settings-section"><div><h3>Mode</h3><p>Follow your device or choose a fixed light or dark appearance.</p></div><div className="settings-option-grid" role="group" aria-label="Appearance mode">{['system', 'light', 'dark'].map(value => <button type="button" key={value} className={theme === value ? 'active' : ''} onClick={() => setTheme(value)} aria-pressed={theme === value}><span className={`settings-theme-preview ${value}`}><ThemeIcon theme={value} /></span><strong>{value}</strong></button>)}</div></section>
+            <section className="settings-section"><div><h3>Color intensity</h3><p>Control how softly or vividly surfaces use the selected accent.</p></div><div className="settings-option-grid" role="group" aria-label="Color intensity">{['pale', 'balanced', 'vibrant'].map(value => <button type="button" key={value} className={intensity === value ? 'active' : ''} onClick={() => setIntensity(value)} aria-pressed={intensity === value}><span className={`settings-intensity-preview ${value}`}><i/><i/><i/></span><strong>{value}</strong></button>)}</div></section>
+            <section className="settings-section"><div><h3>Contrast</h3><p>Increase text and edge separation when you need stronger visibility.</p></div><div className="settings-option-grid two" role="group" aria-label="Contrast">{['standard', 'high'].map(value => <button type="button" key={value} className={contrast === value ? 'active' : ''} onClick={() => setContrast(value)} aria-pressed={contrast === value}><span className={`settings-contrast-preview ${value}`}><i/><i/></span><strong>{value}</strong></button>)}</div></section>
+            <section className="settings-section"><div><h3>Accent</h3><p>Apply one accent consistently to navigation, focus states, and controls.</p></div><div className="settings-option-grid four" role="group" aria-label="Accent color">{[['heritage', '#8b5e34'], ['violet', '#7c3aed'], ['ocean', '#0284c7'], ['emerald', '#059669']].map(([value, color]) => <button type="button" key={value} className={accent === value ? 'active' : ''} onClick={() => setAccent(value)} aria-pressed={accent === value}><span className="settings-accent-preview" style={{ '--settings-accent': color }}><i/></span><strong>{value}</strong></button>)}</div></section>
+            <section className="settings-section"><div><h3>Font size</h3><p>Adjust text sizing across the application.</p></div><div className="settings-option-grid" role="group" aria-label="Global font size">{[['small', 'Small', 'Aa'], ['medium', 'Medium', 'Aa'], ['large', 'Large', 'Aa']].map(([size, label, sample]) => <button type="button" key={size} className={fontSize === size ? 'active' : ''} onClick={() => setFontSize(size)} aria-pressed={fontSize === size}><span className={`settings-font-sample ${size}`}>{sample}</span><strong>{label}</strong></button>)}</div></section>
+          </div>
+          <div className="drawer-footer settings-drawer-footer"><button className="btn btn-secondary" onClick={() => { resetAppearance(); setFontSize('medium') }}>Reset</button><button className="btn btn-primary" onClick={() => setShowSettingsDrawer(false)}>Done</button></div>
+        </aside>
+      </>}
+      {auth && showSourceSyncDrawer && <><div className="drawer-overlay" onClick={() => setShowSourceSyncDrawer(false)} /><aside className="drawer source-sync-drawer"><div className="drawer-header"><div><h2>Source feed inbox</h2><p>Pull new YouTube feeds, then route them to a course for review.</p></div><button className="btn btn-secondary btn-sm" onClick={() => setShowSourceSyncDrawer(false)} aria-label="Close"><CloseIcon /></button></div><LoadingBar active={sourceInboxLoading} label={sourceInboxLoadingLabel} className="drawer-loading-wait-bar" /><div className="drawer-body source-sync-body">
         <DismissibleError message={sourceSyncError} />
         <section className="source-sync-channel-section">
           <div className="source-sync-channel-controls"><input value={sourceSyncSearch} onChange={event => setSourceSyncSearch(event.target.value)} placeholder="Search channels or playlists..." aria-label="Search content sources" /><div className="picker-sort-toggle"><button className={sourceSyncFilter === 'all' ? 'active' : ''} onClick={() => setSourceSyncFilter('all')}>All ({syncMetadata?.channels?.length || 0})</button><button className={sourceSyncFilter === 'pending' ? 'active' : ''} onClick={() => setSourceSyncFilter('pending')}>Pending ({sourceSyncPendingCount})</button></div><label className="source-sync-target-switch"><input type="checkbox" checked={sourceSyncTargetsOnly} onChange={event => setSourceSyncTargetsOnly(event.target.checked)} /><span className="source-sync-target-switch-track" aria-hidden="true" /><span>Targets only</span></label><div className="picker-sort-toggle"><button className={sourceSyncSort === 'name' ? 'active' : ''} onClick={() => setSourceSyncSort('name')}>Name</button><button className={sourceSyncSort === 'date' ? 'active' : ''} onClick={() => setSourceSyncSort('date')}>Last sync</button></div></div>
@@ -747,15 +930,19 @@ function AppLayout() {
           }) : <p className="source-sync-empty">{syncMetadata?.channels?.length ? 'No channels match this filter.' : 'No subscribed-channel metadata is stored yet. Pull new feeds from YouTube to start.'}</p>}</div>
         </section>
       </div></aside></>}
-      {sourcePreview && <SourceFeedPreviewDialog preview={sourcePreview} plans={plans} loading={sourcePushLoading} aiLoading={sourceAiLoading} error={sourcePreviewError} onClose={() => { setSourcePreview(null); setSourcePreviewError('') }} onPush={pushSourceFeeds} onOrganize={organizeSourceFeeds} onConfirmOrganization={confirmSourceOrganization} />}
+      {sourcePreview && <SourceFeedPreviewDialog preview={sourcePreview} plans={plans} loading={sourcePushLoading} aiLoading={sourceAiLoading} aiEnabled={AI_ENABLED} error={sourcePreviewError} onClose={() => { setSourcePreview(null); setSourcePreviewError('') }} onPush={pushSourceFeeds} onOrganize={organizeSourceFeeds} onConfirmOrganization={confirmSourceOrganization} />}
       {showPlanSwitcher && <GlobalSearchDrawer plans={plans} onClose={() => setShowPlanSwitcher(false)} onNavigate={navigate} />}
       <main className="main-content">
         <Routes location={routedLocation}>
-          <Route path="/" element={<Dashboard onOpenAiModels={() => setShowAiModelDrawer(true)} />} />
-          <Route path="/plans" element={<PlansRoute newPlanRequest={0} onRefresh={loadPlans} refreshing={plansLoading} />} />
+          <Route path="/" element={<Dashboard aiEnabled={AI_ENABLED} onOpenAiModels={() => setShowAiModelDrawer(true)} />} />
+          <Route path="/plans" element={<PlansRoute newPlanRequest={0} onRefresh={loadPlans} refreshing={plansLoading} auth={auth} authResolved={authResolved} />} />
+          <Route path="/notes" element={<Notes />} />
+          <Route path="/public/plans" element={<PublicPlans />} />
+          <Route path="/public/plans/:shareId" element={<PublicPlan />} />
+          <Route path="/public/plans/:shareId/courses/:courseId" element={<PublicPlan />} />
           <Route path="/ai-model-configs" element={<Navigate to="/" replace />} />
           <Route path="/plans/:planId" element={<PlanOverview loading={plansLoading} />} />
-          <Route path="/plans/:planId/ai-requests" element={<AiRequests />} />
+          {AI_ENABLED && <Route path="/plans/:planId/ai-requests" element={<AiRequests />} />}
           <Route path="/plans/:planId/courses/:courseId" element={<CourseOverview />} />
           <Route path="/plans/:planId/courses/:courseId/learn" element={<CourseWorkspace />} />
           <Route path="*" element={<Navigate to="/" replace />} />

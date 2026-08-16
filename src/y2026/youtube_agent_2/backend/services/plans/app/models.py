@@ -96,6 +96,9 @@ class LearningPlan(BaseModel):
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     courses: List[Course] = Field(default_factory=list)
     labels: List[str] = Field(default_factory=list)
+    visibility: Literal["private", "public"] = "private"
+    public_share_id: Optional[str] = None
+    published_at: Optional[datetime] = None
 
 class CourseDeleteRequest(BaseModel):
     course_ids: List[str] = Field(min_length=1)
@@ -109,8 +112,26 @@ class VideoReorderRequest(BaseModel):
     target_module_id: str
     target_index: int = Field(ge=0)
 
+class VideoBulkMoveRequest(BaseModel):
+    video_ids: List[str] = Field(min_length=1)
+    source_course_id: str
+    target_course_id: str
+    target_module_id: str
+
 class PlaybackUpdateRequest(BaseModel):
     position_secs: float = Field(ge=0)
+
+class VideoProgressUpdate(BaseModel):
+    course_id: str
+    module_id: str
+    video_id: str
+    watched: Optional[bool] = None
+    position_secs: Optional[float] = Field(default=None, ge=0)
+    changed_at: Optional[datetime] = None
+
+class BulkProgressUpdateRequest(BaseModel):
+    base_updated_at: Optional[datetime] = None
+    videos: List[VideoProgressUpdate] = Field(min_length=1, max_length=2000)
 
 class MetadataUpdateRequest(BaseModel):
     name: Optional[str] = None

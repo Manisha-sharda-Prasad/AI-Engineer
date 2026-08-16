@@ -16,6 +16,7 @@ class PlansRouteTests(unittest.TestCase):
         self.assertIn("/api/sources/sync-metadata", paths)
         self.assertIn("/api/sources/sync-metadata/organize-new-feeds", paths)
         self.assertIn("/api/sources/sync-metadata/confirm-organization", paths)
+        self.assertIn("/api/plans/{plan_id}/videos/move", paths)
         self.assertNotIn("/auth/google/login", paths)
 
 

@@ -33,7 +33,7 @@ function greeting() {
   return 'Good evening'
 }
 
-export default function Dashboard({ onOpenAiModels }) {
+export default function Dashboard({ onOpenAiModels, aiEnabled = true }) {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const plans = useSelector(state => state.plans.items)
@@ -137,12 +137,12 @@ export default function Dashboard({ onOpenAiModels }) {
         </section>
       </div>
 
-      <section className="dashboard-ai-summary">
+      {aiEnabled && <section className="dashboard-ai-summary">
         <span className="dashboard-ai-icon"><DashboardIcon name="ai" /></span>
         <div><small>AI workspace</small><strong>{defaultAiModel ? defaultAiModel.name : aiModelStatus === 'loading' ? 'Loading configured models…' : 'No default model configured'}</strong><p>{defaultAiModel ? `${defaultAiModel.provider} · ${defaultAiModel.model}` : 'Configure a model to enable AI-assisted course and feed organization.'}</p></div>
         <div className="dashboard-ai-metrics"><span><b>{enabledAiModels.length}</b> enabled</span><span><b>{aiModels.filter(model => model.test_status === 'passed').length}</b> tested</span></div>
         <button type="button" className="btn btn-secondary btn-sm" onClick={onOpenAiModels}>Manage models <DashboardIcon name="arrow" /></button>
-      </section>
+      </section>}
       </div>
     </div>
   )

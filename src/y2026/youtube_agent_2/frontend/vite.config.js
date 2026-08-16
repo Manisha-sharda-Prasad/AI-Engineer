@@ -1,19 +1,153 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
+import path from 'node:path'
+import { promises as fs } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { NOTE_REPOSITORIES } from './src/config/noteRepositories.js'
 
-export default defineConfig({
-  plugins: [react()],
-  server: {
-    port: 5173,
-    proxy: {
-      '/auth': {
-        target: 'http://127.0.0.1:8001',
-        changeOrigin: true,
-      },
-      '/api': {
-        target: 'http://127.0.0.1:8001',
-        changeOrigin: true,
+const frontendDirectory = path.dirname(fileURLToPath(import.meta.url))
+const defaultCheckoutRoot = path.resolve(frontendDirectory, '../../../../..')
+
+function displayTitle(filePath) {
+  const filename = path.basename(filePath).replace(/\.(md|markdown)$/i, '')
+  return filename.replace(/^\d+[_. -]*/, '').replace(/[_-]+/g, ' ').replace(/\b\w/g, character => character.toUpperCase()) || filename
+}
+
+function localNotesPlugin(configuredCheckoutRoot) {
+  const checkoutRoot = path.resolve(configuredCheckoutRoot || process.env.LOCAL_NOTES_ROOT || defaultCheckoutRoot)
+  const checkouts = new Map(NOTE_REPOSITORIES.map(repository => [repository.id, {
+    repository,
+    root: path.resolve(checkoutRoot, repository.localRepo || repository.repo),
+  }]))
+
+  const availableCheckout = async repositoryId => {
+    const checkout = checkouts.get(repositoryId)
+    if (!checkout) return null
+    const docsRoot = path.resolve(checkout.root, checkout.repository.path)
+    try {
+      if (!(await fs.stat(docsRoot)).isDirectory()) return null
+      return { ...checkout, docsRoot }
+    } catch {
+      return null
+    }
+  }
+
+  const walkMarkdown = async (directory, docsRoot, files = []) => {
+    for (const entry of await fs.readdir(directory, { withFileTypes: true })) {
+      const entryPath = path.join(directory, entry.name)
+      if (entry.isDirectory()) await walkMarkdown(entryPath, docsRoot, files)
+      else if (/\.(md|markdown)$/i.test(entry.name) && !entry.name.replace(/\.(md|markdown)$/i, '').toLowerCase().endsWith('__x')) {
+        const relativePath = path.relative(docsRoot, entryPath).split(path.sep).join('/')
+        const stats = await fs.stat(entryPath)
+        files.push({ relativePath, size: stats.size })
+      }
+    }
+    return files
+  }
+
+  const json = (response, status, payload) => {
+    response.statusCode = status
+    response.setHeader('Content-Type', 'application/json; charset=utf-8')
+    response.setHeader('Cache-Control', 'no-store')
+    response.end(JSON.stringify(payload))
+  }
+
+  return {
+    name: 'local-learning-notes',
+    apply: 'serve',
+    configureServer(server) {
+      server.middlewares.use(async (request, response, next) => {
+        const requestUrl = new URL(request.url || '/', 'http://localhost')
+        if (!requestUrl.pathname.startsWith('/local-notes/')) return next()
+        try {
+          if (requestUrl.pathname === '/local-notes/status') {
+            const available = []
+            for (const repository of NOTE_REPOSITORIES) {
+              if (await availableCheckout(repository.id)) available.push(repository.id)
+            }
+            return json(response, 200, { available })
+          }
+
+          const rawMatch = requestUrl.pathname.match(/^\/local-notes\/([^/]+)\/raw\/(.+)$/)
+          const match = requestUrl.pathname.match(/^\/local-notes\/([^/]+)\/(index|content)$/)
+          if (rawMatch) {
+            const repositoryId = decodeURIComponent(rawMatch[1])
+            const checkout = await availableCheckout(repositoryId)
+            if (!checkout) return json(response, 404, { error: 'This repository is not checked out under the configured local root.' })
+            const requestedPath = decodeURIComponent(rawMatch[2]).replaceAll('\\', '/')
+            const repositoryPrefix = checkout.repository.path.replace(/^\/+|\/+$/g, '')
+            const relativePath = requestedPath.startsWith(`${repositoryPrefix}/`) ? requestedPath.slice(repositoryPrefix.length + 1) : requestedPath
+            const resolvedPath = path.resolve(checkout.docsRoot, relativePath)
+            const docsRootPrefix = `${checkout.docsRoot}${path.sep}`
+            if (resolvedPath !== checkout.docsRoot && !resolvedPath.startsWith(docsRootPrefix)) return json(response, 403, { error: 'Local asset path is outside the configured docs directory.' })
+            const contentTypes = { '.md': 'text/markdown; charset=utf-8', '.markdown': 'text/markdown; charset=utf-8', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.svg': 'image/svg+xml', '.webp': 'image/webp' }
+            const content = await fs.readFile(resolvedPath)
+            response.statusCode = 200
+            response.setHeader('Content-Type', contentTypes[path.extname(resolvedPath).toLowerCase()] || 'application/octet-stream')
+            response.setHeader('Cache-Control', 'no-store')
+            return response.end(content)
+          }
+          if (!match) return json(response, 404, { error: 'Local notes endpoint not found.' })
+          const repositoryId = decodeURIComponent(match[1])
+          const checkout = await availableCheckout(repositoryId)
+          if (!checkout) return json(response, 404, { error: 'This repository is not checked out under the configured local root.' })
+
+          if (match[2] === 'index') {
+            const files = await walkMarkdown(checkout.docsRoot, checkout.docsRoot)
+            const notes = files.map(file => {
+              const repositoryPath = [checkout.repository.path.replace(/^\/+|\/+$/g, ''), file.relativePath].filter(Boolean).join('/')
+              return {
+                path: repositoryPath,
+                title: displayTitle(file.relativePath),
+                folder: repositoryPath.split('/').slice(0, -1).join('/'),
+                size: file.size,
+                sha: '',
+                github_url: `https://github.com/${checkout.repository.owner}/${checkout.repository.repo}/blob/${checkout.repository.branch}/${repositoryPath}`,
+              }
+            }).sort((left, right) => left.path.localeCompare(right.path, undefined, { numeric: true }))
+            return json(response, 200, { notes })
+          }
+
+          const requestedPath = (requestUrl.searchParams.get('path') || '').replaceAll('\\', '/')
+          const repositoryPrefix = checkout.repository.path.replace(/^\/+|\/+$/g, '')
+          const relativePath = requestedPath.startsWith(`${repositoryPrefix}/`) ? requestedPath.slice(repositoryPrefix.length + 1) : requestedPath
+          const resolvedPath = path.resolve(checkout.docsRoot, relativePath)
+          const docsRootPrefix = `${checkout.docsRoot}${path.sep}`
+          if (resolvedPath !== checkout.docsRoot && !resolvedPath.startsWith(docsRootPrefix)) return json(response, 403, { error: 'Local note path is outside the configured docs directory.' })
+          if (!/\.(md|markdown)$/i.test(resolvedPath)) return json(response, 400, { error: 'Only Markdown notes can be read.' })
+          const content = await fs.readFile(resolvedPath, 'utf8')
+          response.statusCode = 200
+          response.setHeader('Content-Type', 'text/markdown; charset=utf-8')
+          response.setHeader('Cache-Control', 'no-store')
+          return response.end(content)
+        } catch (error) {
+          return json(response, error?.code === 'ENOENT' ? 404 : 500, { error: error?.message || 'Unable to read local notes.' })
+        }
+      })
+    },
+  }
+}
+
+export default defineConfig(({ mode }) => {
+  const environment = loadEnv(mode, frontendDirectory, '')
+  return {
+    plugins: [react(), localNotesPlugin(environment.LOCAL_NOTES_ROOT)],
+    server: {
+      port: 5173,
+      proxy: {
+        '/auth': {
+          target: 'http://127.0.0.1:8001',
+          changeOrigin: true,
+        },
+        '/api': {
+          target: 'http://127.0.0.1:8001',
+          changeOrigin: true,
+        },
+        '/public-api': {
+          target: 'http://127.0.0.1:8001',
+          changeOrigin: true,
+        },
       },
     },
-  },
+  }
 })

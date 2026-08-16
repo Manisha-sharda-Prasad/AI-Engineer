@@ -169,3 +169,17 @@ cython_debug/
 /src/y2026/youtube_agent_2/backend/youtubeldb.sqlite3
 
 **/.env
+
+# Terraform local state, caches, plans, and uncommitted overrides
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.tfvars.local
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraform.tfstate.lock.info
+crash.log
+crash.*.log

@@ -26,6 +26,9 @@ DATABASE_URL = platform.DATABASE_URL
 INTERNAL_SERVICE_TOKEN = platform.INTERNAL_SERVICE_TOKEN
 SERVICE_REQUEST_TIMEOUT_SECS = platform.SERVICE_REQUEST_TIMEOUT_SECS
 YOUTUBE_SERVICE_URL = os.getenv("YOUTUBE_SERVICE_URL", "http://127.0.0.1:8002")
+DOWNSTREAM_INVOKE_MODE = os.getenv("DOWNSTREAM_INVOKE_MODE", "http").lower()
+YOUTUBE_FUNCTION_NAME = os.getenv("YOUTUBE_FUNCTION_NAME", "")
+DYNAMODB_TABLE_NAME = platform.DYNAMODB_TABLE_NAME
 
 # Provider credentials. Keep these in environment variables; never commit keys.
 # The API process and background worker must both receive the same required key.
