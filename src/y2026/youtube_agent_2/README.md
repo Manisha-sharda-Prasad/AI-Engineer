@@ -1,7 +1,9 @@
 # Youtube Agent
-References:
-- [project-req-doc.md](docs/01_project-req-doc.md)
-- [deployment](deployment)
+## Docs
+- [check here](../../../docs/2025-2030/03_youtube_agent)
+
+## CD pipeline and IAC
+- [check here](deployment)
 
 ## Run ⭐
 env var

@@ -50,18 +50,18 @@ before with `npm run dev`; its API base URL remains the gateway URL.
 
 ## Run with Docker Desktop Kubernetes
 
-The manifests under `deployment/kubernetes` run each backend as a separate
+The manifests under `deployment/infra_2_minikube/kubernetes` run each backend as a separate
 Deployment and Service. The gateway uses a local LoadBalancer on port 8001;
 YouTube and plans remain cluster-internal. Each data service has its own
 persistent volume claim.
 
 Build the three `:local` images and apply the Kustomize directory by following
-[`deployment/kubernetes/README.md`](../deployment/kubernetes/README.md).
+[`deployment/infra_2_minikube/kubernetes/README.md`](../../../src/y2026/youtube_agent_2/deployment/infra_2_minikube/kubernetes/README.md).
 
 For configurable and repeatable installs, use the Helm chart under
-`deployment/helm`. It exposes images, replicas, resources, probes, service
+`deployment/infra_2_minikube/helm`. It exposes images, replicas, resources, probes, service
 ports, persistence, Firebase mode, and external Secret names through
-`values.yaml`. See [`deployment/helm/README.md`](../deployment/helm/README.md).
+`values.yaml`. See [`deployment/infra_2_minikube/helm/README.md`](../../../src/y2026/youtube_agent_2/deployment/infra_2_minikube/helm/README.md).
 
 Compose uses separate SQLite volumes for local development. When Firebase is
 enabled, both services use their own Firestore collections through the current

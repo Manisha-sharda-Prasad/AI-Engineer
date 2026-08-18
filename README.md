@@ -1,8 +1,8 @@
 # AI Engineering
 
 ## Docs by year
-- [2025](docs/2025/README.md)
-- [2026](docs/2026/README.md)
+- [2025](docs/2025-2030/README_2025.md)
+- [2026](docs/2025-2030/README_2026.md)
 
 ---
 ## Generating mkdocs.yml
