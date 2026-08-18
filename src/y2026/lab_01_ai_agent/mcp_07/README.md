@@ -33,7 +33,7 @@ python -m src.y2026.lab_01_ai_agent.mcp_07.task_3_multi_servers
 ---
 ## overview
 - agent(mcp-client in it) with no langGraph
-- [03_01_MCP.md](../../../../docs/2026/02_AgenticAI/03_protocol/01_MCP.md)
+- [03_01_MCP.md](../../../../docs/2025-2030/02_AgenticAI/03_protocol/01_MCP.md)
 ```
 START → MCP Basics → Integration → Orchestration → COMPLETE!
   ↓         ↓            ↓              ↓

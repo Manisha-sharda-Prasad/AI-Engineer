@@ -1,6 +1,6 @@
 # Youtube Agent
 ## Docs
-- [check here](../../../docs/2026/03_youtube_agent)
+- [check here](../../../docs/2025-2030/03_youtube_agent)
 
 ## CD pipeline and IAC
 - [check here](deployment)
