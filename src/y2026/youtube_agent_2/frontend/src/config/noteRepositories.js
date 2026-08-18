@@ -12,6 +12,15 @@ export const NOTE_REPOSITORIES = [
     description: 'Architecture, cloud, DevOps, and senior engineering notes.',
   },
   {
+    id: 'data-engineer',
+    owner: 'lekhrajdinkar',
+    repo: 'data-engineer',
+    branch: 'main',
+    path: 'docs',
+    name: 'Data Engineer',
+    description: 'Data engineering, ETL, and data pipeline notes.',
+  },
+  {
     id: 'ai-engineer',
     owner: 'lekhrajdinkar',
     repo: 'AI-Engineer',

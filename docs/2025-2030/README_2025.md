@@ -1,6 +1,6 @@
 # 2025
 ## Docs
-- ⚠️ Merged all notes with [2026 docs](../2026) 
+- ⚠️ Merged all notes with [2026 docs]() 
 
 ## POC projects
 - [chatbot_poc](../../src/y2025/chatbot_poc)
