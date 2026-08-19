@@ -24,6 +24,7 @@ export const NOTE_REPOSITORIES = [
     id: 'ai-engineer',
     owner: 'lekhrajdinkar',
     repo: 'AI-Engineer',
+    localRepo: 'genai',
     branch: 'main',
     path: 'docs',
     name: 'AI Engineer',
