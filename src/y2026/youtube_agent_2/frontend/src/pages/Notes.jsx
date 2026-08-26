@@ -232,6 +232,67 @@ function MermaidDiagram({ source }) {
   </div>
 }
 
+function ImageDialog({ src, alt, onClose }) {
+  const [zoom, setZoom] = React.useState(1)
+
+  React.useEffect(() => {
+    const close = event => { if (event.key === 'Escape') onClose() }
+    document.addEventListener('keydown', close)
+    return () => document.removeEventListener('keydown', close)
+  }, [onClose])
+
+  return (
+    <div
+      className="mermaid-dialog-backdrop"
+      onMouseDown={event => { if (event.target === event.currentTarget) onClose() }}
+    >
+      <section className="mermaid-dialog image-dialog" role="dialog" aria-modal="true" aria-label={alt ? `Image: ${alt}` : 'Image viewer'}>
+        <header>
+          <div>
+            <span>Image viewer</span>
+            <strong>{alt || 'Click outside or press Esc to close.'}</strong>
+          </div>
+          <div className="mermaid-zoom-controls">
+            <button type="button" onClick={() => setZoom(value => Math.max(0.25, value - 0.25))} aria-label="Zoom out">−</button>
+            <button type="button" onClick={() => setZoom(1)}>{Math.round(zoom * 100)}%</button>
+            <button type="button" onClick={() => setZoom(value => Math.min(4, value + 0.25))} aria-label="Zoom in">+</button>
+            <button type="button" className="mermaid-dialog-close" onClick={onClose} aria-label="Close image">×</button>
+          </div>
+        </header>
+        <div className="mermaid-dialog-stage">
+          <div className="image-dialog-canvas" style={{ width: `${zoom * 100}%` }}>
+            <img src={src} alt={alt || ''} draggable={false} />
+          </div>
+        </div>
+      </section>
+    </div>
+  )
+}
+
+function ClickableImage({ src, alt, ...props }) {
+  const [open, setOpen] = React.useState(false)
+  const close = React.useCallback(() => setOpen(false), [])
+  return (
+    <>
+      <span className="notes-image-wrap">
+        <img
+          src={src}
+          alt={alt || ''}
+          loading="lazy"
+          className="notes-clickable-image"
+          onClick={() => setOpen(true)}
+          title="Click to enlarge"
+          {...props}
+        />
+        <span className="notes-image-zoom-hint" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5"/></svg>
+        </span>
+      </span>
+      {open && <ImageDialog src={src} alt={alt} onClose={close} />}
+    </>
+  )
+}
+
 function Breadcrumbs({ index, selectedPath, onDirectory }) {
   if (!index || !selectedPath) return null
   const parts = relativeParts(selectedPath, index.root_path)
@@ -539,7 +600,7 @@ function MarkdownContent({ note, headings, headingIdPrefix = '', index, onOpenLi
       const linkClassName = ['notes-rich-link', `link-type-${descriptor.type}`, className].filter(Boolean).join(' ')
       return <a href={resolved} className={linkClassName} onClick={event => { event.preventDefault(); onOpenLink?.(descriptor) }} {...props}><span className="notes-rich-link-icon"><LinkBrandIcon type={descriptor.type}/></span>{children}</a>
     },
-    img: ({ src, alt, ...props }) => <img src={relativeUrl(src, note.raw_url)} alt={alt || ''} loading="lazy" {...props} />,
+    img: ({ src, alt, ...props }) => <ClickableImage src={relativeUrl(src, note.raw_url)} alt={alt} {...props} />,
     h1: heading(1), h2: heading(2), h3: heading(3), h4: heading(4), h5: heading(5), h6: heading(6),
     pre: ({ children, ...props }) => {
       const codeElement = React.Children.count(children) === 1 ? React.Children.only(children) : null
