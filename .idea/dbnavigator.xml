@@ -87,7 +87,7 @@ select * from "public"."ai_model_configs" ;]]></console>
           <description value="https://console.neon.tech/app/projects/red-snow-76080021?database=neondb&amp;branchId=br-red-bread-auwkl017" />
           <database-type value="POSTGRES" />
           <config-type value="BASIC" />
-          <database-version value="18.4" />
+          <database-version value="18.6" />
           <driver-source value="BUNDLED" />
           <driver-library value="" />
           <driver value="" />
