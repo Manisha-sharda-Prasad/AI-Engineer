@@ -689,12 +689,84 @@ function OutlineHeadingTree({ nodes, depth = 0, onNavigate, onSelectHeading }) {
   })}</ol>
 }
 
-function OnThisPage({ note, headings, mobileOpen = false, isMobile = false, onMobileClose }) {
+function useResizablePanel({ initialWidth, minWidth = 220, maxWidth = 600, storageKey, direction = 'left' }) {
+  const [width, setWidth] = React.useState(() => {
+    try {
+      const saved = localStorage.getItem(storageKey)
+      if (saved) {
+        const parsed = Number(saved)
+        if (!isNaN(parsed) && parsed >= minWidth && parsed <= maxWidth) return parsed
+      }
+    } catch {}
+    return initialWidth
+  })
+
+  const [isResizing, setIsResizing] = React.useState(false)
+
+  const handlePointerDown = React.useCallback(event => {
+    event.preventDefault()
+    setIsResizing(true)
+    const startX = event.clientX
+    const startWidth = width
+
+    const onPointerMove = moveEvent => {
+      const deltaX = moveEvent.clientX - startX
+      const newWidth = direction === 'left'
+        ? Math.min(maxWidth, Math.max(minWidth, Math.round(startWidth + deltaX)))
+        : Math.min(maxWidth, Math.max(minWidth, Math.round(startWidth - deltaX)))
+      setWidth(newWidth)
+    }
+
+    const onPointerUp = () => {
+      setIsResizing(false)
+      window.removeEventListener('pointermove', onPointerMove)
+      window.removeEventListener('pointerup', onPointerUp)
+      window.removeEventListener('pointercancel', onPointerUp)
+    }
+
+    window.addEventListener('pointermove', onPointerMove)
+    window.addEventListener('pointerup', onPointerUp)
+    window.addEventListener('pointercancel', onPointerUp)
+  }, [width, minWidth, maxWidth, direction])
+
+  const handleDoubleClick = React.useCallback(() => {
+    setWidth(initialWidth)
+    try { localStorage.removeItem(storageKey) } catch {}
+  }, [initialWidth, storageKey])
+
+  React.useEffect(() => {
+    if (!isResizing) {
+      try { localStorage.setItem(storageKey, String(width)) } catch {}
+    }
+  }, [width, isResizing, storageKey])
+
+  return { width, setWidth, isResizing, handlePointerDown, handleDoubleClick }
+}
+
+function PanelSplitter({ direction = 'left', onPointerDown, onDoubleClick, isResizing, label = 'Drag to resize (Double-click to reset)' }) {
+  return (
+    <div
+      className={`notes-panel-splitter is-${direction} ${isResizing ? 'is-active' : ''}`}
+      onPointerDown={onPointerDown}
+      onDoubleClick={onDoubleClick}
+      role="separator"
+      aria-orientation="vertical"
+      tabIndex={0}
+      title={label}
+      aria-label={label}
+    >
+      <div className="notes-splitter-handle" aria-hidden="true" />
+    </div>
+  )
+}
+
+function OnThisPage({ note, headings, mobileOpen = false, isMobile = false, onMobileClose, splitter }) {
   const [query, setQuery] = React.useState('')
   React.useEffect(() => setQuery(''), [note?.path])
   const normalizedQuery = query.trim().toLowerCase()
   const visibleHeadingTree = filterHeadingTree(headingTree(headings), normalizedQuery)
   return <aside className={`notes-outline ${mobileOpen ? 'mobile-open' : ''}`} aria-label="On this page" aria-hidden={isMobile && !mobileOpen}>
+    {splitter}
     <div className="notes-outline-sticky">
       <button type="button" className="notes-mobile-drawer-close" onClick={onMobileClose} aria-label="Close page outline">×</button>
       <span>On this page</span>
@@ -991,6 +1063,24 @@ export default function Notes() {
     setNoteSource(source)
   }
 
+  const leftPanel = useResizablePanel({
+    initialWidth: 360,
+    minWidth: 240,
+    maxWidth: 640,
+    storageKey: 'learning-notes:left-panel-width',
+    direction: 'left',
+  })
+
+  const rightPanel = useResizablePanel({
+    initialWidth: 270,
+    minWidth: 200,
+    maxWidth: 480,
+    storageKey: 'learning-notes:right-panel-width',
+    direction: 'right',
+  })
+
+  const isResizing = leftPanel.isResizing || rightPanel.isResizing
+
   return <div className={`notes-page ${showNavigation ? '' : 'navigation-hidden'}`} style={repositoryStyle(repositoryId)}>
     <header className="notes-reader-header">
       <button type="button" className="notes-nav-reveal notes-desktop-nav-toggle" onClick={() => setShowNavigation(value => !value)} aria-controls="notes-topic-navigation" aria-expanded={showNavigation} title={showNavigation ? 'Hide notes navigation' : 'Show notes navigation'} aria-label={showNavigation ? 'Hide notes navigation' : 'Show notes navigation'}><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/><path d={showNavigation ? 'm7 9-3 3 3 3' : 'm5 9 3 3-3 3'}/></svg></button>
@@ -999,7 +1089,18 @@ export default function Notes() {
       <div className="notes-mobile-header-actions"><button type="button" onClick={() => { setShowNavigation(true); setMobilePanel('library') }} aria-label="Open notes library" title="Notes library"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M6 8h0M6 12h0"/></svg></button><button type="button" onClick={() => setMobilePanel('outline')} aria-label="Open page outline" title="On this page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/></svg></button></div>
     </header>
     <DismissibleError message={error} />
-    <div className="notes-layout">
+    <div
+      className={`notes-layout ${isResizing ? 'is-resizing' : ''}`}
+      style={{
+        '--notes-left-width': `${leftPanel.width}px`,
+        '--notes-right-width': `${rightPanel.width}px`,
+        gridTemplateColumns: isMobile
+          ? undefined
+          : showNavigation
+            ? `${leftPanel.width}px minmax(360px, 1fr) ${rightPanel.width}px`
+            : `0 minmax(360px, 1fr) ${rightPanel.width}px`,
+      }}
+    >
       <aside ref={navigationRef} id="notes-topic-navigation" className={`notes-browser ${mobilePanel === 'library' ? 'mobile-open' : ''}`} aria-label="Repository topics" aria-hidden={!showNavigation || (isMobile && mobilePanel !== 'library')}>
         <div className="notes-browser-header"><RepositoryDropdown repositories={repositories} selected={currentRepository || index} onSelect={repo => { setSearchParams({ repo }); setMobilePanel(null) }}/>{currentRepository?.local_available && <NoteSourceToggle source={noteSource} onChange={selectNoteSource}/>}<button type="button" className="notes-mobile-drawer-close" onClick={() => setMobilePanel(null)} aria-label="Close notes library">×</button></div>
         <div className="notes-tree-toolbar">
@@ -1010,9 +1111,35 @@ export default function Notes() {
         <div className="notes-tree-browser">
           <nav className="notes-list" aria-label={`${selectedTopic} notes`}><div className="notes-pane-label"><span><b>{displayName(selectedTopic)}</b><small>Subtopics and notes</small></span><span className="notes-pane-actions"><button type="button" onClick={() => setExpanded(Object.fromEntries(allTreePaths.map(path => [path, !allExpanded])))} title={allExpanded ? 'Collapse all subtopics' : 'Expand all subtopics'} aria-label={allExpanded ? 'Collapse all subtopics' : 'Expand all subtopics'} aria-pressed={allExpanded}><svg viewBox="0 0 24 24" aria-hidden="true">{allExpanded ? <path d="M9 9H4V4m11 5h5V4M9 15H4v5m11-5h5v5M4 9l5-5m11 5-5-5M4 15l5 5m11-5-5 5"/> : <path d="M8 3H3v5m13-5h5v5M8 21H3v-5m13 5h5v-5M3 8l5-5m13 5-5-5M3 16l5 5m13-5-5 5"/>}</svg></button><em>{topicNotes.length}</em></span></div>{!loadingIndex && <NoteTree node={tree} selectedPath={selectedPath} activeDirectories={activeDirectories} expanded={expanded} onToggle={path => setExpanded(current => ({ ...current, [path]: !current[path] }))} onSelect={selectNote} />}{!loadingIndex && !topicNotes.length && <p className="notes-empty">No notes match this search in {displayName(selectedTopic)}.</p>}</nav>
         </div>
+        {!isMobile && showNavigation && (
+          <PanelSplitter
+            direction="left"
+            isResizing={leftPanel.isResizing}
+            onPointerDown={leftPanel.handlePointerDown}
+            onDoubleClick={leftPanel.handleDoubleClick}
+            label="Drag to resize navigation panel (Double-click to reset)"
+          />
+        )}
       </aside>
       <main ref={noteReaderRef} className="note-reader">{loadingNote ? <div className="note-reader-status"><span className="spinner" /> Loading note…</div> : note ? <><article className="markdown-body"><MarkdownContent note={note} headings={headings} index={index} onOpenLink={openPreviewLink} titleNavigation={{ previousNote, nextNote, onNavigate: selectNote }} /></article><NotePageNavigation previousNote={previousNote} nextNote={nextNote} rootPath={index?.root_path || ''} onNavigate={selectNote}/></> : <div className="note-reader-status">Choose a note to start reading.</div>}</main>
-      <OnThisPage note={note} headings={headings} isMobile={isMobile} mobileOpen={mobilePanel === 'outline'} onMobileClose={() => setMobilePanel(null)} />
+      <OnThisPage
+        note={note}
+        headings={headings}
+        isMobile={isMobile}
+        mobileOpen={mobilePanel === 'outline'}
+        onMobileClose={() => setMobilePanel(null)}
+        splitter={
+          !isMobile && (
+            <PanelSplitter
+              direction="right"
+              isResizing={rightPanel.isResizing}
+              onPointerDown={rightPanel.handlePointerDown}
+              onDoubleClick={rightPanel.handleDoubleClick}
+              label="Drag to resize outline panel (Double-click to reset)"
+            />
+          )
+        }
+      />
     </div>
     {isMobile && mobilePanel && <button type="button" className="notes-mobile-backdrop" onClick={() => setMobilePanel(null)} aria-label="Close mobile navigation" />}
     <LinkPreviewDrawer preview={linkPreview} repositoryId={repositoryId} source={noteSource} index={index} onClose={closeLinkPreview} onNavigate={jumpToPreviewedNote} onPreviewLink={followPreviewLink} canGoBack={linkPreviewHistory.length > 0} onBack={goBackInPreview}/>
