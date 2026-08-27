@@ -23,15 +23,17 @@ env var
 ```
 
 ```bash
-
-# API
 uvicorn src.y2026.youtube_agent_2.backend.services.gateway.app.main:app --reload --port 8001
+```
+```bash
 uvicorn src.y2026.youtube_agent_2.backend.services.youtube.app.main:app --reload --port 8002
+```
+```bash
 uvicorn src.y2026.youtube_agent_2.backend.services.plans.app.main:app --reload --port 8003
-
-# Start Vite
+```
+```bash
 cd src\y2026\youtube_agent_2\frontend; npm run dev
-
+````
 # ==============================
 
 # Docker Compose (optional)

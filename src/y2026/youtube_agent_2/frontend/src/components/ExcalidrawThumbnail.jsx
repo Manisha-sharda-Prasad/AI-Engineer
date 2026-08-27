@@ -1,0 +1,229 @@
+import React from 'react'
+import { Excalidraw } from '@excalidraw/excalidraw'
+import '@excalidraw/excalidraw/index.css'
+
+/** Helper to fetch and parse local/remote .excalidraw JSON */
+async function fetchExcalidrawJson(url) {
+  const response = await fetch(url)
+  if (!response.ok) throw new Error(`HTTP ${response.status}`)
+  return await response.json()
+}
+
+export default function ExcalidrawThumbnail({ url, descriptor, label, onOpen }) {
+  const [sceneData, setSceneData] = React.useState(null)
+  const [loading, setLoading] = React.useState(true)
+  const [error, setError] = React.useState(false)
+  const [excalidrawAPI, setExcalidrawAPI] = React.useState(null)
+  const [zoomPercent, setZoomPercent] = React.useState(100)
+
+  const title = label || descriptor?.title || (url ? url.split('/').at(-1) : 'Excalidraw Drawing')
+  const fileName = url ? decodeURIComponent(url.split('/').at(-1) || '') : ''
+
+  React.useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    setError(false)
+
+    fetchExcalidrawJson(url)
+      .then(data => {
+        if (!cancelled) {
+          setSceneData(data)
+          setLoading(false)
+        }
+      })
+      .catch(err => {
+        console.warn('[ExcalidrawThumbnail] Failed to load JSON:', err)
+        if (!cancelled) {
+          setError(true)
+          setLoading(false)
+        }
+      })
+
+    return () => { cancelled = true }
+  }, [url])
+
+  // Automatically fit drawing to viewport on initial load
+  React.useEffect(() => {
+    if (!excalidrawAPI || !sceneData) return
+    const timer = setTimeout(() => {
+      excalidrawAPI.scrollToContent(undefined, { fitToViewport: true, animate: false })
+      const currentZoom = excalidrawAPI.getAppState()?.zoom?.value || 1
+      setZoomPercent(Math.round(currentZoom * 100))
+    }, 50)
+    return () => clearTimeout(timer)
+  }, [excalidrawAPI, sceneData])
+
+  // Track zoom level changes from wheel/trackpad/drag
+  const handlePointerUpdate = () => {
+    if (excalidrawAPI) {
+      const currentZoom = excalidrawAPI.getAppState()?.zoom?.value || 1
+      setZoomPercent(Math.round(currentZoom * 100))
+    }
+  }
+
+  const handleZoom = delta => {
+    if (!excalidrawAPI) return
+    const currentZoom = excalidrawAPI.getAppState()?.zoom?.value || 1
+    const nextZoom = Math.min(5, Math.max(0.1, Number((currentZoom + delta).toFixed(2))))
+    excalidrawAPI.updateScene({
+      appState: { zoom: { value: nextZoom } },
+    })
+    setZoomPercent(Math.round(nextZoom * 100))
+  }
+
+  const handleResetZoom = () => {
+    if (!excalidrawAPI) return
+    excalidrawAPI.updateScene({
+      appState: { zoom: { value: 1 } },
+    })
+    setZoomPercent(100)
+  }
+
+  const handleFit = () => {
+    if (!excalidrawAPI) return
+    excalidrawAPI.scrollToContent(undefined, { fitToViewport: true, animate: true })
+    setTimeout(() => {
+      if (excalidrawAPI) {
+        const currentZoom = excalidrawAPI.getAppState()?.zoom?.value || 1
+        setZoomPercent(Math.round(currentZoom * 100))
+      }
+    }, 150)
+  }
+
+  const elementCount = (sceneData?.elements || []).filter(el => !el.isDeleted).length
+
+  if (error || (!loading && !sceneData)) {
+    return (
+      <a
+        href={url}
+        className="notes-excalidraw-fallback-link"
+        onClick={event => { event.preventDefault(); onOpen?.(descriptor) }}
+        title="Open drawing in reader"
+      >
+        <span className="notes-rich-link-icon">
+          <svg viewBox="0 0 48 48" aria-hidden="true">
+            <rect x="3" y="12" width="32" height="23" rx="3" fill="#6965db"/>
+            <path d="M8 28l5-10 5 6 5-8 5 12" stroke="#fff" strokeWidth="2" fill="none"/>
+            <path d="M36 4l8 8-12 12-5 1 1-5z" fill="#6965db"/>
+            <path d="M42 6l2 2" stroke="#fff" strokeWidth="2"/>
+          </svg>
+        </span>
+        <strong>{title}</strong>
+        <small className="notes-excalidraw-badge">Excalidraw ↗</small>
+      </a>
+    )
+  }
+
+  return (
+    <div className="notes-excalidraw-thumbnail-card" aria-label={`Excalidraw drawing: ${title}`}>
+      <div className="notes-excalidraw-thumbnail-header">
+        <div className="notes-excalidraw-thumbnail-title-group">
+          <span className="notes-excalidraw-logo-badge" aria-hidden="true">
+            <svg viewBox="0 0 48 48">
+              <rect x="3" y="12" width="32" height="23" rx="4" fill="currentColor" opacity="0.15"/>
+              <rect x="3" y="12" width="32" height="23" rx="4" stroke="currentColor" strokeWidth="2.5" fill="none"/>
+              <path d="M8 28l5-10 5 6 5-8 5 12" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M36 4l8 8-12 12-5 1 1-5z" fill="currentColor"/>
+            </svg>
+          </span>
+          <div className="notes-excalidraw-thumbnail-names">
+            <strong>{title}</strong>
+            {fileName && fileName !== title && <small>{fileName}</small>}
+          </div>
+        </div>
+
+        <div className="notes-excalidraw-thumbnail-meta">
+          {elementCount > 0 && <span className="notes-excalidraw-elements-count">{elementCount} elements</span>}
+
+          {/* Direct Zoom Toolbar */}
+          <div className="notes-excalidraw-zoom-toolbar" role="toolbar" aria-label="Drawing zoom controls">
+            <button
+              type="button"
+              className="notes-excalidraw-zoom-btn"
+              onClick={() => handleZoom(-0.25)}
+              title="Zoom out"
+              aria-label="Zoom out"
+            >
+              −
+            </button>
+            <button
+              type="button"
+              className="notes-excalidraw-zoom-btn notes-excalidraw-zoom-value"
+              onClick={handleResetZoom}
+              title="Reset zoom to 100%"
+              aria-label="Reset zoom to 100%"
+            >
+              {zoomPercent}%
+            </button>
+            <button
+              type="button"
+              className="notes-excalidraw-zoom-btn"
+              onClick={() => handleZoom(0.25)}
+              title="Zoom in"
+              aria-label="Zoom in"
+            >
+              +
+            </button>
+            <button
+              type="button"
+              className="notes-excalidraw-zoom-btn notes-excalidraw-fit-btn"
+              onClick={handleFit}
+              title="Fit diagram to viewport"
+              aria-label="Fit diagram to viewport"
+            >
+              Fit
+            </button>
+          </div>
+
+          <button
+            type="button"
+            className="notes-excalidraw-pill-badge notes-excalidraw-expand-btn"
+            onClick={() => onOpen?.(descriptor)}
+            title="Expand to full side drawer"
+          >
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+              <path d="M15 3h6v6M10 14L21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+            </svg>
+            Full Reader ↗
+          </button>
+        </div>
+      </div>
+
+      <div className="notes-excalidraw-thumbnail-stage">
+        {loading ? (
+          <div className="notes-excalidraw-thumbnail-loading">
+            <span className="spinner" />
+            <span>Loading interactive drawing…</span>
+          </div>
+        ) : (
+          <div className="notes-excalidraw-thumbnail-canvas-container">
+            <Excalidraw
+              excalidrawAPI={api => setExcalidrawAPI(api)}
+              onPointerUpdate={handlePointerUpdate}
+              viewModeEnabled
+              zenModeEnabled
+              UIOptions={{
+                canvasActions: {
+                  loadScene: false,
+                  export: false,
+                  saveAsImage: false,
+                  clearCanvas: false,
+                },
+              }}
+              initialData={{
+                elements: sceneData?.elements,
+                appState: {
+                  ...sceneData?.appState,
+                  collaborators: [],
+                  isLoading: false,
+                },
+                files: sceneData?.files,
+                scrollToContent: true,
+              }}
+            />
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
