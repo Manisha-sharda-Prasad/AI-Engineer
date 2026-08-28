@@ -126,15 +126,10 @@ export default function ExcalidrawThumbnail({ url, descriptor, label, onOpen }) 
               <path d="M36 4l8 8-12 12-5 1 1-5z" fill="currentColor"/>
             </svg>
           </span>
-          <div className="notes-excalidraw-thumbnail-names">
-            <strong>{title}</strong>
-            {fileName && fileName !== title && <small>{fileName}</small>}
-          </div>
+          <strong className="notes-excalidraw-thumbnail-title" title={title}>{title}</strong>
         </div>
 
         <div className="notes-excalidraw-thumbnail-meta">
-          {elementCount > 0 && <span className="notes-excalidraw-elements-count">{elementCount} elements</span>}
-
           {/* Direct Zoom Toolbar */}
           <div className="notes-excalidraw-zoom-toolbar" role="toolbar" aria-label="Drawing zoom controls">
             <button
@@ -177,14 +172,14 @@ export default function ExcalidrawThumbnail({ url, descriptor, label, onOpen }) 
 
           <button
             type="button"
-            className="notes-excalidraw-pill-badge notes-excalidraw-expand-btn"
+            className="notes-excalidraw-expand-icon-btn"
             onClick={() => onOpen?.(descriptor)}
-            title="Expand to full side drawer"
+            title="Open in full reader"
+            aria-label="Open in full reader"
           >
-            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M15 3h6v6M10 14L21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
             </svg>
-            Full Reader ↗
           </button>
         </div>
       </div>
