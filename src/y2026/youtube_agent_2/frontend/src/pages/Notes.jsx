@@ -277,6 +277,91 @@ function ImageDialog({ src, alt, onClose }) {
   )
 }
 
+function ExcalidrawDialog({ modal, onClose }) {
+  React.useEffect(() => {
+    if (!modal) return undefined
+    const handleKeyDown = event => {
+      if (event.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [modal, onClose])
+
+  if (!modal) return null
+
+  const title = modal.title || modal.label || (modal.url ? decodeURIComponent(modal.url.split('/').at(-1)) : 'Excalidraw Drawing')
+
+  return (
+    <div
+      className="excalidraw-dialog-backdrop"
+      onMouseDown={event => { if (event.target === event.currentTarget) onClose() }}
+      role="presentation"
+    >
+      <section
+        className="excalidraw-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Drawing: ${title}`}
+      >
+        <header className="excalidraw-dialog-header">
+          <div className="excalidraw-dialog-brand">
+            <span className="excalidraw-dialog-badge" aria-hidden="true">
+              <svg viewBox="0 0 48 48">
+                <rect x="3" y="12" width="32" height="23" rx="4" fill="currentColor" opacity="0.15"/>
+                <rect x="3" y="12" width="32" height="23" rx="4" stroke="currentColor" strokeWidth="2.5" fill="none"/>
+                <path d="M8 28l5-10 5 6 5-8 5 12" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M36 4l8 8-12 12-5 1 1-5z" fill="currentColor"/>
+              </svg>
+            </span>
+            <div className="excalidraw-dialog-title-group">
+              <span>Interactive Drawing</span>
+              <strong title={title}>{title}</strong>
+            </div>
+          </div>
+
+          <div className="excalidraw-dialog-actions">
+            {modal.url && (
+              <a
+                href={modal.url}
+                target="_blank"
+                rel="noreferrer noopener"
+                className="excalidraw-dialog-open-tab-btn"
+                title="Open original drawing in a new tab"
+              >
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                  <path d="M15 3h6v6M10 14L21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                </svg>
+                <span>Open in new tab ↗</span>
+              </a>
+            )}
+            <button
+              type="button"
+              className="excalidraw-dialog-close"
+              onClick={onClose}
+              aria-label="Close drawing dialog"
+              title="Close (Esc)"
+            >
+              ×
+            </button>
+          </div>
+        </header>
+
+        <div className="excalidraw-dialog-stage">
+          <React.Suspense fallback={<div className="excalidraw-embed-status"><span className="spinner"/><strong>Loading interactive canvas…</strong></div>}>
+            <ExcalidrawViewer
+              url={modal.url}
+              onFallback={() => {
+                window.open(modal.url, '_blank', 'noopener,noreferrer')
+                onClose()
+              }}
+            />
+          </React.Suspense>
+        </div>
+      </section>
+    </div>
+  )
+}
+
 function ClickableImage({ src, alt, ...props }) {
   const [open, setOpen] = React.useState(false)
   const close = React.useCallback(() => setOpen(false), [])
@@ -564,7 +649,7 @@ function LinkPreviewDrawer({ preview, repositoryId, source, index, onClose, onNa
         {preview.type === 'folder' && <div className="notes-folder-master-detail"><aside className="notes-folder-master"><header><span><LinkBrandIcon type="folder"/></span><div><h2>{preview.title}</h2><p>{folderNotes.length} Markdown notes</p></div></header><div className="notes-folder-master-tree">{folderTree && <FolderPreviewTree node={folderTree} landingPath={preview.path} selectedPath={folderSelectedPath} onSelect={setFolderSelectedPath}/>}</div></aside><section className="notes-folder-detail"><header><span>Note preview</span><strong>{previewNote?.title || folderNotes.find(item => item.path === folderSelectedPath)?.title || 'Select a note'}</strong><small>{folderSelectedPath}</small></header><div className="notes-folder-detail-content">{loading ? <div className="note-reader-status"><span className="spinner" /> Loading note…</div> : error ? <DismissibleError message={error}/> : previewNote ? <PreviewMarkdownLayout note={previewNote} headings={previewHeadings} index={index} onOpenLink={onPreviewLink}/> : <div className="note-reader-status">Select a note from the folder tree.</div>}</div></section></div>}
         {preview.type === 'youtube-post' && <div className="notes-youtube-post-preview"><span><LinkBrandIcon type="youtube-post"/></span><h2>Community post</h2><p>YouTube does not provide a video-player embed for Community posts. Open the post on YouTube to view its text, images, poll, and discussion.</p></div>}
         {preview.type === 'youtube' && <div className="notes-external-preview"><iframe key={preview.url} className="notes-external-frame" src={youtubeEmbedUrl(preview.videoId)} title={`${labels.youtube}: ${preview.title || preview.hostname}`} loading="eager" referrerPolicy="strict-origin-when-cross-origin" sandbox="allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-presentation allow-same-origin allow-scripts" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen/></div>}
-        {preview.type === 'excalidraw' && <div className="notes-excalidraw-preview"><React.Suspense fallback={<div className="excalidraw-embed-status"><span className="spinner"/><strong>Preparing canvas…</strong></div>}><ExcalidrawViewer url={preview.url}/></React.Suspense></div>}
+        {preview.type === 'excalidraw' && <div className="notes-excalidraw-preview"><React.Suspense fallback={<div className="excalidraw-embed-status"><span className="spinner"/><strong>Preparing canvas…</strong></div>}><ExcalidrawViewer url={preview.url} onFallback={() => { window.open(preview.url, '_blank', 'noopener,noreferrer'); onClose() }}/></React.Suspense></div>}
         {!['note', 'folder', 'youtube', 'youtube-post', 'excalidraw'].includes(preview.type) && <div className="notes-external-preview"><ExternalReaderPreview preview={preview}/></div>}
       </div>
       <footer className="notes-link-drawer-actions">
@@ -918,10 +1003,29 @@ export default function Notes() {
   const [isMobile, setIsMobile] = React.useState(false)
   const [linkPreview, setLinkPreview] = React.useState(null)
   const [linkPreviewHistory, setLinkPreviewHistory] = React.useState([])
+  const [excalidrawModal, setExcalidrawModal] = React.useState(null)
   const [loadingCatalog, setLoadingCatalog] = React.useState(true)
   const [loadingIndex, setLoadingIndex] = React.useState(false)
   const [loadingNote, setLoadingNote] = React.useState(false)
   const [error, setError] = React.useState('')
+
+  const leftPanel = useResizablePanel({
+    initialWidth: 360,
+    minWidth: 240,
+    maxWidth: 640,
+    storageKey: 'learning-notes:left-panel-width',
+    direction: 'left',
+  })
+
+  const rightPanel = useResizablePanel({
+    initialWidth: 270,
+    minWidth: 200,
+    maxWidth: 480,
+    storageKey: 'learning-notes:right-panel-width',
+    direction: 'right',
+  })
+
+  const isResizing = leftPanel.isResizing || rightPanel.isResizing
 
   React.useEffect(() => {
     let active = true
@@ -1023,6 +1127,10 @@ export default function Notes() {
   const selectNote = (path, { keepMobilePanel = false } = {}) => { setSearchParams({ repo: repositoryId, path }); if (!keepMobilePanel) setMobilePanel(null) }
   const openPreviewLink = descriptor => {
     if (!descriptor?.url) return
+    if (descriptor.type === 'excalidraw') {
+      setExcalidrawModal(descriptor)
+      return
+    }
     if (!supportsDrawerPreview(descriptor)) { openInNewTab(descriptor.url); return }
     setLinkPreviewHistory([])
     setLinkPreview(descriptor)
@@ -1062,24 +1170,6 @@ export default function Notes() {
     localStorage.setItem(`learning-notes-source:${repositoryId}`, source)
     setNoteSource(source)
   }
-
-  const leftPanel = useResizablePanel({
-    initialWidth: 360,
-    minWidth: 240,
-    maxWidth: 640,
-    storageKey: 'learning-notes:left-panel-width',
-    direction: 'left',
-  })
-
-  const rightPanel = useResizablePanel({
-    initialWidth: 270,
-    minWidth: 200,
-    maxWidth: 480,
-    storageKey: 'learning-notes:right-panel-width',
-    direction: 'right',
-  })
-
-  const isResizing = leftPanel.isResizing || rightPanel.isResizing
 
   return <div className={`notes-page ${showNavigation ? '' : 'navigation-hidden'}`} style={repositoryStyle(repositoryId)}>
     <header className="notes-reader-header">
@@ -1143,5 +1233,6 @@ export default function Notes() {
     </div>
     {isMobile && mobilePanel && <button type="button" className="notes-mobile-backdrop" onClick={() => setMobilePanel(null)} aria-label="Close mobile navigation" />}
     <LinkPreviewDrawer preview={linkPreview} repositoryId={repositoryId} source={noteSource} index={index} onClose={closeLinkPreview} onNavigate={jumpToPreviewedNote} onPreviewLink={followPreviewLink} canGoBack={linkPreviewHistory.length > 0} onBack={goBackInPreview}/>
+    <ExcalidrawDialog modal={excalidrawModal} onClose={() => setExcalidrawModal(null)} />
   </div>
 }
