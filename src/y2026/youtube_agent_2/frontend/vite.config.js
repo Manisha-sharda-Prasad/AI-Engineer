@@ -132,6 +132,9 @@ export default defineConfig(({ mode }) => {
   const environment = loadEnv(mode, frontendDirectory, '')
   return {
     plugins: [react(), localNotesPlugin(environment.LOCAL_NOTES_ROOT)],
+    optimizeDeps: {
+      include: ['pako'],
+    },
     server: {
       port: 5173,
       proxy: {

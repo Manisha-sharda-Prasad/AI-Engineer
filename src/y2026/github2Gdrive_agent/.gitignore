@@ -1,0 +1,11 @@
+# Storage & Sensitive Credentials
+storage/
+*.json
+!package.json
+!tsconfig.json
+.env
+.venv/
+node_modules/
+dist/
+__pycache__/
+*.pyc

@@ -6,6 +6,9 @@ import { useSearchParams } from 'react-router-dom'
 import DismissibleError from '../components/DismissibleError'
 import { getNoteContent, getNoteRepositories, getNotes } from '../api/githubNotes'
 
+const ExcalidrawViewer = React.lazy(() => import('../components/ExcalidrawViewer'))
+const ExcalidrawThumbnail = React.lazy(() => import('../components/ExcalidrawThumbnail'))
+
 let mermaidRenderSequence = 0
 const READER_PREVIEW_HOSTS = ['bytebytego.com']
 
@@ -108,14 +111,19 @@ function linkDescriptor(href, note, index, label = '') {
     else if (hostname === 'github.com' || hostname.endsWith('.github.com')) type = 'github'
     else if (hostname === 'chatgpt.com' || hostname.endsWith('.chatgpt.com')) type = 'chatgpt'
     else if (hostname === 'chat.deepseek.com' || hostname.endsWith('.deepseek.com')) type = 'deepseek'
-    return { type, url, hostname, videoId, title: label || hostname, label }
+    else if (hostname === 'excalidraw.com') type = 'excalidraw'
+    else if (parsed.pathname.toLowerCase().endsWith('.excalidraw')) type = 'excalidraw'
+    const excalidrawFileTitle = type === 'excalidraw' && parsed.pathname.toLowerCase().endsWith('.excalidraw')
+      ? displayName(parsed.pathname.split('/').at(-1).replace(/\.excalidraw$/i, ''))
+      : null
+    return { type, url, hostname, videoId, title: label || excalidrawFileTitle || hostname, label }
   } catch {
     return { type: 'external', url, hostname: '', title: label || 'External link', label }
   }
 }
 
 function supportsDrawerPreview(descriptor) {
-  if (['note', 'folder', 'youtube'].includes(descriptor?.type)) return true
+  if (['note', 'folder', 'youtube', 'excalidraw'].includes(descriptor?.type)) return true
   const hostname = descriptor?.hostname || ''
   return READER_PREVIEW_HOSTS.some(domain => hostname === domain || hostname.endsWith(`.${domain}`))
 }
@@ -232,6 +240,67 @@ function MermaidDiagram({ source }) {
   </div>
 }
 
+function ImageDialog({ src, alt, onClose }) {
+  const [zoom, setZoom] = React.useState(1)
+
+  React.useEffect(() => {
+    const close = event => { if (event.key === 'Escape') onClose() }
+    document.addEventListener('keydown', close)
+    return () => document.removeEventListener('keydown', close)
+  }, [onClose])
+
+  return (
+    <div
+      className="mermaid-dialog-backdrop"
+      onMouseDown={event => { if (event.target === event.currentTarget) onClose() }}
+    >
+      <section className="mermaid-dialog image-dialog" role="dialog" aria-modal="true" aria-label={alt ? `Image: ${alt}` : 'Image viewer'}>
+        <header>
+          <div>
+            <span>Image viewer</span>
+            <strong>{alt || 'Click outside or press Esc to close.'}</strong>
+          </div>
+          <div className="mermaid-zoom-controls">
+            <button type="button" onClick={() => setZoom(value => Math.max(0.25, value - 0.25))} aria-label="Zoom out">−</button>
+            <button type="button" onClick={() => setZoom(1)}>{Math.round(zoom * 100)}%</button>
+            <button type="button" onClick={() => setZoom(value => Math.min(4, value + 0.25))} aria-label="Zoom in">+</button>
+            <button type="button" className="mermaid-dialog-close" onClick={onClose} aria-label="Close image">×</button>
+          </div>
+        </header>
+        <div className="mermaid-dialog-stage">
+          <div className="image-dialog-canvas" style={{ width: `${zoom * 100}%` }}>
+            <img src={src} alt={alt || ''} draggable={false} />
+          </div>
+        </div>
+      </section>
+    </div>
+  )
+}
+
+function ClickableImage({ src, alt, ...props }) {
+  const [open, setOpen] = React.useState(false)
+  const close = React.useCallback(() => setOpen(false), [])
+  return (
+    <>
+      <span className="notes-image-wrap">
+        <img
+          src={src}
+          alt={alt || ''}
+          loading="lazy"
+          className="notes-clickable-image"
+          onClick={() => setOpen(true)}
+          title="Click to enlarge"
+          {...props}
+        />
+        <span className="notes-image-zoom-hint" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5"/></svg>
+        </span>
+      </span>
+      {open && <ImageDialog src={src} alt={alt} onClose={close} />}
+    </>
+  )
+}
+
 function Breadcrumbs({ index, selectedPath, onDirectory }) {
   if (!index || !selectedPath) return null
   const parts = relativeParts(selectedPath, index.root_path)
@@ -312,6 +381,7 @@ function LinkBrandIcon({ type }) {
   if (type === 'github') return <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 4a20 20 0 0 0-6.3 39c1 .2 1.4-.4 1.4-1v-3.8c-5.7 1.2-6.9-2.4-6.9-2.4-.9-2.4-2.3-3-2.3-3-1.9-1.3.1-1.3.1-1.3 2.1.1 3.2 2.2 3.2 2.2 1.9 3.2 4.9 2.3 6.1 1.8.2-1.4.7-2.3 1.3-2.8-4.6-.5-9.4-2.3-9.4-10A7.8 7.8 0 0 1 13 18a7.3 7.3 0 0 1 .2-5.7s1.6-.5 5.9 2.2a20.3 20.3 0 0 1 10.6 0c4.1-2.7 5.8-2.2 5.8-2.2a7.3 7.3 0 0 1 .2 5.7 7.8 7.8 0 0 1 2.1 5.5c0 7.7-4.8 9.4-9.4 10 .8.7 1.4 2 1.4 3.8V42c0 .6.4 1.2 1.4 1A20 20 0 0 0 24 4Z"/></svg>
   if (type === 'chatgpt') return <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M23.9 6a10 10 0 0 1 17.2 7.4 10 10 0 0 1 1 17.9 10 10 0 0 1-16.2 9.7 10 10 0 0 1-17.2-7.4 10 10 0 0 1-1-17.9A10 10 0 0 1 23.9 6Zm-8.2 10.7 8.2-4.7 8.3 4.8v9.5l-8.3 4.8-8.2-4.8v-9.6Zm8.2-4.7v9.6l8.3 4.7m-16.5-9.6 8.2 4.9-8.2 4.7"/></svg>
   if (type === 'deepseek') return <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M5 27c7-13 20-18 38-12-3 15-14 24-28 22-5-.7-8.3-4-10-10Zm10 10c3-7 8-12 16-15M27 17c1 3 3 5 7 6"/></svg>
+  if (type === 'excalidraw') return <svg viewBox="0 0 48 48" aria-hidden="true"><rect x="3" y="12" width="32" height="23" rx="3"/><path d="M8 28l5-10 5 6 5-8 5 12"/><path d="M36 4l8 8-12 12-5 1 1-5z"/><path d="M42 6l2 2"/></svg>
   if (type === 'folder') return <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M5 12h15l5 6h18v22H5V12Z"/><path d="M5 18h38M17 29h14M24 22v14"/></svg>
   if (type === 'note') return <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M8 7h23l9 9v25H8V7Z"/><path d="M30 7v10h10M15 23h18M15 29h18M15 35h12"/></svg>
   return <svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="19"/><path d="M5 24h38M24 5c6 5.3 9 11.7 9 19s-3 13.7-9 19c-6-5.3-9-11.7-9-19s3-13.7 9-19Z"/></svg>
@@ -471,7 +541,7 @@ function LinkPreviewDrawer({ preview, repositoryId, source, index, onClose, onNa
   }, [preview, repositoryId, source, folderSelectedPath])
 
   if (!preview) return null
-  const labels = { note: 'Linked learning note', folder: 'Linked notes folder', youtube: 'YouTube video', 'youtube-post': 'YouTube post', github: 'GitHub resource', chatgpt: 'ChatGPT link', deepseek: 'DeepSeek link', external: 'External resource' }
+  const labels = { note: 'Linked learning note', folder: 'Linked notes folder', youtube: 'YouTube video', 'youtube-post': 'YouTube post', github: 'GitHub resource', chatgpt: 'ChatGPT link', deepseek: 'DeepSeek link', excalidraw: 'Excalidraw drawing', external: 'External resource' }
   const description = ['note', 'folder'].includes(preview.type)
     ? (preview.folderPath || preview.path)
     : (() => { try { const value = new URL(preview.url); return `${value.hostname}${decodeURIComponent(value.pathname)}` } catch { return preview.url } })()
@@ -494,7 +564,8 @@ function LinkPreviewDrawer({ preview, repositoryId, source, index, onClose, onNa
         {preview.type === 'folder' && <div className="notes-folder-master-detail"><aside className="notes-folder-master"><header><span><LinkBrandIcon type="folder"/></span><div><h2>{preview.title}</h2><p>{folderNotes.length} Markdown notes</p></div></header><div className="notes-folder-master-tree">{folderTree && <FolderPreviewTree node={folderTree} landingPath={preview.path} selectedPath={folderSelectedPath} onSelect={setFolderSelectedPath}/>}</div></aside><section className="notes-folder-detail"><header><span>Note preview</span><strong>{previewNote?.title || folderNotes.find(item => item.path === folderSelectedPath)?.title || 'Select a note'}</strong><small>{folderSelectedPath}</small></header><div className="notes-folder-detail-content">{loading ? <div className="note-reader-status"><span className="spinner" /> Loading note…</div> : error ? <DismissibleError message={error}/> : previewNote ? <PreviewMarkdownLayout note={previewNote} headings={previewHeadings} index={index} onOpenLink={onPreviewLink}/> : <div className="note-reader-status">Select a note from the folder tree.</div>}</div></section></div>}
         {preview.type === 'youtube-post' && <div className="notes-youtube-post-preview"><span><LinkBrandIcon type="youtube-post"/></span><h2>Community post</h2><p>YouTube does not provide a video-player embed for Community posts. Open the post on YouTube to view its text, images, poll, and discussion.</p></div>}
         {preview.type === 'youtube' && <div className="notes-external-preview"><iframe key={preview.url} className="notes-external-frame" src={youtubeEmbedUrl(preview.videoId)} title={`${labels.youtube}: ${preview.title || preview.hostname}`} loading="eager" referrerPolicy="strict-origin-when-cross-origin" sandbox="allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-presentation allow-same-origin allow-scripts" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen/></div>}
-        {!['note', 'folder', 'youtube', 'youtube-post'].includes(preview.type) && <div className="notes-external-preview"><ExternalReaderPreview preview={preview}/></div>}
+        {preview.type === 'excalidraw' && <div className="notes-excalidraw-preview"><React.Suspense fallback={<div className="excalidraw-embed-status"><span className="spinner"/><strong>Preparing canvas…</strong></div>}><ExcalidrawViewer url={preview.url}/></React.Suspense></div>}
+        {!['note', 'folder', 'youtube', 'youtube-post', 'excalidraw'].includes(preview.type) && <div className="notes-external-preview"><ExternalReaderPreview preview={preview}/></div>}
       </div>
       <footer className="notes-link-drawer-actions">
         <button type="button" className="btn btn-secondary" onClick={onClose}>Close preview</button>
@@ -535,11 +606,30 @@ function MarkdownContent({ note, headings, headingIdPrefix = '', index, onOpenLi
     a: ({ href, children, className, ...props }) => {
       const resolved = relativeUrl(href, note.raw_url)
       if (href?.startsWith('#')) return <a href={href} className={className} onClick={event => { event.preventDefault(); document.getElementById(href.slice(1))?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }} {...props}>{children}</a>
-      const descriptor = linkDescriptor(href, note, index, React.Children.toArray(children).join(''))
+      const label = React.Children.toArray(children).join('')
+      const descriptor = linkDescriptor(href, note, index, label)
+
+      const isLocalExcalidrawFile = descriptor.type === 'excalidraw' && (
+        (href && /\.excalidraw(\?.*)?(#.*)?$/i.test(href)) ||
+        (resolved && /\.excalidraw(\?.*)?(#.*)?$/i.test(resolved))
+      )
+      if (isLocalExcalidrawFile) {
+        return (
+          <React.Suspense fallback={<div className="notes-excalidraw-fallback-link"><span className="spinner"/> Loading drawing…</div>}>
+            <ExcalidrawThumbnail
+              url={resolved}
+              descriptor={descriptor}
+              label={label}
+              onOpen={onOpenLink}
+            />
+          </React.Suspense>
+        )
+      }
+
       const linkClassName = ['notes-rich-link', `link-type-${descriptor.type}`, className].filter(Boolean).join(' ')
       return <a href={resolved} className={linkClassName} onClick={event => { event.preventDefault(); onOpenLink?.(descriptor) }} {...props}><span className="notes-rich-link-icon"><LinkBrandIcon type={descriptor.type}/></span>{children}</a>
     },
-    img: ({ src, alt, ...props }) => <img src={relativeUrl(src, note.raw_url)} alt={alt || ''} loading="lazy" {...props} />,
+    img: ({ src, alt, ...props }) => <ClickableImage src={relativeUrl(src, note.raw_url)} alt={alt} {...props} />,
     h1: heading(1), h2: heading(2), h3: heading(3), h4: heading(4), h5: heading(5), h6: heading(6),
     pre: ({ children, ...props }) => {
       const codeElement = React.Children.count(children) === 1 ? React.Children.only(children) : null
@@ -599,12 +689,84 @@ function OutlineHeadingTree({ nodes, depth = 0, onNavigate, onSelectHeading }) {
   })}</ol>
 }
 
-function OnThisPage({ note, headings, mobileOpen = false, isMobile = false, onMobileClose }) {
+function useResizablePanel({ initialWidth, minWidth = 220, maxWidth = 600, storageKey, direction = 'left' }) {
+  const [width, setWidth] = React.useState(() => {
+    try {
+      const saved = localStorage.getItem(storageKey)
+      if (saved) {
+        const parsed = Number(saved)
+        if (!isNaN(parsed) && parsed >= minWidth && parsed <= maxWidth) return parsed
+      }
+    } catch {}
+    return initialWidth
+  })
+
+  const [isResizing, setIsResizing] = React.useState(false)
+
+  const handlePointerDown = React.useCallback(event => {
+    event.preventDefault()
+    setIsResizing(true)
+    const startX = event.clientX
+    const startWidth = width
+
+    const onPointerMove = moveEvent => {
+      const deltaX = moveEvent.clientX - startX
+      const newWidth = direction === 'left'
+        ? Math.min(maxWidth, Math.max(minWidth, Math.round(startWidth + deltaX)))
+        : Math.min(maxWidth, Math.max(minWidth, Math.round(startWidth - deltaX)))
+      setWidth(newWidth)
+    }
+
+    const onPointerUp = () => {
+      setIsResizing(false)
+      window.removeEventListener('pointermove', onPointerMove)
+      window.removeEventListener('pointerup', onPointerUp)
+      window.removeEventListener('pointercancel', onPointerUp)
+    }
+
+    window.addEventListener('pointermove', onPointerMove)
+    window.addEventListener('pointerup', onPointerUp)
+    window.addEventListener('pointercancel', onPointerUp)
+  }, [width, minWidth, maxWidth, direction])
+
+  const handleDoubleClick = React.useCallback(() => {
+    setWidth(initialWidth)
+    try { localStorage.removeItem(storageKey) } catch {}
+  }, [initialWidth, storageKey])
+
+  React.useEffect(() => {
+    if (!isResizing) {
+      try { localStorage.setItem(storageKey, String(width)) } catch {}
+    }
+  }, [width, isResizing, storageKey])
+
+  return { width, setWidth, isResizing, handlePointerDown, handleDoubleClick }
+}
+
+function PanelSplitter({ direction = 'left', onPointerDown, onDoubleClick, isResizing, label = 'Drag to resize (Double-click to reset)' }) {
+  return (
+    <div
+      className={`notes-panel-splitter is-${direction} ${isResizing ? 'is-active' : ''}`}
+      onPointerDown={onPointerDown}
+      onDoubleClick={onDoubleClick}
+      role="separator"
+      aria-orientation="vertical"
+      tabIndex={0}
+      title={label}
+      aria-label={label}
+    >
+      <div className="notes-splitter-handle" aria-hidden="true" />
+    </div>
+  )
+}
+
+function OnThisPage({ note, headings, mobileOpen = false, isMobile = false, onMobileClose, splitter }) {
   const [query, setQuery] = React.useState('')
   React.useEffect(() => setQuery(''), [note?.path])
   const normalizedQuery = query.trim().toLowerCase()
   const visibleHeadingTree = filterHeadingTree(headingTree(headings), normalizedQuery)
   return <aside className={`notes-outline ${mobileOpen ? 'mobile-open' : ''}`} aria-label="On this page" aria-hidden={isMobile && !mobileOpen}>
+    {splitter}
     <div className="notes-outline-sticky">
       <button type="button" className="notes-mobile-drawer-close" onClick={onMobileClose} aria-label="Close page outline">×</button>
       <span>On this page</span>
@@ -901,6 +1063,24 @@ export default function Notes() {
     setNoteSource(source)
   }
 
+  const leftPanel = useResizablePanel({
+    initialWidth: 360,
+    minWidth: 240,
+    maxWidth: 640,
+    storageKey: 'learning-notes:left-panel-width',
+    direction: 'left',
+  })
+
+  const rightPanel = useResizablePanel({
+    initialWidth: 270,
+    minWidth: 200,
+    maxWidth: 480,
+    storageKey: 'learning-notes:right-panel-width',
+    direction: 'right',
+  })
+
+  const isResizing = leftPanel.isResizing || rightPanel.isResizing
+
   return <div className={`notes-page ${showNavigation ? '' : 'navigation-hidden'}`} style={repositoryStyle(repositoryId)}>
     <header className="notes-reader-header">
       <button type="button" className="notes-nav-reveal notes-desktop-nav-toggle" onClick={() => setShowNavigation(value => !value)} aria-controls="notes-topic-navigation" aria-expanded={showNavigation} title={showNavigation ? 'Hide notes navigation' : 'Show notes navigation'} aria-label={showNavigation ? 'Hide notes navigation' : 'Show notes navigation'}><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/><path d={showNavigation ? 'm7 9-3 3 3 3' : 'm5 9 3 3-3 3'}/></svg></button>
@@ -909,7 +1089,18 @@ export default function Notes() {
       <div className="notes-mobile-header-actions"><button type="button" onClick={() => { setShowNavigation(true); setMobilePanel('library') }} aria-label="Open notes library" title="Notes library"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M6 8h0M6 12h0"/></svg></button><button type="button" onClick={() => setMobilePanel('outline')} aria-label="Open page outline" title="On this page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/></svg></button></div>
     </header>
     <DismissibleError message={error} />
-    <div className="notes-layout">
+    <div
+      className={`notes-layout ${isResizing ? 'is-resizing' : ''}`}
+      style={{
+        '--notes-left-width': `${leftPanel.width}px`,
+        '--notes-right-width': `${rightPanel.width}px`,
+        gridTemplateColumns: isMobile
+          ? undefined
+          : showNavigation
+            ? `${leftPanel.width}px minmax(360px, 1fr) ${rightPanel.width}px`
+            : `0 minmax(360px, 1fr) ${rightPanel.width}px`,
+      }}
+    >
       <aside ref={navigationRef} id="notes-topic-navigation" className={`notes-browser ${mobilePanel === 'library' ? 'mobile-open' : ''}`} aria-label="Repository topics" aria-hidden={!showNavigation || (isMobile && mobilePanel !== 'library')}>
         <div className="notes-browser-header"><RepositoryDropdown repositories={repositories} selected={currentRepository || index} onSelect={repo => { setSearchParams({ repo }); setMobilePanel(null) }}/>{currentRepository?.local_available && <NoteSourceToggle source={noteSource} onChange={selectNoteSource}/>}<button type="button" className="notes-mobile-drawer-close" onClick={() => setMobilePanel(null)} aria-label="Close notes library">×</button></div>
         <div className="notes-tree-toolbar">
@@ -920,9 +1111,35 @@ export default function Notes() {
         <div className="notes-tree-browser">
           <nav className="notes-list" aria-label={`${selectedTopic} notes`}><div className="notes-pane-label"><span><b>{displayName(selectedTopic)}</b><small>Subtopics and notes</small></span><span className="notes-pane-actions"><button type="button" onClick={() => setExpanded(Object.fromEntries(allTreePaths.map(path => [path, !allExpanded])))} title={allExpanded ? 'Collapse all subtopics' : 'Expand all subtopics'} aria-label={allExpanded ? 'Collapse all subtopics' : 'Expand all subtopics'} aria-pressed={allExpanded}><svg viewBox="0 0 24 24" aria-hidden="true">{allExpanded ? <path d="M9 9H4V4m11 5h5V4M9 15H4v5m11-5h5v5M4 9l5-5m11 5-5-5M4 15l5 5m11-5-5 5"/> : <path d="M8 3H3v5m13-5h5v5M8 21H3v-5m13 5h5v-5M3 8l5-5m13 5-5-5M3 16l5 5m13-5-5 5"/>}</svg></button><em>{topicNotes.length}</em></span></div>{!loadingIndex && <NoteTree node={tree} selectedPath={selectedPath} activeDirectories={activeDirectories} expanded={expanded} onToggle={path => setExpanded(current => ({ ...current, [path]: !current[path] }))} onSelect={selectNote} />}{!loadingIndex && !topicNotes.length && <p className="notes-empty">No notes match this search in {displayName(selectedTopic)}.</p>}</nav>
         </div>
+        {!isMobile && showNavigation && (
+          <PanelSplitter
+            direction="left"
+            isResizing={leftPanel.isResizing}
+            onPointerDown={leftPanel.handlePointerDown}
+            onDoubleClick={leftPanel.handleDoubleClick}
+            label="Drag to resize navigation panel (Double-click to reset)"
+          />
+        )}
       </aside>
       <main ref={noteReaderRef} className="note-reader">{loadingNote ? <div className="note-reader-status"><span className="spinner" /> Loading note…</div> : note ? <><article className="markdown-body"><MarkdownContent note={note} headings={headings} index={index} onOpenLink={openPreviewLink} titleNavigation={{ previousNote, nextNote, onNavigate: selectNote }} /></article><NotePageNavigation previousNote={previousNote} nextNote={nextNote} rootPath={index?.root_path || ''} onNavigate={selectNote}/></> : <div className="note-reader-status">Choose a note to start reading.</div>}</main>
-      <OnThisPage note={note} headings={headings} isMobile={isMobile} mobileOpen={mobilePanel === 'outline'} onMobileClose={() => setMobilePanel(null)} />
+      <OnThisPage
+        note={note}
+        headings={headings}
+        isMobile={isMobile}
+        mobileOpen={mobilePanel === 'outline'}
+        onMobileClose={() => setMobilePanel(null)}
+        splitter={
+          !isMobile && (
+            <PanelSplitter
+              direction="right"
+              isResizing={rightPanel.isResizing}
+              onPointerDown={rightPanel.handlePointerDown}
+              onDoubleClick={rightPanel.handleDoubleClick}
+              label="Drag to resize outline panel (Double-click to reset)"
+            />
+          )
+        }
+      />
     </div>
     {isMobile && mobilePanel && <button type="button" className="notes-mobile-backdrop" onClick={() => setMobilePanel(null)} aria-label="Close mobile navigation" />}
     <LinkPreviewDrawer preview={linkPreview} repositoryId={repositoryId} source={noteSource} index={index} onClose={closeLinkPreview} onNavigate={jumpToPreviewedNote} onPreviewLink={followPreviewLink} canGoBack={linkPreviewHistory.length > 0} onBack={goBackInPreview}/>
