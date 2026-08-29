@@ -5,6 +5,7 @@ import { useSearchParams } from 'react-router-dom'
 
 import DismissibleError from '../components/DismissibleError'
 import CodeBlock from '../components/CodeBlock'
+import ReferencesSection from '../components/ReferencesSection'
 import { getNoteContent, getNoteRepositories, getNotes } from '../api/githubNotes'
 
 const ExcalidrawViewer = React.lazy(() => import('../components/ExcalidrawViewer'))
@@ -135,7 +136,9 @@ function linkDescriptor(href, note, index, label = '') {
     const excalidrawFileTitle = type === 'excalidraw' && parsed.pathname.toLowerCase().endsWith('.excalidraw')
       ? displayName(parsed.pathname.split('/').at(-1).replace(/\.excalidraw$/i, ''))
       : null
-    return { type, url, hostname, videoId, hash, title: label || excalidrawFileTitle || hostname, label }
+    const pathSlug = parsed.pathname.split('/').filter(Boolean).pop()?.replace(/[-_]+/g, ' ')?.trim()
+    const autoTitle = excalidrawFileTitle || (type === 'excalidraw' ? 'Excalidraw Diagram' : pathSlug && pathSlug.length > 2 ? pathSlug.charAt(0).toUpperCase() + pathSlug.slice(1) : hostname)
+    return { type, url, hostname, videoId, hash, title: label || autoTitle, label }
   } catch {
     return { type: 'external', url: href, hostname: '', hash: '', title: label || 'External link', label }
   }
@@ -287,8 +290,13 @@ function MermaidDiagram({ source }) {
     <div className="mermaid-toolbar"><span>Interactive diagram</span><button type="button" onClick={() => { setZoom(1); setShowDialog(true) }}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5"/></svg>Full screen</button></div>
     <div className="mermaid-diagram" ref={containerRef} aria-label="Mermaid diagram" />
     {showDialog && <div className="mermaid-dialog-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setShowDialog(false) }}><section className="mermaid-dialog" role="dialog" aria-modal="true" aria-label="Full-screen Mermaid diagram">
-      <header><div><span>Diagram viewer</span><strong>Use the controls to zoom and inspect the diagram.</strong></div><div className="mermaid-zoom-controls"><button type="button" onClick={() => setZoom(value => Math.max(0.35, value - 0.15))} aria-label="Zoom out">−</button><button type="button" onClick={() => setZoom(1)}>{Math.round(zoom * 100)}%</button><button type="button" onClick={() => setZoom(value => Math.min(2.5, value + 0.15))} aria-label="Zoom in">+</button><button type="button" className="mermaid-dialog-close" onClick={() => setShowDialog(false)} aria-label="Close diagram">×</button></div></header>
-      <div className="mermaid-dialog-stage"><div className="mermaid-dialog-canvas" style={{ width: `${zoom * 100}%` }} dangerouslySetInnerHTML={{ __html: containerRef.current?.innerHTML || '' }} /></div>
+      <div className="mermaid-floating-controls" onClick={e => e.stopPropagation()}>
+        <button type="button" onClick={() => setZoom(value => Math.max(0.25, Math.round((value - 0.2) * 10) / 10))} title="Zoom out" aria-label="Zoom out">−</button>
+        <button type="button" onClick={() => setZoom(1)} title="Reset to Fit" className="zoom-reset-btn">{Math.round(zoom * 100)}%</button>
+        <button type="button" onClick={() => setZoom(value => Math.min(3.5, Math.round((value + 0.2) * 10) / 10))} title="Zoom in" aria-label="Zoom in">+</button>
+        <button type="button" className="mermaid-dialog-close" onClick={() => setShowDialog(false)} title="Close (Esc)" aria-label="Close diagram">×</button>
+      </div>
+      <div className="mermaid-dialog-stage"><div className="mermaid-dialog-canvas" style={{ transform: `scale(${zoom})`, transformOrigin: 'center center' }} dangerouslySetInnerHTML={{ __html: containerRef.current?.innerHTML || '' }} /></div>
     </section></div>}
   </div>
 }
@@ -308,25 +316,84 @@ function ImageDialog({ src, alt, onClose }) {
       onMouseDown={event => { if (event.target === event.currentTarget) onClose() }}
     >
       <section className="mermaid-dialog image-dialog" role="dialog" aria-modal="true" aria-label={alt ? `Image: ${alt}` : 'Image viewer'}>
-        <header>
-          <div>
-            <span>Image viewer</span>
-            <strong>{alt || 'Click outside or press Esc to close.'}</strong>
-          </div>
-          <div className="mermaid-zoom-controls">
-            <button type="button" onClick={() => setZoom(value => Math.max(0.25, value - 0.25))} aria-label="Zoom out">−</button>
-            <button type="button" onClick={() => setZoom(1)}>{Math.round(zoom * 100)}%</button>
-            <button type="button" onClick={() => setZoom(value => Math.min(4, value + 0.25))} aria-label="Zoom in">+</button>
-            <button type="button" className="mermaid-dialog-close" onClick={onClose} aria-label="Close image">×</button>
-          </div>
-        </header>
+        <div className="mermaid-floating-controls" onClick={e => e.stopPropagation()}>
+          <button type="button" onClick={() => setZoom(value => Math.max(0.25, Math.round((value - 0.25) * 100) / 100))} title="Zoom out" aria-label="Zoom out">−</button>
+          <button type="button" onClick={() => setZoom(1)} title="Reset to Fit" className="zoom-reset-btn">{Math.round(zoom * 100)}%</button>
+          <button type="button" onClick={() => setZoom(value => Math.min(4, Math.round((value + 0.25) * 100) / 100))} title="Zoom in" aria-label="Zoom in">+</button>
+          <button type="button" className="mermaid-dialog-close" onClick={onClose} title="Close (Esc)" aria-label="Close image">×</button>
+        </div>
         <div className="mermaid-dialog-stage">
-          <div className="image-dialog-canvas" style={{ width: `${zoom * 100}%` }}>
+          <div className="image-dialog-canvas" style={{ transform: `scale(${zoom})`, transformOrigin: 'center center' }}>
             <img src={src} alt={alt || ''} draggable={false} />
           </div>
         </div>
       </section>
     </div>
+  )
+}
+
+function TableDialog({ children, onClose }) {
+  const [zoom, setZoom] = React.useState(1)
+
+  React.useEffect(() => {
+    const close = event => { if (event.key === 'Escape') onClose() }
+    document.addEventListener('keydown', close)
+    return () => document.removeEventListener('keydown', close)
+  }, [onClose])
+
+  return (
+    <div
+      className="mermaid-dialog-backdrop"
+      onMouseDown={event => { if (event.target === event.currentTarget) onClose() }}
+    >
+      <section className="mermaid-dialog table-dialog" role="dialog" aria-modal="true" aria-label="Table viewer">
+        <div className="mermaid-floating-controls" onClick={e => e.stopPropagation()}>
+          <button type="button" onClick={() => setZoom(value => Math.max(0.4, Math.round((value - 0.15) * 100) / 100))} title="Zoom out" aria-label="Zoom out">−</button>
+          <button type="button" onClick={() => setZoom(1)} title="Reset to Fit" className="zoom-reset-btn">{Math.round(zoom * 100)}%</button>
+          <button type="button" onClick={() => setZoom(value => Math.min(3, Math.round((value + 0.15) * 100) / 100))} title="Zoom in" aria-label="Zoom in">+</button>
+          <button type="button" className="mermaid-dialog-close" onClick={onClose} title="Close (Esc)" aria-label="Close table">×</button>
+        </div>
+        <div className="mermaid-dialog-stage">
+          <div className="table-dialog-canvas" style={{ transform: `scale(${zoom})`, transformOrigin: 'center center' }}>
+            <table className="notes-markdown-table is-dialog-table">
+              {children}
+            </table>
+          </div>
+        </div>
+      </section>
+    </div>
+  )
+}
+
+function ClickableTable({ children, ...props }) {
+  const [open, setOpen] = React.useState(false)
+  const close = React.useCallback(() => setOpen(false), [])
+
+  return (
+    <>
+      <div className="notes-table-container">
+        <div className="notes-table-header-toolbar">
+          <button
+            type="button"
+            className="notes-table-expand-btn"
+            onClick={() => setOpen(true)}
+            title="Expand table full screen"
+            aria-label="Expand table full screen"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <span>Full screen</span>
+          </button>
+        </div>
+        <div className="notes-table-scroll">
+          <table className="notes-markdown-table" {...props}>
+            {children}
+          </table>
+        </div>
+      </div>
+      {open && <TableDialog onClose={close}>{children}</TableDialog>}
+    </>
   )
 }
 
@@ -547,6 +614,143 @@ function markdownWithTrustedIframes(content = '') {
   })
 }
 
+function extractReferenceGroups(sectionText, note, index) {
+  const groups = []
+  let currentGroup = { name: 'General', items: [] }
+  const seenUrls = new Set()
+  const lines = sectionText.split(/\r?\n/)
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim()
+    if (!line) continue
+
+    // Check if this line is a sub-group header (e.g. "### Main", "**Drawing**", "main:", "drawing", "videos")
+    const isGroupHeader = /^(?:#{3,5}\s*|\*{2}|_{2})?([a-zA-Z0-9_\s&-]+?)(?:\*{2}|_{2})?:?$/i.exec(line)
+    const isBulletOrUrl = /^[-*+]|\d+\.|^https?:\/\//i.test(line)
+
+    if (isGroupHeader && !isBulletOrUrl && isGroupHeader[1].trim().length < 40) {
+      const rawName = isGroupHeader[1].trim()
+      const formattedName = rawName.charAt(0).toUpperCase() + rawName.slice(1)
+      if (currentGroup.items.length > 0) {
+        groups.push(currentGroup)
+      }
+      currentGroup = { name: formattedName, items: [] }
+      continue
+    }
+
+    // 1. Check for markdown link [Label](url) with optional trailing "| Label" or text
+    const mdLinkMatch = /^\s*(?:[-*+]|\d+\.)?\s*\[([^\]]+)\]\((https?:\/\/[^\s)]+|\.?\.?\/[^\s)]+)\)(?:\s*\|\s*(.+))?/i.exec(line)
+    if (mdLinkMatch) {
+      const label = (mdLinkMatch[3]?.trim() || mdLinkMatch[1]?.trim() || '').replace(/^["']|["']$/g, '')
+      const href = mdLinkMatch[2].trim()
+      if (!seenUrls.has(href)) {
+        seenUrls.add(href)
+        const descriptor = linkDescriptor(href, note, index, label)
+        currentGroup.items.push({
+          title: label || descriptor.title || href,
+          url: descriptor.url || href,
+          hostname: descriptor.hostname || '',
+          descriptor,
+        })
+      }
+      continue
+    }
+
+    // 2. Check for URL with pipe "| Label" (e.g., "- https://... | \"Six Little Lines of Fail\"" or "- https://excalidraw.com/... | naive sol")
+    const pipeUrlMatch = /^\s*(?:[-*+]|\d+\.)?\s*(https?:\/\/[^\s|]+)\s*\|\s*(.+)$/i.exec(line)
+    if (pipeUrlMatch) {
+      const rawUrl = pipeUrlMatch[1].trim()
+      const label = pipeUrlMatch[2].trim().replace(/^["']|["']$/g, '')
+      if (!seenUrls.has(rawUrl)) {
+        seenUrls.add(rawUrl)
+        const descriptor = linkDescriptor(rawUrl, note, index, label)
+        currentGroup.items.push({
+          title: label || descriptor.title || rawUrl,
+          url: descriptor.url || rawUrl,
+          hostname: descriptor.hostname || '',
+          descriptor,
+        })
+      }
+      continue
+    }
+
+    // 3. Check for standalone URL (e.g., "- https://..." or "1. https://...")
+    const plainUrlMatch = /^\s*(?:[-*+]|\d+\.)?\s*(https?:\/\/[^\s]+)$/i.exec(line)
+    if (plainUrlMatch) {
+      const rawUrl = plainUrlMatch[1].trim().replace(/[.,;:)\]]+$/, '')
+      if (!seenUrls.has(rawUrl)) {
+        seenUrls.add(rawUrl)
+        const descriptor = linkDescriptor(rawUrl, note, index)
+        currentGroup.items.push({
+          title: descriptor.title || descriptor.hostname || rawUrl,
+          url: descriptor.url || rawUrl,
+          hostname: descriptor.hostname || '',
+          descriptor,
+        })
+      }
+      continue
+    }
+
+    // 4. Fallback: extract any markdown links or bare URLs in the line
+    const fallbackMdLinks = [...line.matchAll(/\[([^\]]+)\]\((https?:\/\/[^\s)]+|\.?\.?\/[^\s)]+)\)/g)]
+    for (const match of fallbackMdLinks) {
+      const label = match[1].trim()
+      const href = match[2].trim()
+      if (!seenUrls.has(href)) {
+        seenUrls.add(href)
+        const descriptor = linkDescriptor(href, note, index, label)
+        currentGroup.items.push({
+          title: label || descriptor.title || href,
+          url: descriptor.url || href,
+          hostname: descriptor.hostname || '',
+          descriptor,
+        })
+      }
+    }
+
+    const fallbackBareUrls = [...line.matchAll(/(https?:\/\/[^\s<>)"']+)/g)]
+    for (const match of fallbackBareUrls) {
+      const rawUrl = match[1].trim().replace(/[.,;:)\]]+$/, '')
+      if (!seenUrls.has(rawUrl)) {
+        seenUrls.add(rawUrl)
+        const descriptor = linkDescriptor(rawUrl, note, index)
+        currentGroup.items.push({
+          title: descriptor.title || descriptor.hostname || rawUrl,
+          url: descriptor.url || rawUrl,
+          hostname: descriptor.hostname || '',
+          descriptor,
+        })
+      }
+    }
+  }
+
+  if (currentGroup.items.length > 0) {
+    groups.push(currentGroup)
+  }
+
+  return groups
+}
+
+function markdownWithReferences(content = '', note, index) {
+  if (!content) return ''
+  const refHeaderRegex = /(?:^|\n)(#{1,4}\s*(?:📚|🔗)?\s*(?:references?|reference\s+links?|references?\s*(?:&|and)\s*resources?|sources?|further\s+reading)\b[^\n]*)\n([\s\S]*?)(?=(?:\n#{1,4}\s+[^\n]+)|$)/gi
+
+  return content.replace(refHeaderRegex, (fullMatch, headingLine, sectionBody) => {
+    const titleMatch = headingLine.replace(/^#+\s*/, '').trim()
+    const titleSlug = slug(cleanHeading(titleMatch)) || 'references'
+    const groups = extractReferenceGroups(sectionBody, note, index)
+    if (groups.length === 0) {
+      return fullMatch
+    }
+    const payload = JSON.stringify({
+      title: titleMatch,
+      id: titleSlug,
+      groups,
+    })
+    return `\n\n\`\`\`notes-references-section\n${payload}\n\`\`\`\n\n`
+  })
+}
+
 function TrustedIframeEmbed({ source }) {
   const trustedSource = trustedIframeSource(source)
   if (!trustedSource) return null
@@ -750,6 +954,51 @@ function LinkPreviewDrawer({ preview, repositoryId, source, index, onClose, onNa
   </div>
 }
 
+function toggleH2Section(headingElement) {
+  if (!headingElement) return
+  const isCollapsed = headingElement.classList.toggle('is-collapsed')
+  headingElement.setAttribute('aria-expanded', isCollapsed ? 'false' : 'true')
+
+  let nextEl = headingElement.nextElementSibling
+  while (nextEl) {
+    const tagName = nextEl.tagName?.toLowerCase()
+    if (
+      tagName === 'h1' ||
+      tagName === 'h2' ||
+      nextEl.classList?.contains('notes-title-navigation') ||
+      nextEl.classList?.contains('notes-references-card') ||
+      nextEl.id === 'references'
+    ) {
+      break
+    }
+    if (isCollapsed) {
+      nextEl.setAttribute('data-h2-hidden', 'true')
+    } else {
+      nextEl.removeAttribute('data-h2-hidden')
+    }
+    nextEl = nextEl.nextElementSibling
+  }
+}
+
+function uncollapseTargetIfNeeded(el) {
+  if (!el) return
+  if (el.classList?.contains('notes-collapsible-h2') && el.classList?.contains('is-collapsed')) {
+    toggleH2Section(el)
+    return
+  }
+  let prev = el.previousElementSibling
+  while (prev) {
+    if (prev.classList?.contains('notes-collapsible-h2')) {
+      if (prev.classList?.contains('is-collapsed')) {
+        toggleH2Section(prev)
+      }
+      break
+    }
+    if (prev.tagName?.toLowerCase() === 'h1') break
+    prev = prev.previousElementSibling
+  }
+}
+
 function MarkdownContent({ note, headings, headingIdPrefix = '', index, onOpenLink, titleNavigation }) {
   let headingIndex = 0
   let titleNavigationRendered = false
@@ -773,6 +1022,36 @@ function MarkdownContent({ note, headings, headingIdPrefix = '', index, onOpenLi
         </button>
       </div>
     }
+    if (level === 2) {
+      return (
+        <h2
+          id={id}
+          className="notes-collapsible-h2"
+          onClick={(e) => {
+            if (e.target.closest('a')) return
+            toggleH2Section(e.currentTarget)
+          }}
+          tabIndex={0}
+          role="button"
+          aria-expanded="true"
+          title="Click to collapse or expand section"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault()
+              toggleH2Section(e.currentTarget)
+            }
+          }}
+          {...props}
+        >
+          <span className="notes-h2-content-text">{children}</span>
+          <span className="notes-h2-toggle-chevron" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="m6 9 6 6 6-6"/>
+            </svg>
+          </span>
+        </h2>
+      )
+    }
     return <Tag id={id} {...props}>{children}</Tag>
   }
   const components = {
@@ -786,6 +1065,7 @@ function MarkdownContent({ note, headings, headingIdPrefix = '', index, onOpenLi
           const targetId = match ? `${headingIdPrefix}${match.id}` : `${headingIdPrefix}${clean}`
           const el = document.getElementById(targetId) || document.getElementById(clean) || document.getElementById(slug(clean)) || document.querySelector(`[id*="${clean}"]`)
           if (el) {
+            uncollapseTargetIfNeeded(el)
             el.scrollIntoView({ behavior: 'smooth', block: 'start' })
             el.classList.add('notes-target-heading-highlight')
             setTimeout(() => el.classList.remove('notes-target-heading-highlight'), 2400)
@@ -816,17 +1096,35 @@ function MarkdownContent({ note, headings, headingIdPrefix = '', index, onOpenLi
       return <a href={resolved} className={linkClassName} onClick={event => { event.preventDefault(); onOpenLink?.(descriptor) }} {...props}><span className="notes-rich-link-icon"><LinkBrandIcon type={descriptor.type}/></span>{children}</a>
     },
     img: ({ src, alt, ...props }) => <ClickableImage src={relativeUrl(src, note.raw_url)} alt={alt} {...props} />,
+    table: ({ children, ...props }) => <ClickableTable {...props}>{children}</ClickableTable>,
     h1: heading(1), h2: heading(2), h3: heading(3), h4: heading(4), h5: heading(5), h6: heading(6),
     pre: ({ children, ...props }) => {
       const codeElement = React.Children.count(children) === 1 ? React.Children.only(children) : null
       const language = /language-([^\s]+)/.exec(codeElement?.props?.className || '')?.[1]?.toLowerCase()
       if (language === 'mermaid') return <MermaidDiagram source={String(codeElement.props.children).replace(/\n$/, '')} />
       if (language === 'notes-trusted-iframe') return <TrustedIframeEmbed source={String(codeElement.props.children).trim()} />
+      if (language === 'notes-references-section') {
+        try {
+          const data = JSON.parse(String(codeElement.props.children).trim())
+          return (
+            <ReferencesSection
+              headingTitle={data.title}
+              headingId={data.id}
+              groups={data.groups}
+              items={data.items}
+              onOpenLink={onOpenLink}
+            />
+          )
+        } catch {
+          return null
+        }
+      }
       const codeContent = codeElement ? codeElement.props.children : children
       return <CodeBlock language={language} code={codeContent} />
     },
   }
-  return <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>{markdownWithTrustedIframes(note.content)}</ReactMarkdown>
+  const transformed = markdownWithReferences(markdownWithTrustedIframes(note.content), note, index)
+  return <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>{transformed}</ReactMarkdown>
 }
 
 function NotePageNavigation({ previousNote, nextNote, rootPath, onNavigate }) {
@@ -947,18 +1245,65 @@ function PanelSplitter({ direction = 'left', onPointerDown, onDoubleClick, isRes
   )
 }
 
+function toggleAllH2Sections(collapse) {
+  const headings = document.querySelectorAll('.notes-collapsible-h2')
+  headings.forEach(heading => {
+    const isCurrentlyCollapsed = heading.classList.contains('is-collapsed')
+    if (collapse && !isCurrentlyCollapsed) {
+      toggleH2Section(heading)
+    } else if (!collapse && isCurrentlyCollapsed) {
+      toggleH2Section(heading)
+    }
+  })
+}
+
 function OnThisPage({ note, headings, mobileOpen = false, isMobile = false, onMobileClose, splitter }) {
   const [query, setQuery] = React.useState('')
-  React.useEffect(() => setQuery(''), [note?.path])
+  const [allCollapsed, setAllCollapsed] = React.useState(false)
+
+  React.useEffect(() => {
+    setQuery('')
+    setAllCollapsed(false)
+  }, [note?.path])
+
+  const handleToggleAll = () => {
+    const nextState = !allCollapsed
+    setAllCollapsed(nextState)
+    toggleAllH2Sections(nextState)
+  }
+
   const normalizedQuery = query.trim().toLowerCase()
   const visibleHeadingTree = filterHeadingTree(headingTree(headings), normalizedQuery)
   return <aside className={`notes-outline ${mobileOpen ? 'mobile-open' : ''}`} aria-label="On this page" aria-hidden={isMobile && !mobileOpen}>
     {splitter}
     <div className="notes-outline-sticky">
       <button type="button" className="notes-mobile-drawer-close" onClick={onMobileClose} aria-label="Close page outline">×</button>
-      <span>On this page</span>
+      <div className="notes-outline-header-row">
+        <span>On this page</span>
+        <div className="notes-outline-actions">
+          <button
+            type="button"
+            className="notes-outline-action-btn"
+            onClick={handleToggleAll}
+            title={allCollapsed ? 'Expand all sections' : 'Collapse all sections'}
+            aria-label={allCollapsed ? 'Expand all sections' : 'Collapse all sections'}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              {allCollapsed ? (
+                <path d="M8 3H3v5m13-5h5v5M8 21H3v-5m13 5h5v-5M3 8l5-5m13 5-5-5M3 16l5 5m13-5-5 5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+              ) : (
+                <path d="M9 9H4V4m11 5h5V4M9 15H4v5m11-5h5v5M4 9l5-5m11 5-5-5M4 15l5 5m11-5-5 5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+              )}
+            </svg>
+          </button>
+          {note?.github_url && (
+            <a className="notes-outline-action-btn notes-outline-source" href={note.github_url} target="_blank" rel="noreferrer" title="Edit / view on GitHub" aria-label="Edit or view this note on GitHub">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 0 0-3 17.5c.5.1.7-.2.7-.5v-1.8c-2.8.6-3.4-1.2-3.4-1.2-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 0 1.6 1.1 1.6 1.1.9 1.6 2.4 1.1 2.9.9.1-.7.4-1.1.7-1.4-2.2-.3-4.6-1.1-4.6-5A3.9 3.9 0 0 1 7 7.8 3.6 3.6 0 0 1 7.1 5s.8-.3 2.9 1.1a10 10 0 0 1 5.2 0C17.2 4.7 18 5 18 5a3.6 3.6 0 0 1 .1 2.8 3.9 3.9 0 0 1 1 2.7c0 3.9-2.4 4.7-4.6 5 .4.3.7.9.7 1.8V20c0 .3.2.6.7.5A9 9 0 0 0 12 3Z"/></svg>
+            </a>
+          )}
+        </div>
+      </div>
       <strong>{note?.title || 'Note outline'}</strong>
-      {note?.github_url && <a className="notes-outline-source" href={note.github_url} target="_blank" rel="noreferrer" title="Edit / view on GitHub" aria-label="Edit or view this note on GitHub"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 0 0-3 17.5c.5.1.7-.2.7-.5v-1.8c-2.8.6-3.4-1.2-3.4-1.2-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 0 1.6 1.1 1.6 1.1.9 1.6 2.4 1.1 2.9.9.1-.7.4-1.1.7-1.4-2.2-.3-4.6-1.1-4.6-5A3.9 3.9 0 0 1 7 7.8 3.6 3.6 0 0 1 7.1 5s.8-.3 2.9 1.1a10 10 0 0 1 5.2 0C17.2 4.7 18 5 18 5a3.6 3.6 0 0 1 .1 2.8 3.9 3.9 0 0 1 1 2.7c0 3.9-2.4 4.7-4.6 5 .4.3.7.9.7 1.8V20c0 .3.2.6.7.5A9 9 0 0 0 12 3Z"/></svg></a>}
       <label className="notes-outline-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg><input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Find a heading…" aria-label="Search headings in this note"/></label>
       {visibleHeadingTree.length ? <nav><OutlineHeadingTree nodes={visibleHeadingTree} onNavigate={onMobileClose}/></nav> : <p>{headings.length ? 'No headings match your search.' : 'No headings in this note.'}</p>}
     </div>
@@ -1241,6 +1586,7 @@ export default function Notes() {
                  noteReaderRef.current?.querySelector(`[id*="${clean}"]`)
 
       if (el) {
+        uncollapseTargetIfNeeded(el)
         el.scrollIntoView({ behavior: 'smooth', block: 'start' })
         el.classList.add('notes-target-heading-highlight')
         setTimeout(() => el.classList.remove('notes-target-heading-highlight'), 2400)
