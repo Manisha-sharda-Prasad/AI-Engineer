@@ -4,6 +4,7 @@ import remarkGfm from 'remark-gfm'
 import { useSearchParams } from 'react-router-dom'
 
 import DismissibleError from '../components/DismissibleError'
+import CodeBlock from '../components/CodeBlock'
 import { getNoteContent, getNoteRepositories, getNotes } from '../api/githubNotes'
 
 const ExcalidrawViewer = React.lazy(() => import('../components/ExcalidrawViewer'))
@@ -27,6 +28,7 @@ function internalNotesTarget(href, note, index) {
   try {
     const resolved = new URL(href, `https://learning-notes.local/${note.path}`)
     let candidate = null
+    const hash = resolved.hash ? decodeURIComponent(resolved.hash.replace(/^#/, '')) : ''
     if (resolved.hostname === 'learning-notes.local') {
       candidate = decodeURIComponent(resolved.pathname.replace(/^\/+/, ''))
     } else if (resolved.hostname === 'github.com') {
@@ -39,7 +41,7 @@ function internalNotesTarget(href, note, index) {
     if (candidate === null) return null
     candidate = candidate.replace(/\/+$/, '')
     const exactNote = index.notes.find(item => item.path.toLowerCase() === candidate.toLowerCase())
-    if (exactNote) return { type: 'note', note: exactNote }
+    if (exactNote) return { type: 'note', note: exactNote, hash }
     const prefix = candidate ? `${candidate.toLowerCase()}/` : ''
     const folderNotes = index.notes.filter(item => item.path.toLowerCase().startsWith(prefix))
     if (!folderNotes.length) return null
@@ -55,7 +57,7 @@ function internalNotesTarget(href, note, index) {
       }
       return score(leftRelative) - score(rightRelative) || leftRelative.localeCompare(rightRelative, undefined, { numeric: true })
     })
-    return { type: 'folder', folderPath: candidate, note: rankedNotes[0], noteCount: folderNotes.length }
+    return { type: 'folder', folderPath: candidate, note: rankedNotes[0], noteCount: folderNotes.length, hash }
   } catch {
     return null
   }
@@ -93,16 +95,33 @@ function linkDescriptor(href, note, index, label = '') {
   const internalTarget = internalNotesTarget(href, note, index)
   if (internalTarget?.type === 'note') {
     const indexedNote = internalTarget.note
-    return { type: 'note', path: indexedNote.path, title: indexedNote.title || displayName(indexedNote.path.split('/').at(-1)), url: indexedNote.github_url || relativeUrl(href, note.raw_url), label }
+    return {
+      type: 'note',
+      path: indexedNote.path,
+      title: indexedNote.title || displayName(indexedNote.path.split('/').at(-1)),
+      url: indexedNote.github_url || relativeUrl(href, note.raw_url),
+      hash: internalTarget.hash,
+      label,
+    }
   }
   if (internalTarget?.type === 'folder') {
     const treePath = internalTarget.folderPath.split('/').map(encodeURIComponent).join('/')
     const folderUrl = index.repository_url ? `${index.repository_url.replace(/\/$/, '')}/tree/${encodeURIComponent(index.branch)}/${treePath}` : relativeUrl(href, note.raw_url)
-    return { type: 'folder', path: internalTarget.note.path, folderPath: internalTarget.folderPath, noteCount: internalTarget.noteCount, title: label || displayName(internalTarget.folderPath.split('/').at(-1)) || 'Repository notes', url: folderUrl, label }
+    return {
+      type: 'folder',
+      path: internalTarget.note.path,
+      folderPath: internalTarget.folderPath,
+      noteCount: internalTarget.noteCount,
+      title: label || displayName(internalTarget.folderPath.split('/').at(-1)) || 'Repository notes',
+      url: folderUrl,
+      hash: internalTarget.hash,
+      label,
+    }
   }
   const url = relativeUrl(href, note?.raw_url)
   try {
     const parsed = new URL(url)
+    const hash = parsed.hash ? decodeURIComponent(parsed.hash.replace(/^#/, '')) : ''
     const hostname = parsed.hostname.toLowerCase().replace(/^www\./, '')
     const videoId = youtubeVideoId(url)
     let type = 'external'
@@ -116,10 +135,44 @@ function linkDescriptor(href, note, index, label = '') {
     const excalidrawFileTitle = type === 'excalidraw' && parsed.pathname.toLowerCase().endsWith('.excalidraw')
       ? displayName(parsed.pathname.split('/').at(-1).replace(/\.excalidraw$/i, ''))
       : null
-    return { type, url, hostname, videoId, title: label || excalidrawFileTitle || hostname, label }
+    return { type, url, hostname, videoId, hash, title: label || excalidrawFileTitle || hostname, label }
   } catch {
-    return { type: 'external', url, hostname: '', title: label || 'External link', label }
+    return { type: 'external', url: href, hostname: '', hash: '', title: label || 'External link', label }
   }
+}
+
+function findTargetHeading(headings, rawHash) {
+  if (!rawHash || !headings?.length) return null
+  const clean = decodeURIComponent(rawHash).replace(/^#/, '').toLowerCase().trim()
+  if (!clean) return null
+  const cleanSlug = slug(clean)
+
+  // 1. Exact ID match
+  let match = headings.find(h => h.id.toLowerCase() === clean || h.id.toLowerCase() === cleanSlug)
+  if (match) return match
+
+  // 2. Exact Title slug match
+  match = headings.find(h => slug(h.title).toLowerCase() === clean || slug(h.title).toLowerCase() === cleanSlug)
+  if (match) return match
+
+  // 3. Match ignoring leading numbers/bullets (e.g. '3-hot-keys' matching 'hot-keys')
+  const cleanWithoutNum = clean.replace(/^\d+[-_.]*/, '')
+  if (cleanWithoutNum) {
+    match = headings.find(h => {
+      const hIdWithoutNum = h.id.toLowerCase().replace(/^\d+[-_.]*/, '')
+      const hSlugWithoutNum = slug(h.title).toLowerCase().replace(/^\d+[-_.]*/, '')
+      return hIdWithoutNum === cleanWithoutNum || hSlugWithoutNum === cleanWithoutNum
+    })
+    if (match) return match
+  }
+
+  // 4. Fuzzy contains match
+  match = headings.find(h => {
+    const hId = h.id.toLowerCase()
+    return clean.includes(hId) || hId.includes(clean)
+  })
+
+  return match || null
 }
 
 function supportsDrawerPreview(descriptor) {
@@ -592,10 +645,45 @@ function PreviewOnThisPage({ note, headings, headingIdPrefix }) {
   </aside>
 }
 
-function PreviewMarkdownLayout({ note, headings, index, onOpenLink }) {
+function PreviewMarkdownLayout({ note, headings, targetHash, index, onOpenLink }) {
   const headingIdPrefix = 'notes-link-preview-heading-'
+  const contentContainerRef = React.useRef(null)
+
+  React.useEffect(() => {
+    if (!targetHash) {
+      contentContainerRef.current?.scrollTo({ top: 0 })
+      return undefined
+    }
+
+    const clean = decodeURIComponent(targetHash).replace(/^#/, '').trim()
+    const match = findTargetHeading(headings, clean)
+    const targetId = match ? `${headingIdPrefix}${match.id}` : `${headingIdPrefix}${clean}`
+
+    const attemptScroll = (retries = 8) => {
+      const el = document.getElementById(targetId) ||
+                 document.getElementById(`${headingIdPrefix}${slug(clean)}`) ||
+                 document.getElementById(clean) ||
+                 contentContainerRef.current?.querySelector(`[id*="${clean}"]`)
+
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        el.classList.add('notes-target-heading-highlight')
+        setTimeout(() => el.classList.remove('notes-target-heading-highlight'), 2400)
+      } else if (retries > 0) {
+        setTimeout(() => attemptScroll(retries - 1), 60)
+      }
+    }
+
+    const timer = setTimeout(() => attemptScroll(8), 60)
+    return () => clearTimeout(timer)
+  }, [note?.path, targetHash, headings])
+
   return <div className="notes-preview-markdown-layout">
-    <div className="notes-preview-markdown-content"><article className="markdown-body notes-link-note-preview"><MarkdownContent note={note} headings={headings} headingIdPrefix={headingIdPrefix} index={index} onOpenLink={onOpenLink}/></article></div>
+    <div className="notes-preview-markdown-content" ref={contentContainerRef}>
+      <article className="markdown-body notes-link-note-preview">
+        <MarkdownContent note={note} headings={headings} headingIdPrefix={headingIdPrefix} index={index} onOpenLink={onOpenLink}/>
+      </article>
+    </div>
     <PreviewOnThisPage note={note} headings={headings} headingIdPrefix={headingIdPrefix}/>
   </div>
 }
@@ -645,8 +733,8 @@ function LinkPreviewDrawer({ preview, repositoryId, source, index, onClose, onNa
         <button type="button" className="notes-link-close" onClick={onClose} aria-label="Close link preview">×</button>
       </header>
       <div className="notes-link-drawer-body">
-        {preview.type === 'note' && (loading ? <div className="note-reader-status"><span className="spinner" /> Loading linked note…</div> : error ? <DismissibleError message={error}/> : previewNote ? <PreviewMarkdownLayout note={previewNote} headings={previewHeadings} index={index} onOpenLink={onPreviewLink}/> : null)}
-        {preview.type === 'folder' && <div className="notes-folder-master-detail"><aside className="notes-folder-master"><header><span><LinkBrandIcon type="folder"/></span><div><h2>{preview.title}</h2><p>{folderNotes.length} Markdown notes</p></div></header><div className="notes-folder-master-tree">{folderTree && <FolderPreviewTree node={folderTree} landingPath={preview.path} selectedPath={folderSelectedPath} onSelect={setFolderSelectedPath}/>}</div></aside><section className="notes-folder-detail"><header><span>Note preview</span><strong>{previewNote?.title || folderNotes.find(item => item.path === folderSelectedPath)?.title || 'Select a note'}</strong><small>{folderSelectedPath}</small></header><div className="notes-folder-detail-content">{loading ? <div className="note-reader-status"><span className="spinner" /> Loading note…</div> : error ? <DismissibleError message={error}/> : previewNote ? <PreviewMarkdownLayout note={previewNote} headings={previewHeadings} index={index} onOpenLink={onPreviewLink}/> : <div className="note-reader-status">Select a note from the folder tree.</div>}</div></section></div>}
+        {preview.type === 'note' && (loading ? <div className="note-reader-status"><span className="spinner" /> Loading linked note…</div> : error ? <DismissibleError message={error}/> : previewNote ? <PreviewMarkdownLayout note={previewNote} headings={previewHeadings} targetHash={preview.hash} index={index} onOpenLink={onPreviewLink}/> : null)}
+        {preview.type === 'folder' && <div className="notes-folder-master-detail"><aside className="notes-folder-master"><header><span><LinkBrandIcon type="folder"/></span><div><h2>{preview.title}</h2><p>{folderNotes.length} Markdown notes</p></div></header><div className="notes-folder-master-tree">{folderTree && <FolderPreviewTree node={folderTree} landingPath={preview.path} selectedPath={folderSelectedPath} onSelect={setFolderSelectedPath}/>}</div></aside><section className="notes-folder-detail"><header><span>Note preview</span><strong>{previewNote?.title || folderNotes.find(item => item.path === folderSelectedPath)?.title || 'Select a note'}</strong><small>{folderSelectedPath}</small></header><div className="notes-folder-detail-content">{loading ? <div className="note-reader-status"><span className="spinner" /> Loading note…</div> : error ? <DismissibleError message={error}/> : previewNote ? <PreviewMarkdownLayout note={previewNote} headings={previewHeadings} targetHash={folderSelectedPath === preview.path ? preview.hash : ''} index={index} onOpenLink={onPreviewLink}/> : <div className="note-reader-status">Select a note from the folder tree.</div>}</div></section></div>}
         {preview.type === 'youtube-post' && <div className="notes-youtube-post-preview"><span><LinkBrandIcon type="youtube-post"/></span><h2>Community post</h2><p>YouTube does not provide a video-player embed for Community posts. Open the post on YouTube to view its text, images, poll, and discussion.</p></div>}
         {preview.type === 'youtube' && <div className="notes-external-preview"><iframe key={preview.url} className="notes-external-frame" src={youtubeEmbedUrl(preview.videoId)} title={`${labels.youtube}: ${preview.title || preview.hostname}`} loading="eager" referrerPolicy="strict-origin-when-cross-origin" sandbox="allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-presentation allow-same-origin allow-scripts" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen/></div>}
         {preview.type === 'excalidraw' && <div className="notes-excalidraw-preview"><React.Suspense fallback={<div className="excalidraw-embed-status"><span className="spinner"/><strong>Preparing canvas…</strong></div>}><ExcalidrawViewer url={preview.url} onFallback={() => { window.open(preview.url, '_blank', 'noopener,noreferrer'); onClose() }}/></React.Suspense></div>}
@@ -654,8 +742,8 @@ function LinkPreviewDrawer({ preview, repositoryId, source, index, onClose, onNa
       </div>
       <footer className="notes-link-drawer-actions">
         <button type="button" className="btn btn-secondary" onClick={onClose}>Close preview</button>
-        {preview.type === 'note' && <button type="button" className="btn btn-primary" onClick={() => onNavigate(preview.path)}>Jump to note</button>}
-        {preview.type === 'folder' && <button type="button" className="btn btn-primary" disabled={!folderSelectedPath} onClick={() => onNavigate(folderSelectedPath)}>Jump to selected note</button>}
+        {preview.type === 'note' && <button type="button" className="btn btn-primary" onClick={() => onNavigate(preview.path, preview.hash)}>Jump to note</button>}
+        {preview.type === 'folder' && <button type="button" className="btn btn-primary" disabled={!folderSelectedPath} onClick={() => onNavigate(folderSelectedPath, folderSelectedPath === preview.path ? preview.hash : '')}>Jump to selected note</button>}
         {preview.url && <a className="btn btn-secondary notes-link-open" href={preview.url} target="_blank" rel="noreferrer">Open in new tab ↗</a>}
       </footer>
     </aside>
@@ -690,7 +778,20 @@ function MarkdownContent({ note, headings, headingIdPrefix = '', index, onOpenLi
   const components = {
     a: ({ href, children, className, ...props }) => {
       const resolved = relativeUrl(href, note.raw_url)
-      if (href?.startsWith('#')) return <a href={href} className={className} onClick={event => { event.preventDefault(); document.getElementById(href.slice(1))?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }} {...props}>{children}</a>
+      if (href?.startsWith('#')) {
+        return <a href={href} className={className} onClick={event => {
+          event.preventDefault()
+          const clean = decodeURIComponent(href).replace(/^#/, '').trim()
+          const match = findTargetHeading(headings, clean)
+          const targetId = match ? `${headingIdPrefix}${match.id}` : `${headingIdPrefix}${clean}`
+          const el = document.getElementById(targetId) || document.getElementById(clean) || document.getElementById(slug(clean)) || document.querySelector(`[id*="${clean}"]`)
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+            el.classList.add('notes-target-heading-highlight')
+            setTimeout(() => el.classList.remove('notes-target-heading-highlight'), 2400)
+          }
+        }} {...props}>{children}</a>
+      }
       const label = React.Children.toArray(children).join('')
       const descriptor = linkDescriptor(href, note, index, label)
 
@@ -721,7 +822,8 @@ function MarkdownContent({ note, headings, headingIdPrefix = '', index, onOpenLi
       const language = /language-([^\s]+)/.exec(codeElement?.props?.className || '')?.[1]?.toLowerCase()
       if (language === 'mermaid') return <MermaidDiagram source={String(codeElement.props.children).replace(/\n$/, '')} />
       if (language === 'notes-trusted-iframe') return <TrustedIframeEmbed source={String(codeElement.props.children).trim()} />
-      return <pre {...props}>{children}</pre>
+      const codeContent = codeElement ? codeElement.props.children : children
+      return <CodeBlock language={language} code={codeContent} />
     },
   }
   return <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>{markdownWithTrustedIframes(note.content)}</ReactMarkdown>
@@ -1003,6 +1105,7 @@ export default function Notes() {
   const [isMobile, setIsMobile] = React.useState(false)
   const [linkPreview, setLinkPreview] = React.useState(null)
   const [linkPreviewHistory, setLinkPreviewHistory] = React.useState([])
+  const [targetHash, setTargetHash] = React.useState('')
   const [excalidrawModal, setExcalidrawModal] = React.useState(null)
   const [loadingCatalog, setLoadingCatalog] = React.useState(true)
   const [loadingIndex, setLoadingIndex] = React.useState(false)
@@ -1122,9 +1225,39 @@ export default function Notes() {
     setExpanded(current => ({ ...current, ...ancestors }))
   }, [selectedPath, topicPrefix])
 
-  React.useEffect(() => { noteReaderRef.current?.scrollTo({ top: 0 }) }, [selectedPath])
+  React.useEffect(() => {
+    if (!targetHash) {
+      noteReaderRef.current?.scrollTo({ top: 0 })
+      return undefined
+    }
 
-  const selectNote = (path, { keepMobilePanel = false } = {}) => { setSearchParams({ repo: repositoryId, path }); if (!keepMobilePanel) setMobilePanel(null) }
+    const clean = decodeURIComponent(targetHash).replace(/^#/, '').trim()
+    const match = findTargetHeading(headings, clean)
+    const targetId = match ? match.id : clean
+
+    const attemptScroll = (retries = 8) => {
+      const el = document.getElementById(targetId) ||
+                 document.getElementById(slug(clean)) ||
+                 noteReaderRef.current?.querySelector(`[id*="${clean}"]`)
+
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        el.classList.add('notes-target-heading-highlight')
+        setTimeout(() => el.classList.remove('notes-target-heading-highlight'), 2400)
+      } else if (retries > 0) {
+        setTimeout(() => attemptScroll(retries - 1), 60)
+      }
+    }
+
+    const timer = setTimeout(() => attemptScroll(8), 60)
+    return () => clearTimeout(timer)
+  }, [selectedPath, targetHash, headings])
+
+  const selectNote = (path, { keepMobilePanel = false, hash = '' } = {}) => {
+    setSearchParams({ repo: repositoryId, path })
+    setTargetHash(hash || '')
+    if (!keepMobilePanel) setMobilePanel(null)
+  }
   const openPreviewLink = descriptor => {
     if (!descriptor?.url) return
     if (descriptor.type === 'excalidraw') {
@@ -1147,7 +1280,7 @@ export default function Notes() {
     setLinkPreview(linkPreviewHistory[linkPreviewHistory.length - 1])
     setLinkPreviewHistory(current => current.slice(0, -1))
   }
-  const jumpToPreviewedNote = path => { closeLinkPreview(); selectNote(path) }
+  const jumpToPreviewedNote = (path, hash) => { closeLinkPreview(); selectNote(path, { hash }) }
   const chooseFirst = (candidates, options) => { if (candidates.length) selectNote([...candidates].sort((a, b) => a.path.localeCompare(b.path, undefined, { numeric: true }))[0].path, options) }
   const keepMobileLibraryOpen = isMobile && mobilePanel === 'library'
   const selectYear = year => chooseFirst(allNotes.filter(item => taxonomy(item, index.root_path).year === year), { keepMobilePanel: keepMobileLibraryOpen })
