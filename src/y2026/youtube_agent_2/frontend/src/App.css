@@ -12855,4 +12855,114 @@ img.notes-reveal-item.is-revealed {
   box-shadow: 0 1px 4px rgba(105, 101, 219, 0.4);
 }
 
+/* ==========================================================================
+   KaTeX Mathematical Notation & Formula Styling
+   ========================================================================== */
+
+.notes-math-inline {
+  display: inline-flex;
+  align-items: baseline;
+  vertical-align: baseline;
+  padding: 0.08rem 0.38rem;
+  margin: 0 0.15rem;
+  background: color-mix(in srgb, var(--notes-accent, #6366f1) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--notes-accent, #6366f1) 18%, transparent);
+  border-radius: 6px;
+  font-size: 0.95em;
+  line-height: 1.1;
+  color: var(--text-primary);
+  transition: all 0.18s ease;
+  user-select: text;
+}
+
+.notes-math-inline:hover {
+  background: color-mix(in srgb, var(--notes-accent, #6366f1) 14%, transparent);
+  border-color: color-mix(in srgb, var(--notes-accent, #6366f1) 32%, transparent);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--notes-accent, #6366f1) 20%, transparent);
+}
+
+[data-theme="dark"] .notes-math-inline {
+  background: color-mix(in srgb, var(--notes-accent, #818cf8) 12%, transparent);
+  border-color: color-mix(in srgb, var(--notes-accent, #818cf8) 25%, transparent);
+}
+
+.notes-math-block-card {
+  margin: 1.25rem 0;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--card-bg, #ffffff) 90%, var(--notes-accent, #6366f1));
+  border: 1px solid color-mix(in srgb, var(--notes-accent, #6366f1) 22%, var(--border-color, #e2e8f0));
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.notes-math-block-card:hover {
+  border-color: color-mix(in srgb, var(--notes-accent, #6366f1) 40%, var(--border-color, #e2e8f0));
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--notes-accent, #6366f1) 12%, transparent);
+}
+
+[data-theme="dark"] .notes-math-block-card {
+  background: color-mix(in srgb, var(--card-bg, #1e293b) 88%, #0f172a);
+  border-color: color-mix(in srgb, var(--notes-accent, #818cf8) 25%, var(--border-color, #334155));
+}
+
+.notes-math-block-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.4rem 0.85rem;
+  background: color-mix(in srgb, var(--card-bg, #ffffff) 70%, var(--border-color, #e2e8f0));
+  border-bottom: 1px solid color-mix(in srgb, var(--notes-accent, #6366f1) 15%, var(--border-color, #e2e8f0));
+}
+
+[data-theme="dark"] .notes-math-block-header {
+  background: color-mix(in srgb, var(--card-bg, #1e293b) 65%, #000000);
+  border-bottom-color: color-mix(in srgb, var(--notes-accent, #818cf8) 20%, #334155);
+}
+
+.notes-math-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--notes-accent, #6366f1);
+}
+
+.notes-math-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.72rem;
+  font-weight: 650;
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--card-bg, #fff) 80%, var(--border-color, #e2e8f0));
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.notes-math-copy-btn:hover {
+  color: var(--notes-accent, #6366f1);
+  border-color: var(--notes-accent, #6366f1);
+  background: color-mix(in srgb, var(--notes-accent, #6366f1) 10%, transparent);
+}
+
+.notes-math-block-content {
+  padding: 1.25rem 1.5rem;
+  overflow-x: auto;
+  text-align: center;
+  font-size: 1.15em;
+  color: var(--text-primary);
+}
+
+.notes-math-block-content .katex-display {
+  margin: 0 !important;
+}
+
+
 
