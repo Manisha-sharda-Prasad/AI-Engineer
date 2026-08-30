@@ -2287,6 +2287,24 @@ export default function Notes() {
     setNoteSource(source)
   }
 
+  const leftPanel = useResizablePanel({
+    initialWidth: 360,
+    minWidth: 240,
+    maxWidth: 640,
+    storageKey: 'learning-notes:left-panel-width',
+    direction: 'left',
+  })
+
+  const rightPanel = useResizablePanel({
+    initialWidth: 270,
+    minWidth: 200,
+    maxWidth: 480,
+    storageKey: 'learning-notes:right-panel-width',
+    direction: 'right',
+  })
+
+  const isResizing = leftPanel.isResizing || rightPanel.isResizing
+
   return <div className={`notes-page ${showNavigation ? '' : 'navigation-hidden'}`} style={repositoryStyle(repositoryId)}>
     <header className="notes-reader-header">
       <button type="button" className="notes-nav-reveal notes-desktop-nav-toggle" onClick={() => setShowNavigation(value => !value)} aria-controls="notes-topic-navigation" aria-expanded={showNavigation} title={showNavigation ? 'Hide notes navigation' : 'Show notes navigation'} aria-label={showNavigation ? 'Hide notes navigation' : 'Show notes navigation'}><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/><path d={showNavigation ? 'm7 9-3 3 3 3' : 'm5 9 3 3-3 3'}/></svg></button>
