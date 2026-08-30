@@ -13,12 +13,46 @@ function parseExcalidrawHash(url) {
   }
 }
 
-/** Decode a base64url string to a Uint8Array. */
-function base64UrlToBytes(str) {
-  const base64 = str.replace(/-/g, '+').replace(/_/g, '/').padEnd(
-    str.length + (4 - (str.length % 4)) % 4, '='
+/**
+ * Split binary buffer encoded with Excalidraw's concatBuffers format:
+ * [4 bytes version][4 bytes len1][chunk1][4 bytes len2][chunk2]...
+ */
+function splitConcatBuffers(u8) {
+  if (!u8 || u8.byteLength < 8) return null
+  const dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength)
+  const version = dv.getUint32(0)
+  if (version !== 1) return null
+  let cursor = 4
+  const parts = []
+  while (cursor < u8.byteLength) {
+    if (cursor + 4 > u8.byteLength) break
+    const chunkSize = dv.getUint32(cursor)
+    cursor += 4
+    if (cursor + chunkSize > u8.byteLength) break
+    parts.push(u8.slice(cursor, cursor + chunkSize))
+    cursor += chunkSize
+  }
+  return parts
+}
+
+/** Import a 128-bit base64url key into a Web Crypto CryptoKey using JWK format. */
+async function getCryptoKey(key) {
+  return await crypto.subtle.importKey(
+    'jwk',
+    {
+      alg: 'A128GCM',
+      ext: true,
+      k: key,
+      key_ops: ['encrypt', 'decrypt'],
+      kty: 'oct',
+    },
+    {
+      name: 'AES-GCM',
+      length: 128,
+    },
+    false,
+    ['decrypt']
   )
-  return Uint8Array.from(atob(base64), c => c.charCodeAt(0))
 }
 
 /**
@@ -34,19 +68,17 @@ async function fetchFileScene(url) {
 
 /**
  * Fetch and decrypt an excalidraw.com shared scene.
- * Storage format: [12-byte IV][AES-GCM ciphertext]
- * Data is zlib-compressed JSON (fflate/zlibSync format) before encryption.
+ * Binary format: [outer concatBuffers: metadata, 12-byte IV, ciphertext]
+ * Payload format: [deflated/compressed bytes -> inner concatBuffers: metadata, JSON string]
  */
 async function fetchScene(fileId, key) {
-  // Use a Vite dev-proxy path (/excalidraw-api) to avoid CORS issues in development.
-  // In production the path resolves to a server-side proxy or direct request.
-  const proxyUrl = `/excalidraw-api/v2/${fileId}`
   const directUrl = `https://json.excalidraw.com/api/v2/${fileId}`
+  const proxyUrl = `/excalidraw-api/v2/${fileId}`
   let response
   try {
     response = await fetch(proxyUrl)
+    if (!response.ok) response = await fetch(directUrl)
   } catch {
-    // Fall back to direct request if proxy path doesn't exist (e.g., production build)
     response = await fetch(directUrl)
   }
   if (!response.ok) throw new Error(`Scene fetch failed (HTTP ${response.status}).`)
@@ -54,14 +86,19 @@ async function fetchScene(fileId, key) {
   const buffer = await response.arrayBuffer()
   const raw = new Uint8Array(buffer)
   if (raw.length < 13) throw new Error('Scene data too short — may be corrupt or expired.')
-  const iv = raw.slice(0, 12)
-  const ciphertext = raw.slice(12)
 
-  const keyBytes = base64UrlToBytes(key)
-  const cryptoKey = await crypto.subtle.importKey(
-    'raw', keyBytes, { name: 'AES-GCM' }, false, ['decrypt']
-  )
+  let iv, ciphertext
+  const outerParts = splitConcatBuffers(raw)
+  if (outerParts && outerParts.length >= 3) {
+    iv = outerParts[1]
+    ciphertext = outerParts[2]
+  } else {
+    // Legacy unpadded format
+    iv = raw.slice(0, 12)
+    ciphertext = raw.slice(12)
+  }
 
+  const cryptoKey = await getCryptoKey(key)
   let decrypted
   try {
     decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, cryptoKey, ciphertext)
@@ -70,15 +107,29 @@ async function fetchScene(fileId, key) {
     throw new Error(`Decryption failed — the scene may be expired or the key is wrong. (${detail})`)
   }
 
-  // pako v2 no longer supports { to: 'string' }; always returns Uint8Array.
+  // Decompress via pako
   const { inflate, inflateRaw } = await import('pako')
   let inflated
-  try { inflated = inflate(new Uint8Array(decrypted)) } catch {
-    try { inflated = inflateRaw(new Uint8Array(decrypted)) } catch {
-      inflated = new Uint8Array(decrypted) // try as uncompressed (older scenes)
+  try {
+    inflated = inflate(new Uint8Array(decrypted))
+  } catch {
+    try {
+      inflated = inflateRaw(new Uint8Array(decrypted))
+    } catch {
+      inflated = new Uint8Array(decrypted)
     }
   }
-  return JSON.parse(new TextDecoder().decode(inflated))
+
+  // Extract JSON data (check for inner concatBuffers)
+  const innerParts = splitConcatBuffers(inflated)
+  let jsonStr
+  if (innerParts && innerParts.length >= 2) {
+    jsonStr = new TextDecoder().decode(innerParts[1])
+  } else {
+    jsonStr = new TextDecoder().decode(inflated)
+  }
+
+  return JSON.parse(jsonStr)
 }
 
 /** Returns true if the URL points to a .excalidraw JSON file (not a shared excalidraw.com link). */
@@ -86,7 +137,7 @@ function isExcalidrawFileUrl(url) {
   try { return new URL(url).pathname.toLowerCase().endsWith('.excalidraw') } catch { return false }
 }
 
-export default function ExcalidrawViewer({ url }) {
+export default function ExcalidrawViewer({ url, onFallback }) {
   const [status, setStatus] = React.useState('loading')
   const [mode, setMode] = React.useState('') // 'file' | 'shared'
   const [error, setError] = React.useState('')
@@ -125,6 +176,17 @@ export default function ExcalidrawViewer({ url }) {
     return () => { cancelled = true }
   }, [url])
 
+  // Automatically navigate to new tab if drawing fails to load/decrypt
+  React.useEffect(() => {
+    if (status === 'error' && url) {
+      if (onFallback) {
+        onFallback()
+      } else {
+        window.open(url, '_blank', 'noopener,noreferrer')
+      }
+    }
+  }, [status, url, onFallback])
+
   const [excalidrawAPI, setExcalidrawAPI] = React.useState(null)
 
   React.useEffect(() => {
@@ -151,7 +213,7 @@ export default function ExcalidrawViewer({ url }) {
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
         <strong>Unable to load Excalidraw drawing</strong>
         <p>{error}</p>
-        <small>You can still open the original drawing using the button below.</small>
+        <small>Opening original drawing in a new tab…</small>
       </div>
     )
   }

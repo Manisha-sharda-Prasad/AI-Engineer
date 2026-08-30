@@ -2,16 +2,30 @@ import React from 'react'
 import { Excalidraw } from '@excalidraw/excalidraw'
 import '@excalidraw/excalidraw/index.css'
 
-/** Helper to fetch and parse local/remote .excalidraw JSON */
+const excalidrawCache = new Map()
+
+/** Helper to fetch and parse local/remote .excalidraw JSON with caching */
 async function fetchExcalidrawJson(url) {
+  if (excalidrawCache.has(url)) return excalidrawCache.get(url)
   const response = await fetch(url)
   if (!response.ok) throw new Error(`HTTP ${response.status}`)
-  return await response.json()
+  const data = await response.json()
+  excalidrawCache.set(url, data)
+  return data
 }
 
-export default function ExcalidrawThumbnail({ url, descriptor, label, onOpen }) {
-  const [sceneData, setSceneData] = React.useState(null)
-  const [loading, setLoading] = React.useState(true)
+const UI_OPTIONS = {
+  canvasActions: {
+    loadScene: false,
+    export: false,
+    saveAsImage: false,
+    clearCanvas: false,
+  },
+}
+
+function ExcalidrawThumbnail({ url, descriptor, label, onOpen }) {
+  const [sceneData, setSceneData] = React.useState(() => excalidrawCache.get(url) || null)
+  const [loading, setLoading] = React.useState(() => !excalidrawCache.has(url))
   const [error, setError] = React.useState(false)
   const [excalidrawAPI, setExcalidrawAPI] = React.useState(null)
   const [zoomPercent, setZoomPercent] = React.useState(100)
@@ -20,6 +34,12 @@ export default function ExcalidrawThumbnail({ url, descriptor, label, onOpen }) 
   const fileName = url ? decodeURIComponent(url.split('/').at(-1) || '') : ''
 
   React.useEffect(() => {
+    if (excalidrawCache.has(url)) {
+      setSceneData(excalidrawCache.get(url))
+      setLoading(false)
+      return
+    }
+
     let cancelled = false
     setLoading(true)
     setError(false)
@@ -54,14 +74,14 @@ export default function ExcalidrawThumbnail({ url, descriptor, label, onOpen }) 
   }, [excalidrawAPI, sceneData])
 
   // Track zoom level changes from wheel/trackpad/drag
-  const handlePointerUpdate = () => {
+  const handlePointerUpdate = React.useCallback(() => {
     if (excalidrawAPI) {
       const currentZoom = excalidrawAPI.getAppState()?.zoom?.value || 1
       setZoomPercent(Math.round(currentZoom * 100))
     }
-  }
+  }, [excalidrawAPI])
 
-  const handleZoom = delta => {
+  const handleZoom = React.useCallback(delta => {
     if (!excalidrawAPI) return
     const currentZoom = excalidrawAPI.getAppState()?.zoom?.value || 1
     const nextZoom = Math.min(5, Math.max(0.1, Number((currentZoom + delta).toFixed(2))))
@@ -69,17 +89,17 @@ export default function ExcalidrawThumbnail({ url, descriptor, label, onOpen }) 
       appState: { zoom: { value: nextZoom } },
     })
     setZoomPercent(Math.round(nextZoom * 100))
-  }
+  }, [excalidrawAPI])
 
-  const handleResetZoom = () => {
+  const handleResetZoom = React.useCallback(() => {
     if (!excalidrawAPI) return
     excalidrawAPI.updateScene({
       appState: { zoom: { value: 1 } },
     })
     setZoomPercent(100)
-  }
+  }, [excalidrawAPI])
 
-  const handleFit = () => {
+  const handleFit = React.useCallback(() => {
     if (!excalidrawAPI) return
     excalidrawAPI.scrollToContent(undefined, { fitToViewport: true, animate: true })
     setTimeout(() => {
@@ -88,7 +108,21 @@ export default function ExcalidrawThumbnail({ url, descriptor, label, onOpen }) 
         setZoomPercent(Math.round(currentZoom * 100))
       }
     }, 150)
-  }
+  }, [excalidrawAPI])
+
+  const initialData = React.useMemo(() => {
+    if (!sceneData) return null
+    return {
+      elements: sceneData.elements,
+      appState: {
+        ...sceneData.appState,
+        collaborators: [],
+        isLoading: false,
+      },
+      files: sceneData.files,
+      scrollToContent: true,
+    }
+  }, [sceneData])
 
   const elementCount = (sceneData?.elements || []).filter(el => !el.isDeleted).length
 
@@ -98,18 +132,11 @@ export default function ExcalidrawThumbnail({ url, descriptor, label, onOpen }) 
         href={url}
         className="notes-excalidraw-fallback-link"
         onClick={event => { event.preventDefault(); onOpen?.(descriptor) }}
-        title="Open drawing in reader"
+        title={`Open ${title}`}
       >
-        <span className="notes-rich-link-icon">
-          <svg viewBox="0 0 48 48" aria-hidden="true">
-            <rect x="3" y="12" width="32" height="23" rx="3" fill="#6965db"/>
-            <path d="M8 28l5-10 5 6 5-8 5 12" stroke="#fff" strokeWidth="2" fill="none"/>
-            <path d="M36 4l8 8-12 12-5 1 1-5z" fill="#6965db"/>
-            <path d="M42 6l2 2" stroke="#fff" strokeWidth="2"/>
-          </svg>
-        </span>
-        <strong>{title}</strong>
-        <small className="notes-excalidraw-badge">Excalidraw ↗</small>
+        <span className="notes-rich-link-icon">🎨</span>
+        <span>{title}</span>
+        <small className="notes-excalidraw-ext">.excalidraw</small>
       </a>
     )
   }
@@ -126,16 +153,10 @@ export default function ExcalidrawThumbnail({ url, descriptor, label, onOpen }) 
               <path d="M36 4l8 8-12 12-5 1 1-5z" fill="currentColor"/>
             </svg>
           </span>
-          <div className="notes-excalidraw-thumbnail-names">
-            <strong>{title}</strong>
-            {fileName && fileName !== title && <small>{fileName}</small>}
-          </div>
+          <strong className="notes-excalidraw-thumbnail-title" title={title}>{title}</strong>
         </div>
 
         <div className="notes-excalidraw-thumbnail-meta">
-          {elementCount > 0 && <span className="notes-excalidraw-elements-count">{elementCount} elements</span>}
-
-          {/* Direct Zoom Toolbar */}
           <div className="notes-excalidraw-zoom-toolbar" role="toolbar" aria-label="Drawing zoom controls">
             <button
               type="button"
@@ -177,20 +198,20 @@ export default function ExcalidrawThumbnail({ url, descriptor, label, onOpen }) 
 
           <button
             type="button"
-            className="notes-excalidraw-pill-badge notes-excalidraw-expand-btn"
+            className="notes-excalidraw-expand-icon-btn"
             onClick={() => onOpen?.(descriptor)}
-            title="Expand to full side drawer"
+            title="Open in full reader"
+            aria-label="Open in full reader"
           >
-            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M15 3h6v6M10 14L21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
             </svg>
-            Full Reader ↗
           </button>
         </div>
       </div>
 
       <div className="notes-excalidraw-thumbnail-stage">
-        {loading ? (
+        {loading || !initialData ? (
           <div className="notes-excalidraw-thumbnail-loading">
             <span className="spinner" />
             <span>Loading interactive drawing…</span>
@@ -198,28 +219,12 @@ export default function ExcalidrawThumbnail({ url, descriptor, label, onOpen }) 
         ) : (
           <div className="notes-excalidraw-thumbnail-canvas-container">
             <Excalidraw
-              excalidrawAPI={api => setExcalidrawAPI(api)}
+              excalidrawAPI={setExcalidrawAPI}
               onPointerUpdate={handlePointerUpdate}
               viewModeEnabled
               zenModeEnabled
-              UIOptions={{
-                canvasActions: {
-                  loadScene: false,
-                  export: false,
-                  saveAsImage: false,
-                  clearCanvas: false,
-                },
-              }}
-              initialData={{
-                elements: sceneData?.elements,
-                appState: {
-                  ...sceneData?.appState,
-                  collaborators: [],
-                  isLoading: false,
-                },
-                files: sceneData?.files,
-                scrollToContent: true,
-              }}
+              UIOptions={UI_OPTIONS}
+              initialData={initialData}
             />
           </div>
         )}
@@ -227,3 +232,5 @@ export default function ExcalidrawThumbnail({ url, descriptor, label, onOpen }) 
     </div>
   )
 }
+
+export default React.memo(ExcalidrawThumbnail)

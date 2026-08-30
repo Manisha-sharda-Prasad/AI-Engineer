@@ -4,6 +4,8 @@ import remarkGfm from 'remark-gfm'
 import { useSearchParams } from 'react-router-dom'
 
 import DismissibleError from '../components/DismissibleError'
+import CodeBlock from '../components/CodeBlock'
+import ReferencesSection from '../components/ReferencesSection'
 import { getNoteContent, getNoteRepositories, getNotes } from '../api/githubNotes'
 
 const ExcalidrawViewer = React.lazy(() => import('../components/ExcalidrawViewer'))
@@ -27,6 +29,7 @@ function internalNotesTarget(href, note, index) {
   try {
     const resolved = new URL(href, `https://learning-notes.local/${note.path}`)
     let candidate = null
+    const hash = resolved.hash ? decodeURIComponent(resolved.hash.replace(/^#/, '')) : ''
     if (resolved.hostname === 'learning-notes.local') {
       candidate = decodeURIComponent(resolved.pathname.replace(/^\/+/, ''))
     } else if (resolved.hostname === 'github.com') {
@@ -39,7 +42,7 @@ function internalNotesTarget(href, note, index) {
     if (candidate === null) return null
     candidate = candidate.replace(/\/+$/, '')
     const exactNote = index.notes.find(item => item.path.toLowerCase() === candidate.toLowerCase())
-    if (exactNote) return { type: 'note', note: exactNote }
+    if (exactNote) return { type: 'note', note: exactNote, hash }
     const prefix = candidate ? `${candidate.toLowerCase()}/` : ''
     const folderNotes = index.notes.filter(item => item.path.toLowerCase().startsWith(prefix))
     if (!folderNotes.length) return null
@@ -55,7 +58,7 @@ function internalNotesTarget(href, note, index) {
       }
       return score(leftRelative) - score(rightRelative) || leftRelative.localeCompare(rightRelative, undefined, { numeric: true })
     })
-    return { type: 'folder', folderPath: candidate, note: rankedNotes[0], noteCount: folderNotes.length }
+    return { type: 'folder', folderPath: candidate, note: rankedNotes[0], noteCount: folderNotes.length, hash }
   } catch {
     return null
   }
@@ -93,16 +96,33 @@ function linkDescriptor(href, note, index, label = '') {
   const internalTarget = internalNotesTarget(href, note, index)
   if (internalTarget?.type === 'note') {
     const indexedNote = internalTarget.note
-    return { type: 'note', path: indexedNote.path, title: indexedNote.title || displayName(indexedNote.path.split('/').at(-1)), url: indexedNote.github_url || relativeUrl(href, note.raw_url), label }
+    return {
+      type: 'note',
+      path: indexedNote.path,
+      title: indexedNote.title || displayName(indexedNote.path.split('/').at(-1)),
+      url: indexedNote.github_url || relativeUrl(href, note.raw_url),
+      hash: internalTarget.hash,
+      label,
+    }
   }
   if (internalTarget?.type === 'folder') {
     const treePath = internalTarget.folderPath.split('/').map(encodeURIComponent).join('/')
     const folderUrl = index.repository_url ? `${index.repository_url.replace(/\/$/, '')}/tree/${encodeURIComponent(index.branch)}/${treePath}` : relativeUrl(href, note.raw_url)
-    return { type: 'folder', path: internalTarget.note.path, folderPath: internalTarget.folderPath, noteCount: internalTarget.noteCount, title: label || displayName(internalTarget.folderPath.split('/').at(-1)) || 'Repository notes', url: folderUrl, label }
+    return {
+      type: 'folder',
+      path: internalTarget.note.path,
+      folderPath: internalTarget.folderPath,
+      noteCount: internalTarget.noteCount,
+      title: label || displayName(internalTarget.folderPath.split('/').at(-1)) || 'Repository notes',
+      url: folderUrl,
+      hash: internalTarget.hash,
+      label,
+    }
   }
   const url = relativeUrl(href, note?.raw_url)
   try {
     const parsed = new URL(url)
+    const hash = parsed.hash ? decodeURIComponent(parsed.hash.replace(/^#/, '')) : ''
     const hostname = parsed.hostname.toLowerCase().replace(/^www\./, '')
     const videoId = youtubeVideoId(url)
     let type = 'external'
@@ -116,10 +136,46 @@ function linkDescriptor(href, note, index, label = '') {
     const excalidrawFileTitle = type === 'excalidraw' && parsed.pathname.toLowerCase().endsWith('.excalidraw')
       ? displayName(parsed.pathname.split('/').at(-1).replace(/\.excalidraw$/i, ''))
       : null
-    return { type, url, hostname, videoId, title: label || excalidrawFileTitle || hostname, label }
+    const pathSlug = parsed.pathname.split('/').filter(Boolean).pop()?.replace(/[-_]+/g, ' ')?.trim()
+    const autoTitle = excalidrawFileTitle || (type === 'excalidraw' ? 'Excalidraw Diagram' : pathSlug && pathSlug.length > 2 ? pathSlug.charAt(0).toUpperCase() + pathSlug.slice(1) : hostname)
+    return { type, url, hostname, videoId, hash, title: label || autoTitle, label }
   } catch {
-    return { type: 'external', url, hostname: '', title: label || 'External link', label }
+    return { type: 'external', url: href, hostname: '', hash: '', title: label || 'External link', label }
   }
+}
+
+function findTargetHeading(headings, rawHash) {
+  if (!rawHash || !headings?.length) return null
+  const clean = decodeURIComponent(rawHash).replace(/^#/, '').toLowerCase().trim()
+  if (!clean) return null
+  const cleanSlug = slug(clean)
+
+  // 1. Exact ID match
+  let match = headings.find(h => h.id.toLowerCase() === clean || h.id.toLowerCase() === cleanSlug)
+  if (match) return match
+
+  // 2. Exact Title slug match
+  match = headings.find(h => slug(h.title).toLowerCase() === clean || slug(h.title).toLowerCase() === cleanSlug)
+  if (match) return match
+
+  // 3. Match ignoring leading numbers/bullets (e.g. '3-hot-keys' matching 'hot-keys')
+  const cleanWithoutNum = clean.replace(/^\d+[-_.]*/, '')
+  if (cleanWithoutNum) {
+    match = headings.find(h => {
+      const hIdWithoutNum = h.id.toLowerCase().replace(/^\d+[-_.]*/, '')
+      const hSlugWithoutNum = slug(h.title).toLowerCase().replace(/^\d+[-_.]*/, '')
+      return hIdWithoutNum === cleanWithoutNum || hSlugWithoutNum === cleanWithoutNum
+    })
+    if (match) return match
+  }
+
+  // 4. Fuzzy contains match
+  match = headings.find(h => {
+    const hId = h.id.toLowerCase()
+    return clean.includes(hId) || hId.includes(clean)
+  })
+
+  return match || null
 }
 
 function supportsDrawerPreview(descriptor) {
@@ -234,8 +290,13 @@ function MermaidDiagram({ source }) {
     <div className="mermaid-toolbar"><span>Interactive diagram</span><button type="button" onClick={() => { setZoom(1); setShowDialog(true) }}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5"/></svg>Full screen</button></div>
     <div className="mermaid-diagram" ref={containerRef} aria-label="Mermaid diagram" />
     {showDialog && <div className="mermaid-dialog-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setShowDialog(false) }}><section className="mermaid-dialog" role="dialog" aria-modal="true" aria-label="Full-screen Mermaid diagram">
-      <header><div><span>Diagram viewer</span><strong>Use the controls to zoom and inspect the diagram.</strong></div><div className="mermaid-zoom-controls"><button type="button" onClick={() => setZoom(value => Math.max(0.35, value - 0.15))} aria-label="Zoom out">−</button><button type="button" onClick={() => setZoom(1)}>{Math.round(zoom * 100)}%</button><button type="button" onClick={() => setZoom(value => Math.min(2.5, value + 0.15))} aria-label="Zoom in">+</button><button type="button" className="mermaid-dialog-close" onClick={() => setShowDialog(false)} aria-label="Close diagram">×</button></div></header>
-      <div className="mermaid-dialog-stage"><div className="mermaid-dialog-canvas" style={{ width: `${zoom * 100}%` }} dangerouslySetInnerHTML={{ __html: containerRef.current?.innerHTML || '' }} /></div>
+      <div className="mermaid-floating-controls" onClick={e => e.stopPropagation()}>
+        <button type="button" onClick={() => setZoom(value => Math.max(0.25, Math.round((value - 0.2) * 10) / 10))} title="Zoom out" aria-label="Zoom out">−</button>
+        <button type="button" onClick={() => setZoom(1)} title="Reset to Fit" className="zoom-reset-btn">{Math.round(zoom * 100)}%</button>
+        <button type="button" onClick={() => setZoom(value => Math.min(3.5, Math.round((value + 0.2) * 10) / 10))} title="Zoom in" aria-label="Zoom in">+</button>
+        <button type="button" className="mermaid-dialog-close" onClick={() => setShowDialog(false)} title="Close (Esc)" aria-label="Close diagram">×</button>
+      </div>
+      <div className="mermaid-dialog-stage"><div className="mermaid-dialog-canvas" style={{ transform: `scale(${zoom})`, transformOrigin: 'center center' }} dangerouslySetInnerHTML={{ __html: containerRef.current?.innerHTML || '' }} /></div>
     </section></div>}
   </div>
 }
@@ -255,22 +316,166 @@ function ImageDialog({ src, alt, onClose }) {
       onMouseDown={event => { if (event.target === event.currentTarget) onClose() }}
     >
       <section className="mermaid-dialog image-dialog" role="dialog" aria-modal="true" aria-label={alt ? `Image: ${alt}` : 'Image viewer'}>
-        <header>
-          <div>
-            <span>Image viewer</span>
-            <strong>{alt || 'Click outside or press Esc to close.'}</strong>
-          </div>
-          <div className="mermaid-zoom-controls">
-            <button type="button" onClick={() => setZoom(value => Math.max(0.25, value - 0.25))} aria-label="Zoom out">−</button>
-            <button type="button" onClick={() => setZoom(1)}>{Math.round(zoom * 100)}%</button>
-            <button type="button" onClick={() => setZoom(value => Math.min(4, value + 0.25))} aria-label="Zoom in">+</button>
-            <button type="button" className="mermaid-dialog-close" onClick={onClose} aria-label="Close image">×</button>
-          </div>
-        </header>
+        <div className="mermaid-floating-controls" onClick={e => e.stopPropagation()}>
+          <button type="button" onClick={() => setZoom(value => Math.max(0.25, Math.round((value - 0.25) * 100) / 100))} title="Zoom out" aria-label="Zoom out">−</button>
+          <button type="button" onClick={() => setZoom(1)} title="Reset to Fit" className="zoom-reset-btn">{Math.round(zoom * 100)}%</button>
+          <button type="button" onClick={() => setZoom(value => Math.min(4, Math.round((value + 0.25) * 100) / 100))} title="Zoom in" aria-label="Zoom in">+</button>
+          <button type="button" className="mermaid-dialog-close" onClick={onClose} title="Close (Esc)" aria-label="Close image">×</button>
+        </div>
         <div className="mermaid-dialog-stage">
-          <div className="image-dialog-canvas" style={{ width: `${zoom * 100}%` }}>
+          <div className="image-dialog-canvas" style={{ transform: `scale(${zoom})`, transformOrigin: 'center center' }}>
             <img src={src} alt={alt || ''} draggable={false} />
           </div>
+        </div>
+      </section>
+    </div>
+  )
+}
+
+function TableDialog({ children, onClose }) {
+  const [zoom, setZoom] = React.useState(1)
+
+  React.useEffect(() => {
+    const close = event => { if (event.key === 'Escape') onClose() }
+    document.addEventListener('keydown', close)
+    return () => document.removeEventListener('keydown', close)
+  }, [onClose])
+
+  return (
+    <div
+      className="mermaid-dialog-backdrop"
+      onMouseDown={event => { if (event.target === event.currentTarget) onClose() }}
+    >
+      <section className="mermaid-dialog table-dialog" role="dialog" aria-modal="true" aria-label="Table viewer">
+        <div className="mermaid-floating-controls" onClick={e => e.stopPropagation()}>
+          <button type="button" onClick={() => setZoom(value => Math.max(0.4, Math.round((value - 0.15) * 100) / 100))} title="Zoom out" aria-label="Zoom out">−</button>
+          <button type="button" onClick={() => setZoom(1)} title="Reset to Fit" className="zoom-reset-btn">{Math.round(zoom * 100)}%</button>
+          <button type="button" onClick={() => setZoom(value => Math.min(3, Math.round((value + 0.15) * 100) / 100))} title="Zoom in" aria-label="Zoom in">+</button>
+          <button type="button" className="mermaid-dialog-close" onClick={onClose} title="Close (Esc)" aria-label="Close table">×</button>
+        </div>
+        <div className="mermaid-dialog-stage">
+          <div className="table-dialog-canvas" style={{ transform: `scale(${zoom})`, transformOrigin: 'center center' }}>
+            <table className="notes-markdown-table is-dialog-table">
+              {children}
+            </table>
+          </div>
+        </div>
+      </section>
+    </div>
+  )
+}
+
+function ClickableTable({ children, ...props }) {
+  const [open, setOpen] = React.useState(false)
+  const close = React.useCallback(() => setOpen(false), [])
+
+  return (
+    <>
+      <div className="notes-table-container">
+        <div className="notes-table-header-toolbar">
+          <button
+            type="button"
+            className="notes-table-expand-btn"
+            onClick={() => setOpen(true)}
+            title="Expand table full screen"
+            aria-label="Expand table full screen"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <span>Full screen</span>
+          </button>
+        </div>
+        <div className="notes-table-scroll">
+          <table className="notes-markdown-table" {...props}>
+            {children}
+          </table>
+        </div>
+      </div>
+      {open && <TableDialog onClose={close}>{children}</TableDialog>}
+    </>
+  )
+}
+
+function ExcalidrawDialog({ modal, onClose }) {
+  React.useEffect(() => {
+    if (!modal) return undefined
+    const handleKeyDown = event => {
+      if (event.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [modal, onClose])
+
+  if (!modal) return null
+
+  const title = modal.title || modal.label || (modal.url ? decodeURIComponent(modal.url.split('/').at(-1)) : 'Excalidraw Drawing')
+
+  return (
+    <div
+      className="excalidraw-dialog-backdrop"
+      onMouseDown={event => { if (event.target === event.currentTarget) onClose() }}
+      role="presentation"
+    >
+      <section
+        className="excalidraw-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Drawing: ${title}`}
+      >
+        <header className="excalidraw-dialog-header">
+          <div className="excalidraw-dialog-brand">
+            <span className="excalidraw-dialog-badge" aria-hidden="true">
+              <svg viewBox="0 0 48 48">
+                <rect x="3" y="12" width="32" height="23" rx="4" fill="currentColor" opacity="0.15"/>
+                <rect x="3" y="12" width="32" height="23" rx="4" stroke="currentColor" strokeWidth="2.5" fill="none"/>
+                <path d="M8 28l5-10 5 6 5-8 5 12" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M36 4l8 8-12 12-5 1 1-5z" fill="currentColor"/>
+              </svg>
+            </span>
+            <div className="excalidraw-dialog-title-group">
+              <span>Interactive Drawing</span>
+              <strong title={title}>{title}</strong>
+            </div>
+          </div>
+
+          <div className="excalidraw-dialog-actions">
+            {modal.url && (
+              <a
+                href={modal.url}
+                target="_blank"
+                rel="noreferrer noopener"
+                className="excalidraw-dialog-open-tab-btn"
+                title="Open original drawing in a new tab"
+              >
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                  <path d="M15 3h6v6M10 14L21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                </svg>
+                <span>Open in new tab ↗</span>
+              </a>
+            )}
+            <button
+              type="button"
+              className="excalidraw-dialog-close"
+              onClick={onClose}
+              aria-label="Close drawing dialog"
+              title="Close (Esc)"
+            >
+              ×
+            </button>
+          </div>
+        </header>
+
+        <div className="excalidraw-dialog-stage">
+          <React.Suspense fallback={<div className="excalidraw-embed-status"><span className="spinner"/><strong>Loading interactive canvas…</strong></div>}>
+            <ExcalidrawViewer
+              url={modal.url}
+              onFallback={() => {
+                window.open(modal.url, '_blank', 'noopener,noreferrer')
+                onClose()
+              }}
+            />
+          </React.Suspense>
         </div>
       </section>
     </div>
@@ -409,6 +614,143 @@ function markdownWithTrustedIframes(content = '') {
   })
 }
 
+function extractReferenceGroups(sectionText, note, index) {
+  const groups = []
+  let currentGroup = { name: 'General', items: [] }
+  const seenUrls = new Set()
+  const lines = sectionText.split(/\r?\n/)
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim()
+    if (!line) continue
+
+    // Check if this line is a sub-group header (e.g. "### Main", "**Drawing**", "main:", "drawing", "videos")
+    const isGroupHeader = /^(?:#{3,5}\s*|\*{2}|_{2})?([a-zA-Z0-9_\s&-]+?)(?:\*{2}|_{2})?:?$/i.exec(line)
+    const isBulletOrUrl = /^[-*+]|\d+\.|^https?:\/\//i.test(line)
+
+    if (isGroupHeader && !isBulletOrUrl && isGroupHeader[1].trim().length < 40) {
+      const rawName = isGroupHeader[1].trim()
+      const formattedName = rawName.charAt(0).toUpperCase() + rawName.slice(1)
+      if (currentGroup.items.length > 0) {
+        groups.push(currentGroup)
+      }
+      currentGroup = { name: formattedName, items: [] }
+      continue
+    }
+
+    // 1. Check for markdown link [Label](url) with optional trailing "| Label" or text
+    const mdLinkMatch = /^\s*(?:[-*+]|\d+\.)?\s*\[([^\]]+)\]\((https?:\/\/[^\s)]+|\.?\.?\/[^\s)]+)\)(?:\s*\|\s*(.+))?/i.exec(line)
+    if (mdLinkMatch) {
+      const label = (mdLinkMatch[3]?.trim() || mdLinkMatch[1]?.trim() || '').replace(/^["']|["']$/g, '')
+      const href = mdLinkMatch[2].trim()
+      if (!seenUrls.has(href)) {
+        seenUrls.add(href)
+        const descriptor = linkDescriptor(href, note, index, label)
+        currentGroup.items.push({
+          title: label || descriptor.title || href,
+          url: descriptor.url || href,
+          hostname: descriptor.hostname || '',
+          descriptor,
+        })
+      }
+      continue
+    }
+
+    // 2. Check for URL with pipe "| Label" (e.g., "- https://... | \"Six Little Lines of Fail\"" or "- https://excalidraw.com/... | naive sol")
+    const pipeUrlMatch = /^\s*(?:[-*+]|\d+\.)?\s*(https?:\/\/[^\s|]+)\s*\|\s*(.+)$/i.exec(line)
+    if (pipeUrlMatch) {
+      const rawUrl = pipeUrlMatch[1].trim()
+      const label = pipeUrlMatch[2].trim().replace(/^["']|["']$/g, '')
+      if (!seenUrls.has(rawUrl)) {
+        seenUrls.add(rawUrl)
+        const descriptor = linkDescriptor(rawUrl, note, index, label)
+        currentGroup.items.push({
+          title: label || descriptor.title || rawUrl,
+          url: descriptor.url || rawUrl,
+          hostname: descriptor.hostname || '',
+          descriptor,
+        })
+      }
+      continue
+    }
+
+    // 3. Check for standalone URL (e.g., "- https://..." or "1. https://...")
+    const plainUrlMatch = /^\s*(?:[-*+]|\d+\.)?\s*(https?:\/\/[^\s]+)$/i.exec(line)
+    if (plainUrlMatch) {
+      const rawUrl = plainUrlMatch[1].trim().replace(/[.,;:)\]]+$/, '')
+      if (!seenUrls.has(rawUrl)) {
+        seenUrls.add(rawUrl)
+        const descriptor = linkDescriptor(rawUrl, note, index)
+        currentGroup.items.push({
+          title: descriptor.title || descriptor.hostname || rawUrl,
+          url: descriptor.url || rawUrl,
+          hostname: descriptor.hostname || '',
+          descriptor,
+        })
+      }
+      continue
+    }
+
+    // 4. Fallback: extract any markdown links or bare URLs in the line
+    const fallbackMdLinks = [...line.matchAll(/\[([^\]]+)\]\((https?:\/\/[^\s)]+|\.?\.?\/[^\s)]+)\)/g)]
+    for (const match of fallbackMdLinks) {
+      const label = match[1].trim()
+      const href = match[2].trim()
+      if (!seenUrls.has(href)) {
+        seenUrls.add(href)
+        const descriptor = linkDescriptor(href, note, index, label)
+        currentGroup.items.push({
+          title: label || descriptor.title || href,
+          url: descriptor.url || href,
+          hostname: descriptor.hostname || '',
+          descriptor,
+        })
+      }
+    }
+
+    const fallbackBareUrls = [...line.matchAll(/(https?:\/\/[^\s<>)"']+)/g)]
+    for (const match of fallbackBareUrls) {
+      const rawUrl = match[1].trim().replace(/[.,;:)\]]+$/, '')
+      if (!seenUrls.has(rawUrl)) {
+        seenUrls.add(rawUrl)
+        const descriptor = linkDescriptor(rawUrl, note, index)
+        currentGroup.items.push({
+          title: descriptor.title || descriptor.hostname || rawUrl,
+          url: descriptor.url || rawUrl,
+          hostname: descriptor.hostname || '',
+          descriptor,
+        })
+      }
+    }
+  }
+
+  if (currentGroup.items.length > 0) {
+    groups.push(currentGroup)
+  }
+
+  return groups
+}
+
+function markdownWithReferences(content = '', note, index) {
+  if (!content) return ''
+  const refHeaderRegex = /(?:^|\n)(#{1,4}\s*(?:📚|🔗)?\s*(?:references?|reference\s+links?|references?\s*(?:&|and)\s*resources?|sources?|further\s+reading)\b[^\n]*)\n([\s\S]*?)(?=(?:\n#{1,4}\s+[^\n]+)|$)/gi
+
+  return content.replace(refHeaderRegex, (fullMatch, headingLine, sectionBody) => {
+    const titleMatch = headingLine.replace(/^#+\s*/, '').trim()
+    const titleSlug = slug(cleanHeading(titleMatch)) || 'references'
+    const groups = extractReferenceGroups(sectionBody, note, index)
+    if (groups.length === 0) {
+      return fullMatch
+    }
+    const payload = JSON.stringify({
+      title: titleMatch,
+      id: titleSlug,
+      groups,
+    })
+    return `\n\n\`\`\`notes-references-section\n${payload}\n\`\`\`\n\n`
+  })
+}
+
 function TrustedIframeEmbed({ source }) {
   const trustedSource = trustedIframeSource(source)
   if (!trustedSource) return null
@@ -494,8 +836,9 @@ function FolderPreviewTree({ node, landingPath, selectedPath, onSelect, depth = 
   </div>
 }
 
-function PreviewOnThisPage({ note, headings, headingIdPrefix }) {
+function PreviewOnThisPage({ note, headings, headingIdPrefix, scrollContainerRef }) {
   const [query, setQuery] = React.useState('')
+  const activeId = useHeadingScrollspy(headings, scrollContainerRef, headingIdPrefix)
   React.useEffect(() => setQuery(''), [note?.path])
   const normalizedQuery = query.trim().toLowerCase()
   const visibleHeadingTree = filterHeadingTree(headingTree(headings), normalizedQuery)
@@ -503,15 +846,50 @@ function PreviewOnThisPage({ note, headings, headingIdPrefix }) {
   return <aside className="notes-preview-outline" aria-label="On this page">
     <div className="notes-preview-outline-header"><span>On this page</span><strong>{note?.title || 'Note outline'}</strong></div>
     <label className="notes-outline-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg><input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Find a heading…" aria-label="Search headings in this preview"/></label>
-    {visibleHeadingTree.length ? <nav><OutlineHeadingTree nodes={visibleHeadingTree} onSelectHeading={selectHeading}/></nav> : <p>{headings.length ? 'No headings match your search.' : 'No headings in this note.'}</p>}
+    {visibleHeadingTree.length ? <nav><OutlineHeadingTree nodes={visibleHeadingTree} activeId={activeId} onSelectHeading={selectHeading}/></nav> : <p>{headings.length ? 'No headings match your search.' : 'No headings in this note.'}</p>}
   </aside>
 }
 
-function PreviewMarkdownLayout({ note, headings, index, onOpenLink }) {
+function PreviewMarkdownLayout({ note, headings, targetHash, index, onOpenLink }) {
   const headingIdPrefix = 'notes-link-preview-heading-'
+  const contentContainerRef = React.useRef(null)
+
+  React.useEffect(() => {
+    if (!targetHash) {
+      contentContainerRef.current?.scrollTo({ top: 0 })
+      return undefined
+    }
+
+    const clean = decodeURIComponent(targetHash).replace(/^#/, '').trim()
+    const match = findTargetHeading(headings, clean)
+    const targetId = match ? `${headingIdPrefix}${match.id}` : `${headingIdPrefix}${clean}`
+
+    const attemptScroll = (retries = 8) => {
+      const el = document.getElementById(targetId) ||
+                 document.getElementById(`${headingIdPrefix}${slug(clean)}`) ||
+                 document.getElementById(clean) ||
+                 contentContainerRef.current?.querySelector(`[id*="${clean}"]`)
+
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        el.classList.add('notes-target-heading-highlight')
+        setTimeout(() => el.classList.remove('notes-target-heading-highlight'), 2400)
+      } else if (retries > 0) {
+        setTimeout(() => attemptScroll(retries - 1), 60)
+      }
+    }
+
+    const timer = setTimeout(() => attemptScroll(8), 60)
+    return () => clearTimeout(timer)
+  }, [note?.path, targetHash, headings])
+
   return <div className="notes-preview-markdown-layout">
-    <div className="notes-preview-markdown-content"><article className="markdown-body notes-link-note-preview"><MarkdownContent note={note} headings={headings} headingIdPrefix={headingIdPrefix} index={index} onOpenLink={onOpenLink}/></article></div>
-    <PreviewOnThisPage note={note} headings={headings} headingIdPrefix={headingIdPrefix}/>
+    <div className="notes-preview-markdown-content" ref={contentContainerRef}>
+      <article className="markdown-body notes-link-note-preview">
+        <MarkdownContent note={note} headings={headings} headingIdPrefix={headingIdPrefix} index={index} onOpenLink={onOpenLink}/>
+      </article>
+    </div>
+    <PreviewOnThisPage note={note} headings={headings} headingIdPrefix={headingIdPrefix} scrollContainerRef={contentContainerRef}/>
   </div>
 }
 
@@ -560,29 +938,74 @@ function LinkPreviewDrawer({ preview, repositoryId, source, index, onClose, onNa
         <button type="button" className="notes-link-close" onClick={onClose} aria-label="Close link preview">×</button>
       </header>
       <div className="notes-link-drawer-body">
-        {preview.type === 'note' && (loading ? <div className="note-reader-status"><span className="spinner" /> Loading linked note…</div> : error ? <DismissibleError message={error}/> : previewNote ? <PreviewMarkdownLayout note={previewNote} headings={previewHeadings} index={index} onOpenLink={onPreviewLink}/> : null)}
-        {preview.type === 'folder' && <div className="notes-folder-master-detail"><aside className="notes-folder-master"><header><span><LinkBrandIcon type="folder"/></span><div><h2>{preview.title}</h2><p>{folderNotes.length} Markdown notes</p></div></header><div className="notes-folder-master-tree">{folderTree && <FolderPreviewTree node={folderTree} landingPath={preview.path} selectedPath={folderSelectedPath} onSelect={setFolderSelectedPath}/>}</div></aside><section className="notes-folder-detail"><header><span>Note preview</span><strong>{previewNote?.title || folderNotes.find(item => item.path === folderSelectedPath)?.title || 'Select a note'}</strong><small>{folderSelectedPath}</small></header><div className="notes-folder-detail-content">{loading ? <div className="note-reader-status"><span className="spinner" /> Loading note…</div> : error ? <DismissibleError message={error}/> : previewNote ? <PreviewMarkdownLayout note={previewNote} headings={previewHeadings} index={index} onOpenLink={onPreviewLink}/> : <div className="note-reader-status">Select a note from the folder tree.</div>}</div></section></div>}
+        {preview.type === 'note' && (loading ? <div className="note-reader-status"><span className="spinner" /> Loading linked note…</div> : error ? <DismissibleError message={error}/> : previewNote ? <PreviewMarkdownLayout note={previewNote} headings={previewHeadings} targetHash={preview.hash} index={index} onOpenLink={onPreviewLink}/> : null)}
+        {preview.type === 'folder' && <div className="notes-folder-master-detail"><aside className="notes-folder-master"><header><span><LinkBrandIcon type="folder"/></span><div><h2>{preview.title}</h2><p>{folderNotes.length} Markdown notes</p></div></header><div className="notes-folder-master-tree">{folderTree && <FolderPreviewTree node={folderTree} landingPath={preview.path} selectedPath={folderSelectedPath} onSelect={setFolderSelectedPath}/>}</div></aside><section className="notes-folder-detail"><header><span>Note preview</span><strong>{previewNote?.title || folderNotes.find(item => item.path === folderSelectedPath)?.title || 'Select a note'}</strong><small>{folderSelectedPath}</small></header><div className="notes-folder-detail-content">{loading ? <div className="note-reader-status"><span className="spinner" /> Loading note…</div> : error ? <DismissibleError message={error}/> : previewNote ? <PreviewMarkdownLayout note={previewNote} headings={previewHeadings} targetHash={folderSelectedPath === preview.path ? preview.hash : ''} index={index} onOpenLink={onPreviewLink}/> : <div className="note-reader-status">Select a note from the folder tree.</div>}</div></section></div>}
         {preview.type === 'youtube-post' && <div className="notes-youtube-post-preview"><span><LinkBrandIcon type="youtube-post"/></span><h2>Community post</h2><p>YouTube does not provide a video-player embed for Community posts. Open the post on YouTube to view its text, images, poll, and discussion.</p></div>}
         {preview.type === 'youtube' && <div className="notes-external-preview"><iframe key={preview.url} className="notes-external-frame" src={youtubeEmbedUrl(preview.videoId)} title={`${labels.youtube}: ${preview.title || preview.hostname}`} loading="eager" referrerPolicy="strict-origin-when-cross-origin" sandbox="allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-presentation allow-same-origin allow-scripts" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen/></div>}
-        {preview.type === 'excalidraw' && <div className="notes-excalidraw-preview"><React.Suspense fallback={<div className="excalidraw-embed-status"><span className="spinner"/><strong>Preparing canvas…</strong></div>}><ExcalidrawViewer url={preview.url}/></React.Suspense></div>}
+        {preview.type === 'excalidraw' && <div className="notes-excalidraw-preview"><React.Suspense fallback={<div className="excalidraw-embed-status"><span className="spinner"/><strong>Preparing canvas…</strong></div>}><ExcalidrawViewer url={preview.url} onFallback={() => { window.open(preview.url, '_blank', 'noopener,noreferrer'); onClose() }}/></React.Suspense></div>}
         {!['note', 'folder', 'youtube', 'youtube-post', 'excalidraw'].includes(preview.type) && <div className="notes-external-preview"><ExternalReaderPreview preview={preview}/></div>}
       </div>
       <footer className="notes-link-drawer-actions">
         <button type="button" className="btn btn-secondary" onClick={onClose}>Close preview</button>
-        {preview.type === 'note' && <button type="button" className="btn btn-primary" onClick={() => onNavigate(preview.path)}>Jump to note</button>}
-        {preview.type === 'folder' && <button type="button" className="btn btn-primary" disabled={!folderSelectedPath} onClick={() => onNavigate(folderSelectedPath)}>Jump to selected note</button>}
+        {preview.type === 'note' && <button type="button" className="btn btn-primary" onClick={() => onNavigate(preview.path, preview.hash)}>Jump to note</button>}
+        {preview.type === 'folder' && <button type="button" className="btn btn-primary" disabled={!folderSelectedPath} onClick={() => onNavigate(folderSelectedPath, folderSelectedPath === preview.path ? preview.hash : '')}>Jump to selected note</button>}
         {preview.url && <a className="btn btn-secondary notes-link-open" href={preview.url} target="_blank" rel="noreferrer">Open in new tab ↗</a>}
       </footer>
     </aside>
   </div>
 }
 
-function MarkdownContent({ note, headings, headingIdPrefix = '', index, onOpenLink, titleNavigation }) {
+function toggleH2Section(headingElement) {
+  if (!headingElement) return
+  const isCollapsed = headingElement.classList.toggle('is-collapsed')
+  headingElement.setAttribute('aria-expanded', isCollapsed ? 'false' : 'true')
+
+  let nextEl = headingElement.nextElementSibling
+  while (nextEl) {
+    const tagName = nextEl.tagName?.toLowerCase()
+    if (
+      tagName === 'h1' ||
+      tagName === 'h2' ||
+      nextEl.classList?.contains('notes-title-navigation') ||
+      nextEl.classList?.contains('notes-references-card') ||
+      nextEl.id === 'references'
+    ) {
+      break
+    }
+    if (isCollapsed) {
+      nextEl.setAttribute('data-h2-hidden', 'true')
+    } else {
+      nextEl.removeAttribute('data-h2-hidden')
+    }
+    nextEl = nextEl.nextElementSibling
+  }
+}
+
+function uncollapseTargetIfNeeded(el) {
+  if (!el) return
+  if (el.classList?.contains('notes-collapsible-h2') && el.classList?.contains('is-collapsed')) {
+    toggleH2Section(el)
+    return
+  }
+  let prev = el.previousElementSibling
+  while (prev) {
+    if (prev.classList?.contains('notes-collapsible-h2')) {
+      if (prev.classList?.contains('is-collapsed')) {
+        toggleH2Section(prev)
+      }
+      break
+    }
+    if (prev.tagName?.toLowerCase() === 'h1') break
+    prev = prev.previousElementSibling
+  }
+}
+
+const MarkdownContent = React.memo(function MarkdownContent({ note, headings = [], headingIdPrefix = '', index, onOpenLink, titleNavigation }) {
   let headingIndex = 0
   let titleNavigationRendered = false
   const heading = level => ({ children, ...props }) => {
     const Tag = `h${level}`
-    const headingId = headings[headingIndex]?.id
+    const headingId = headings?.[headingIndex]?.id
     const id = headingId ? `${headingIdPrefix}${headingId}` : undefined
     headingIndex += 1
     if (level === 1 && titleNavigation && !titleNavigationRendered) {
@@ -600,12 +1023,56 @@ function MarkdownContent({ note, headings, headingIdPrefix = '', index, onOpenLi
         </button>
       </div>
     }
+    if (level === 2) {
+      return (
+        <h2
+          id={id}
+          className="notes-collapsible-h2"
+          onClick={(e) => {
+            if (e.target.closest('a')) return
+            toggleH2Section(e.currentTarget)
+          }}
+          tabIndex={0}
+          role="button"
+          aria-expanded="true"
+          title="Click to collapse or expand section"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault()
+              toggleH2Section(e.currentTarget)
+            }
+          }}
+          {...props}
+        >
+          <span className="notes-h2-content-text">{children}</span>
+          <span className="notes-h2-toggle-chevron" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="m6 9 6 6 6-6"/>
+            </svg>
+          </span>
+        </h2>
+      )
+    }
     return <Tag id={id} {...props}>{children}</Tag>
   }
   const components = {
     a: ({ href, children, className, ...props }) => {
       const resolved = relativeUrl(href, note.raw_url)
-      if (href?.startsWith('#')) return <a href={href} className={className} onClick={event => { event.preventDefault(); document.getElementById(href.slice(1))?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }} {...props}>{children}</a>
+      if (href?.startsWith('#')) {
+        return <a href={href} className={className} onClick={event => {
+          event.preventDefault()
+          const clean = decodeURIComponent(href).replace(/^#/, '').trim()
+          const match = findTargetHeading(headings, clean)
+          const targetId = match ? `${headingIdPrefix}${match.id}` : `${headingIdPrefix}${clean}`
+          const el = document.getElementById(targetId) || document.getElementById(clean) || document.getElementById(slug(clean)) || document.querySelector(`[id*="${clean}"]`)
+          if (el) {
+            uncollapseTargetIfNeeded(el)
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+            el.classList.add('notes-target-heading-highlight')
+            setTimeout(() => el.classList.remove('notes-target-heading-highlight'), 2400)
+          }
+        }} {...props}>{children}</a>
+      }
       const label = React.Children.toArray(children).join('')
       const descriptor = linkDescriptor(href, note, index, label)
 
@@ -630,17 +1097,36 @@ function MarkdownContent({ note, headings, headingIdPrefix = '', index, onOpenLi
       return <a href={resolved} className={linkClassName} onClick={event => { event.preventDefault(); onOpenLink?.(descriptor) }} {...props}><span className="notes-rich-link-icon"><LinkBrandIcon type={descriptor.type}/></span>{children}</a>
     },
     img: ({ src, alt, ...props }) => <ClickableImage src={relativeUrl(src, note.raw_url)} alt={alt} {...props} />,
+    table: ({ children, ...props }) => <ClickableTable {...props}>{children}</ClickableTable>,
     h1: heading(1), h2: heading(2), h3: heading(3), h4: heading(4), h5: heading(5), h6: heading(6),
     pre: ({ children, ...props }) => {
       const codeElement = React.Children.count(children) === 1 ? React.Children.only(children) : null
       const language = /language-([^\s]+)/.exec(codeElement?.props?.className || '')?.[1]?.toLowerCase()
       if (language === 'mermaid') return <MermaidDiagram source={String(codeElement.props.children).replace(/\n$/, '')} />
       if (language === 'notes-trusted-iframe') return <TrustedIframeEmbed source={String(codeElement.props.children).trim()} />
-      return <pre {...props}>{children}</pre>
+      if (language === 'notes-references-section') {
+        try {
+          const data = JSON.parse(String(codeElement.props.children).trim())
+          return (
+            <ReferencesSection
+              headingTitle={data.title}
+              headingId={data.id}
+              groups={data.groups}
+              items={data.items}
+              onOpenLink={onOpenLink}
+            />
+          )
+        } catch {
+          return null
+        }
+      }
+      const codeContent = codeElement ? codeElement.props.children : children
+      return <CodeBlock language={language} code={codeContent} />
     },
   }
-  return <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>{markdownWithTrustedIframes(note.content)}</ReactMarkdown>
-}
+  const transformed = markdownWithReferences(markdownWithTrustedIframes(note.content), note, index)
+  return <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>{transformed}</ReactMarkdown>
+})
 
 function NotePageNavigation({ previousNote, nextNote, rootPath, onNavigate }) {
   const context = item => {
@@ -672,6 +1158,59 @@ function headingTree(headings) {
   return roots
 }
 
+function useHeadingScrollspy(headings, scrollContainerRef, headingIdPrefix = '') {
+  const [activeId, setActiveId] = React.useState('')
+
+  React.useEffect(() => {
+    if (!headings || !headings.length) {
+      setActiveId('')
+      return
+    }
+
+    const getContainer = () => scrollContainerRef?.current || document.querySelector('.note-reader')
+
+    const updateActiveHeading = () => {
+      const container = getContainer()
+      if (!container) return
+
+      const containerRect = container.getBoundingClientRect()
+      const threshold = containerRect.top + 140
+
+      let matchedId = headings[0]?.id || ''
+
+      for (let i = 0; i < headings.length; i++) {
+        const heading = headings[i]
+        const targetId = headingIdPrefix ? `${headingIdPrefix}${heading.id}` : heading.id
+        const el = document.getElementById(targetId)
+        if (!el) continue
+
+        const rect = el.getBoundingClientRect()
+        if (rect.top <= threshold) {
+          matchedId = heading.id
+        } else {
+          break
+        }
+      }
+
+      setActiveId(matchedId)
+    }
+
+    const container = getContainer()
+    if (container) {
+      container.addEventListener('scroll', updateActiveHeading, { passive: true })
+    }
+
+    const timer = setTimeout(updateActiveHeading, 120)
+
+    return () => {
+      if (container) container.removeEventListener('scroll', updateActiveHeading)
+      clearTimeout(timer)
+    }
+  }, [headings, scrollContainerRef, headingIdPrefix])
+
+  return activeId
+}
+
 function filterHeadingTree(nodes, query) {
   if (!query) return nodes
   return nodes.flatMap(node => {
@@ -680,11 +1219,42 @@ function filterHeadingTree(nodes, query) {
   })
 }
 
-function OutlineHeadingTree({ nodes, depth = 0, onNavigate, onSelectHeading }) {
+function OutlineHeadingTree({ nodes, depth = 0, onNavigate, onSelectHeading, activeId }) {
   return <ol className={depth === 0 ? 'notes-outline-tree' : 'notes-outline-branch'}>{nodes.map(node => {
+    const isActive = node.id === activeId
     return <li key={node.id}>
-      <button type="button" className={`outline-heading-level-${node.level}`} onClick={() => { if (onSelectHeading) onSelectHeading(node); else document.getElementById(node.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); onNavigate?.() }} title={node.title}><span className="notes-outline-heading-title">{node.title}</span></button>
-      {node.children.length > 0 && <OutlineHeadingTree nodes={node.children} depth={depth + 1} onNavigate={onNavigate} onSelectHeading={onSelectHeading}/>}
+      <button
+        type="button"
+        data-heading-id={node.id}
+        className={`outline-heading-level-${node.level} ${isActive ? 'is-active-heading' : ''}`}
+        aria-current={isActive ? 'location' : undefined}
+        onClick={() => {
+          if (onSelectHeading) {
+            onSelectHeading(node)
+          } else {
+            const el = document.getElementById(node.id)
+            if (el) {
+              uncollapseTargetIfNeeded(el)
+              el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+              el.classList.add('notes-target-heading-highlight')
+              setTimeout(() => el.classList.remove('notes-target-heading-highlight'), 2400)
+            }
+          }
+          onNavigate?.()
+        }}
+        title={node.title}
+      >
+        <span className="notes-outline-heading-title">{node.title}</span>
+      </button>
+      {node.children.length > 0 && (
+        <OutlineHeadingTree
+          nodes={node.children}
+          depth={depth + 1}
+          onNavigate={onNavigate}
+          onSelectHeading={onSelectHeading}
+          activeId={activeId}
+        />
+      )}
     </li>
   })}</ol>
 }
@@ -760,20 +1330,584 @@ function PanelSplitter({ direction = 'left', onPointerDown, onDoubleClick, isRes
   )
 }
 
-function OnThisPage({ note, headings, mobileOpen = false, isMobile = false, onMobileClose, splitter }) {
+function calculateReadingStats(content = '') {
+  if (!content) return { words: 0, minutes: 1, text: '1 min read', technicalCount: 0 }
+
+  const stripped = content
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/!\[.*?\]\(.*?\)/g, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/[#*`_~>[\]]/g, ' ')
+
+  const words = stripped.trim().split(/\s+/).filter(Boolean).length
+  const codeBlockCount = (content.match(/```[a-z0-9_-]*/gi) || []).length / 2
+  const diagramCount = (content.match(/```mermaid/gi) || []).length + (content.match(/\.excalidraw/gi) || []).length
+  const technicalTimeSec = (codeBlockCount * 15) + (diagramCount * 20)
+  const readingMinutes = Math.max(1, Math.ceil((words / 200) + (technicalTimeSec / 60)))
+
+  return {
+    words,
+    minutes: readingMinutes,
+    text: `${readingMinutes} min read`,
+    technicalCount: Math.round(codeBlockCount + diagramCount)
+  }
+}
+
+function extractSlidesFromMarkdown(content, note) {
+  if (!content) return []
+
+  const normalizedContent = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
+  const lines = normalizedContent.split('\n')
+  const slides = []
+  let currentSlide = null
+  let introLines = []
+  let inIntro = true
+  let inCodeBlock = false
+  let slideIndex = 0
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    const trimmed = line.trim()
+
+    if (trimmed.startsWith('```') || trimmed.startsWith('~~~')) {
+      inCodeBlock = !inCodeBlock
+    }
+
+    const h2Match = !inCodeBlock && line.match(/^##\s+(.+?)\s*#*\s*$/)
+
+    if (h2Match) {
+      if (inIntro) {
+        inIntro = false
+        const introMarkdown = introLines.join('\n').trim()
+        slides.push({
+          id: 'slide-0-intro',
+          slideNumber: slideIndex++,
+          type: 'intro',
+          title: note?.title || 'Overview',
+          content: introMarkdown,
+        })
+      } else if (currentSlide) {
+        currentSlide.content = currentSlide.lines.join('\n').trim()
+        delete currentSlide.lines
+        slides.push(currentSlide)
+      }
+
+      const rawTitle = cleanHeading(h2Match[1])
+      const isRef = /^references?$/i.test(rawTitle)
+
+      if (isRef) {
+        currentSlide = null
+      } else {
+        currentSlide = {
+          id: `slide-${slideIndex}-${slug(rawTitle)}`,
+          slideNumber: slideIndex++,
+          type: 'h2',
+          title: rawTitle,
+          lines: [line],
+        }
+      }
+    } else {
+      if (inIntro) {
+        introLines.push(line)
+      } else if (currentSlide) {
+        currentSlide.lines.push(line)
+      }
+    }
+  }
+
+  if (inIntro) {
+    slides.push({
+      id: 'slide-0-intro',
+      slideNumber: 0,
+      type: 'intro',
+      title: note?.title || 'Overview',
+      content: introLines.join('\n').trim(),
+    })
+  } else if (currentSlide) {
+    currentSlide.content = currentSlide.lines.join('\n').trim()
+    delete currentSlide.lines
+    slides.push(currentSlide)
+  }
+
+  return slides
+}
+
+function NotePresentationMode({ note, index, repository, onOpenLink, onClose }) {
+  const slides = React.useMemo(() => extractSlidesFromMarkdown(note?.content, note), [note?.content, note?.title])
+  const [currentIndex, setCurrentIndex] = React.useState(0)
+  const [direction, setDirection] = React.useState('next')
+  const [showOverview, setShowOverview] = React.useState(false)
+  const [isFullscreen, setIsFullscreen] = React.useState(Boolean(document.fullscreenElement))
+  const [stepMode, setStepMode] = React.useState(false)
+  const [currentStep, setCurrentStep] = React.useState(0)
+  const [fragmentCount, setFragmentCount] = React.useState(0)
+  const [laserPointer, setLaserPointer] = React.useState(false)
+  const [altPressed, setAltPressed] = React.useState(false)
+  const [laserPos, setLaserPos] = React.useState({ x: 0, y: 0, visible: false })
+  const slideCardRef = React.useRef(null)
+
+  const totalSlides = slides.length
+  const currentSlide = slides[currentIndex] || slides[0]
+  const slideHeadings = React.useMemo(() => extractHeadings(currentSlide?.content), [currentSlide?.content])
+  const slideNote = React.useMemo(() => (note && currentSlide ? { ...note, content: currentSlide.content } : note), [note, currentSlide?.content])
+
+  const goToSlide = React.useCallback((targetIndex, dir) => {
+    if (targetIndex < 0 || targetIndex >= totalSlides) return
+    setDirection(dir || (targetIndex >= currentIndex ? 'next' : 'prev'))
+    setCurrentIndex(targetIndex)
+    setCurrentStep(0)
+    setShowOverview(false)
+  }, [currentIndex, totalSlides])
+
+  React.useEffect(() => {
+    if (slideCardRef.current) {
+      slideCardRef.current.scrollTo({ top: 0 })
+    }
+  }, [currentIndex])
+
+  // Track and update fragment elements for step-by-step reveal
+  React.useLayoutEffect(() => {
+    if (!slideCardRef.current) return
+    const container = slideCardRef.current.querySelector('.notes-slide-body')
+    if (!container) {
+      setFragmentCount(0)
+      return
+    }
+
+    const items = [...container.querySelectorAll(':scope > p, :scope > blockquote, :scope > pre, :scope > .notes-code-block-card, :scope > .notes-table-container, :scope > table, :scope > .notes-mermaid-container, :scope > .mermaid-preview-card, :scope > .notes-image-container, :scope > img, :scope > .notes-trusted-iframe-wrapper, :scope > hr, :scope ul > li, :scope ol > li')]
+    setFragmentCount(items.length)
+
+    items.forEach((item, idx) => {
+      if (stepMode) {
+        item.classList.add('notes-reveal-item')
+        if (idx <= currentStep) {
+          item.classList.add('is-revealed')
+          item.classList.remove('is-pending')
+        } else {
+          item.classList.remove('is-revealed')
+          item.classList.add('is-pending')
+        }
+      } else {
+        item.classList.remove('notes-reveal-item', 'is-revealed', 'is-pending')
+      }
+    })
+
+    if (stepMode && items[currentStep] && currentStep > 0) {
+      items[currentStep].scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    } else if (stepMode && currentStep === 0) {
+      slideCardRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }, [currentIndex, currentSlide, stepMode, currentStep])
+
+  const nextSlide = React.useCallback(() => {
+    if (stepMode && fragmentCount > 0 && currentStep < fragmentCount - 1) {
+      setCurrentStep(step => step + 1)
+      return
+    }
+    if (currentIndex < totalSlides - 1) {
+      goToSlide(currentIndex + 1, 'next')
+    }
+  }, [stepMode, fragmentCount, currentStep, currentIndex, totalSlides, goToSlide])
+
+  const prevSlide = React.useCallback(() => {
+    if (stepMode && currentStep > 0) {
+      setCurrentStep(step => step - 1)
+      return
+    }
+    if (currentIndex > 0) {
+      goToSlide(currentIndex - 1, 'prev')
+    }
+  }, [stepMode, currentStep, currentIndex, goToSlide])
+
+  const toggleFullscreen = React.useCallback(() => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen?.().catch(() => {})
+      setIsFullscreen(true)
+    } else {
+      document.exitFullscreen?.().catch(() => {})
+      setIsFullscreen(false)
+    }
+  }, [])
+
+  React.useEffect(() => {
+    const handleFullscreenChange = () => setIsFullscreen(Boolean(document.fullscreenElement))
+    document.addEventListener('fullscreenchange', handleFullscreenChange)
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange)
+  }, [])
+
+  React.useEffect(() => {
+    const handleKeyDown = event => {
+      if (event.key === 'Alt') setAltPressed(true)
+      if (['INPUT', 'TEXTAREA'].includes(event.target.tagName)) return
+
+      if (event.key === 'Escape') {
+        if (showOverview) setShowOverview(false)
+        else onClose()
+      } else if (event.key === 'ArrowRight' || event.key === ' ' || event.key === 'PageDown' || event.key === 'l' || event.key === 'L') {
+        event.preventDefault()
+        nextSlide()
+      } else if (event.key === 'ArrowLeft' || event.key === 'PageUp' || event.key === 'h' || event.key === 'H' || event.key === 'Backspace') {
+        event.preventDefault()
+        prevSlide()
+      } else if (event.key === 'Home') {
+        event.preventDefault()
+        goToSlide(0)
+      } else if (event.key === 'End') {
+        event.preventDefault()
+        goToSlide(totalSlides - 1)
+      } else if (event.key === 'f' || event.key === 'F') {
+        event.preventDefault()
+        toggleFullscreen()
+      } else if (event.key === 'g' || event.key === 'G' || event.key === 'o' || event.key === 'O') {
+        event.preventDefault()
+        setShowOverview(value => !value)
+      } else if (event.key === 'r' || event.key === 'R') {
+        event.preventDefault()
+        setStepMode(value => !value)
+      } else if (event.key === 'p' || event.key === 'P') {
+        event.preventDefault()
+        setLaserPointer(value => !value)
+      }
+    }
+
+    const handleKeyUp = event => {
+      if (event.key === 'Alt') setAltPressed(false)
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('keyup', handleKeyUp)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('keyup', handleKeyUp)
+    }
+  }, [nextSlide, prevSlide, goToSlide, showOverview, onClose, totalSlides, toggleFullscreen])
+
+  const isLaserActive = laserPointer || altPressed
+
+  const handlePointerMove = event => {
+    if (isLaserActive) {
+      setLaserPos({ x: event.clientX, y: event.clientY, visible: true })
+    }
+  }
+
+  const handlePointerLeave = () => {
+    setLaserPos(pos => ({ ...pos, visible: false }))
+  }
+
+  const progressPercent = totalSlides > 0 ? ((currentIndex + 1) / totalSlides) * 100 : 100
+
+  return (
+    <div
+      className={`notes-presentation-overlay ${isLaserActive ? 'is-laser-active' : ''}`}
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Slide presentation: ${note?.title}`}
+      onPointerMove={handlePointerMove}
+      onPointerLeave={handlePointerLeave}
+    >
+      {/* Top Header & Progress Bar */}
+      <div className="notes-presentation-topbar">
+        <div className="notes-presentation-progress-track">
+          <div className="notes-presentation-progress-fill" style={{ width: `${progressPercent}%` }} />
+        </div>
+        <div className="notes-presentation-topbar-content">
+          <div className="notes-presentation-title-info">
+            <span className="notes-presentation-slide-badge">Slide {currentIndex + 1} of {totalSlides}</span>
+            <strong className="notes-presentation-note-title" title={note?.title}>{note?.title}</strong>
+          </div>
+          <div className="notes-presentation-top-actions">
+            {/* Step-by-Step Reveal Mode Toggle */}
+            <button
+              type="button"
+              className={`notes-presentation-btn ${stepMode ? 'is-active' : ''}`}
+              onClick={() => setStepMode(value => !value)}
+              title="Toggle Step-by-Step Reveal Mode (R)"
+              aria-label="Toggle step-by-step reveal mode"
+              aria-pressed={stepMode}
+            >
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M4 6h16M4 12h10M4 18h6" />
+                <path d="m15 15 3 3 5-5" />
+              </svg>
+              <span>{stepMode ? (fragmentCount > 0 ? `Step ${Math.min(currentStep + 1, fragmentCount)}/${fragmentCount}` : 'Step Mode') : 'Reveal'}</span>
+            </button>
+
+            {/* Virtual Laser Pointer Toggle */}
+            <button
+              type="button"
+              className={`notes-presentation-btn ${isLaserActive ? 'is-laser-btn-active' : ''}`}
+              onClick={() => setLaserPointer(value => !value)}
+              title="Toggle Laser Pointer (P or hold Alt)"
+              aria-label="Toggle laser pointer"
+              aria-pressed={isLaserActive}
+            >
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="4" fill="currentColor" stroke="none" />
+                <path d="M12 2v3m0 14v3M2 12h3m14 0h3" />
+              </svg>
+              <span>Laser</span>
+            </button>
+
+            {/* Slide Grid Overview */}
+            <button
+              type="button"
+              className={`notes-presentation-btn ${showOverview ? 'is-active' : ''}`}
+              onClick={() => setShowOverview(value => !value)}
+              title="Slide Overview Grid (G)"
+              aria-label="Slide overview grid"
+            >
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <rect x="3" y="3" width="7" height="7" rx="1.5" />
+                <rect x="14" y="3" width="7" height="7" rx="1.5" />
+                <rect x="3" y="14" width="7" height="7" rx="1.5" />
+                <rect x="14" y="14" width="7" height="7" rx="1.5" />
+              </svg>
+              <span>Grid</span>
+            </button>
+
+            {/* Fullscreen Toggle */}
+            <button
+              type="button"
+              className="notes-presentation-btn"
+              onClick={toggleFullscreen}
+              title="Toggle Fullscreen (F)"
+              aria-label="Toggle fullscreen"
+            >
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                {isFullscreen ? (
+                  <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
+                ) : (
+                  <path d="M8 3H3v5m13-5h5v5M8 21H3v-5m13 5h5v-5"/>
+                )}
+              </svg>
+            </button>
+
+            {/* Exit Button */}
+            <button
+              type="button"
+              className="notes-presentation-btn is-close"
+              onClick={onClose}
+              title="Exit Presentation (Esc)"
+              aria-label="Exit presentation"
+            >
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M18 6 6 18M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Slide Stage */}
+      <div className="notes-presentation-stage">
+        {currentSlide && (
+          <div
+            ref={slideCardRef}
+            key={`${currentSlide.id}-${currentIndex}`}
+            className={`notes-slide-card is-${direction} ${currentSlide.type === 'intro' ? 'is-intro-slide' : ''} ${stepMode ? 'is-step-mode' : ''}`}
+          >
+            {currentSlide.type === 'intro' && (
+              <div className="notes-slide-hero">
+                <div className="notes-slide-eyebrow">
+                  {repository && <span className="notes-slide-repo-tag">@{repository.owner}/{repository.name}</span>}
+                  <span className="notes-slide-count-tag">{totalSlides} Interactive Slides</span>
+                </div>
+                <h1 className="notes-slide-hero-title">{note?.title}</h1>
+              </div>
+            )}
+            <div className="notes-slide-body markdown-body">
+              <MarkdownContent
+                note={slideNote}
+                headings={slideHeadings}
+                index={index}
+                onOpenLink={onOpenLink}
+                headingIdPrefix={`slide-${currentIndex}-`}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Virtual Laser Pointer Dot */}
+      {isLaserActive && laserPos.visible && (
+        <div
+          className="notes-presentation-laser-dot"
+          style={{
+            left: `${laserPos.x}px`,
+            top: `${laserPos.y}px`,
+          }}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Bottom Floating Control Dock */}
+      <div className="notes-presentation-dock">
+        <button
+          type="button"
+          className="notes-dock-nav-btn is-prev"
+          disabled={currentIndex === 0 && (!stepMode || currentStep === 0)}
+          onClick={prevSlide}
+          title="Previous (← / ArrowLeft / Backspace)"
+          aria-label="Previous step or slide"
+        >
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="m15 18-6-6 6-6"/>
+          </svg>
+        </button>
+
+        <div className="notes-dock-slide-counter">
+          <span className="current-num">{currentIndex + 1}</span>
+          <span className="divider">/</span>
+          <span className="total-num">{totalSlides}</span>
+          {stepMode && fragmentCount > 0 && (
+            <span className="notes-dock-step-badge">
+              Step {Math.min(currentStep + 1, fragmentCount)}/{fragmentCount}
+            </span>
+          )}
+        </div>
+
+        <button
+          type="button"
+          className="notes-dock-nav-btn is-next"
+          disabled={currentIndex === totalSlides - 1 && (!stepMode || currentStep === fragmentCount - 1)}
+          onClick={nextSlide}
+          title="Next (→ / Space / ArrowRight)"
+          aria-label="Next step or slide"
+        >
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="m9 18 6-6-6-6"/>
+          </svg>
+        </button>
+
+        <div className="notes-dock-shortcuts-hint" aria-hidden="true">
+          <kbd>Space</kbd> Next · <kbd>R</kbd> Reveal · <kbd>P</kbd> Laser · <kbd>G</kbd> Grid · <kbd>F</kbd> Fullscreen · <kbd>Esc</kbd> Exit
+        </div>
+      </div>
+
+      {/* Slide Overview Grid Modal */}
+      {showOverview && (
+        <div className="notes-slide-grid-modal-backdrop" onClick={() => setShowOverview(false)}>
+          <div className="notes-slide-grid-modal" onClick={e => e.stopPropagation()}>
+            <div className="notes-slide-grid-header">
+              <div>
+                <h2>Slide Overview</h2>
+                <p>Click any slide to jump directly to it</p>
+              </div>
+              <button
+                type="button"
+                className="notes-slide-grid-close"
+                onClick={() => setShowOverview(false)}
+                title="Close Overview (Esc / G)"
+              >
+                ×
+              </button>
+            </div>
+            <div className="notes-slide-grid-cards">
+              {slides.map((s, idx) => (
+                <button
+                  type="button"
+                  key={s.id}
+                  className={`notes-slide-grid-card ${idx === currentIndex ? 'is-current' : ''}`}
+                  onClick={() => goToSlide(idx)}
+                >
+                  <div className="notes-slide-grid-card-header">
+                    <span className="notes-slide-grid-num">#{idx + 1}</span>
+                    <span className="notes-slide-grid-type">{s.type === 'intro' ? 'Overview' : 'Section'}</span>
+                  </div>
+                  <strong className="notes-slide-grid-title">{s.title}</strong>
+                  <p className="notes-slide-grid-snippet">
+                    {s.content.replace(/^#+.*$/gm, '').replace(/```[\s\S]*?```/g, '[Code]').replace(/!\[.*?\]\(.*?\)/g, '[Image]').slice(0, 100).trim() || 'No preview text'}
+                  </p>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function toggleAllH2Sections(collapse) {
+  const headings = document.querySelectorAll('.notes-collapsible-h2')
+  headings.forEach(heading => {
+    const isCurrentlyCollapsed = heading.classList.contains('is-collapsed')
+    if (collapse && !isCurrentlyCollapsed) {
+      toggleH2Section(heading)
+    } else if (!collapse && isCurrentlyCollapsed) {
+      toggleH2Section(heading)
+    }
+  })
+}
+
+function OnThisPage({ note, headings, readingStats, scrollContainerRef, mobileOpen = false, isMobile = false, onMobileClose, onPresent, splitter }) {
   const [query, setQuery] = React.useState('')
-  React.useEffect(() => setQuery(''), [note?.path])
+  const [allCollapsed, setAllCollapsed] = React.useState(false)
+  const activeId = useHeadingScrollspy(headings, scrollContainerRef)
+
+  React.useEffect(() => {
+    setQuery('')
+    setAllCollapsed(false)
+  }, [note?.path])
+
+  const handleToggleAll = () => {
+    const nextState = !allCollapsed
+    setAllCollapsed(nextState)
+    toggleAllH2Sections(nextState)
+  }
+
   const normalizedQuery = query.trim().toLowerCase()
   const visibleHeadingTree = filterHeadingTree(headingTree(headings), normalizedQuery)
   return <aside className={`notes-outline ${mobileOpen ? 'mobile-open' : ''}`} aria-label="On this page" aria-hidden={isMobile && !mobileOpen}>
     {splitter}
     <div className="notes-outline-sticky">
       <button type="button" className="notes-mobile-drawer-close" onClick={onMobileClose} aria-label="Close page outline">×</button>
-      <span>On this page</span>
+      <div className="notes-outline-header-row">
+        <div className="notes-outline-header-title">
+          <span>On this page</span>
+          {readingStats && <span className="notes-outline-reading-tag">{readingStats.text}</span>}
+        </div>
+        <div className="notes-outline-actions">
+          {note && (
+            <button
+              type="button"
+              className="notes-outline-action-btn notes-outline-present"
+              onClick={onPresent}
+              title="Present note as interactive slides (H2 sections)"
+              aria-label="Present note as interactive slides"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M2 3h20v14H2z" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M8 21h8M12 17v4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                <path d="m10 7.5 5 3.5-5 3.5V7.5z" fill="currentColor"/>
+              </svg>
+            </button>
+          )}
+          <button
+            type="button"
+            className="notes-outline-action-btn"
+            onClick={handleToggleAll}
+            title={allCollapsed ? 'Expand all sections' : 'Collapse all sections'}
+            aria-label={allCollapsed ? 'Expand all sections' : 'Collapse all sections'}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              {allCollapsed ? (
+                <path d="M8 3H3v5m13-5h5v5M8 21H3v-5m13 5h5v-5M3 8l5-5m13 5-5-5M3 16l5 5m13-5-5 5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+              ) : (
+                <path d="M9 9H4V4m11 5h5V4M9 15H4v5m11-5h5v5M4 9l5-5m11 5-5-5M4 15l5 5m11-5-5 5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+              )}
+            </svg>
+          </button>
+          {note?.github_url && (
+            <a className="notes-outline-action-btn notes-outline-source" href={note.github_url} target="_blank" rel="noreferrer" title="Edit / view on GitHub" aria-label="Edit or view this note on GitHub">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 0 0-3 17.5c.5.1.7-.2.7-.5v-1.8c-2.8.6-3.4-1.2-3.4-1.2-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 0 1.6 1.1 1.6 1.1.9 1.6 2.4 1.1 2.9.9.1-.7.4-1.1.7-1.4-2.2-.3-4.6-1.1-4.6-5A3.9 3.9 0 0 1 7 7.8 3.6 3.6 0 0 1 7.1 5s.8-.3 2.9 1.1a10 10 0 0 1 5.2 0C17.2 4.7 18 5 18 5a3.6 3.6 0 0 1 .1 2.8 3.9 3.9 0 0 1 1 2.7c0 3.9-2.4 4.7-4.6 5 .4.3.7.9.7 1.8V20c0 .3.2.6.7.5A9 9 0 0 0 12 3Z"/></svg>
+            </a>
+          )}
+        </div>
+      </div>
       <strong>{note?.title || 'Note outline'}</strong>
-      {note?.github_url && <a className="notes-outline-source" href={note.github_url} target="_blank" rel="noreferrer" title="Edit / view on GitHub" aria-label="Edit or view this note on GitHub"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 0 0-3 17.5c.5.1.7-.2.7-.5v-1.8c-2.8.6-3.4-1.2-3.4-1.2-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 0 1.6 1.1 1.6 1.1.9 1.6 2.4 1.1 2.9.9.1-.7.4-1.1.7-1.4-2.2-.3-4.6-1.1-4.6-5A3.9 3.9 0 0 1 7 7.8 3.6 3.6 0 0 1 7.1 5s.8-.3 2.9 1.1a10 10 0 0 1 5.2 0C17.2 4.7 18 5 18 5a3.6 3.6 0 0 1 .1 2.8 3.9 3.9 0 0 1 1 2.7c0 3.9-2.4 4.7-4.6 5 .4.3.7.9.7 1.8V20c0 .3.2.6.7.5A9 9 0 0 0 12 3Z"/></svg></a>}
       <label className="notes-outline-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg><input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Find a heading…" aria-label="Search headings in this note"/></label>
-      {visibleHeadingTree.length ? <nav><OutlineHeadingTree nodes={visibleHeadingTree} onNavigate={onMobileClose}/></nav> : <p>{headings.length ? 'No headings match your search.' : 'No headings in this note.'}</p>}
+      {visibleHeadingTree.length ? <nav><OutlineHeadingTree nodes={visibleHeadingTree} activeId={activeId} onNavigate={onMobileClose}/></nav> : <p>{headings.length ? 'No headings match your search.' : 'No headings in this note.'}</p>}
     </div>
   </aside>
 }
@@ -918,10 +2052,31 @@ export default function Notes() {
   const [isMobile, setIsMobile] = React.useState(false)
   const [linkPreview, setLinkPreview] = React.useState(null)
   const [linkPreviewHistory, setLinkPreviewHistory] = React.useState([])
+  const [targetHash, setTargetHash] = React.useState('')
+  const [excalidrawModal, setExcalidrawModal] = React.useState(null)
   const [loadingCatalog, setLoadingCatalog] = React.useState(true)
   const [loadingIndex, setLoadingIndex] = React.useState(false)
   const [loadingNote, setLoadingNote] = React.useState(false)
+  const [presentationMode, setPresentationMode] = React.useState(false)
   const [error, setError] = React.useState('')
+
+  const leftPanel = useResizablePanel({
+    initialWidth: 360,
+    minWidth: 240,
+    maxWidth: 640,
+    storageKey: 'learning-notes:left-panel-width',
+    direction: 'left',
+  })
+
+  const rightPanel = useResizablePanel({
+    initialWidth: 270,
+    minWidth: 200,
+    maxWidth: 480,
+    storageKey: 'learning-notes:right-panel-width',
+    direction: 'right',
+  })
+
+  const isResizing = leftPanel.isResizing || rightPanel.isResizing
 
   React.useEffect(() => {
     let active = true
@@ -998,12 +2153,40 @@ export default function Notes() {
     return new Set(directories.map((_, position) => directories.slice(0, position + 1).join('/')))
   }, [selectedPath, topicPrefix])
   const headings = React.useMemo(() => extractHeadings(note?.content), [note?.content])
+  const readingStats = React.useMemo(() => calculateReadingStats(note?.content), [note?.content])
+  const [readingProgress, setReadingProgress] = React.useState(0)
+  const [showScrollTop, setShowScrollTop] = React.useState(false)
   const orderedNotes = React.useMemo(() => [...allNotes].sort((left, right) => left.path.localeCompare(right.path, undefined, { numeric: true })), [allNotes])
   const selectedNotePosition = orderedNotes.findIndex(item => item.path === selectedPath)
   const previousNote = selectedNotePosition > 0 ? orderedNotes[selectedNotePosition - 1] : null
   const nextNote = selectedNotePosition >= 0 && selectedNotePosition < orderedNotes.length - 1 ? orderedNotes[selectedNotePosition + 1] : null
 
   React.useEffect(() => setExpanded({}), [repositoryId, selectedYear, selectedTopic])
+
+  React.useEffect(() => {
+    const reader = noteReaderRef.current
+    if (!reader) return
+
+    setReadingProgress(0)
+    setShowScrollTop(false)
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = reader
+      const totalScrollable = scrollHeight - clientHeight
+      if (totalScrollable <= 0) {
+        setReadingProgress(0)
+        setShowScrollTop(false)
+        return
+      }
+      const pct = Math.min(100, Math.max(0, (scrollTop / totalScrollable) * 100))
+      setReadingProgress(pct)
+      setShowScrollTop(pct > 12)
+    }
+
+    reader.addEventListener('scroll', handleScroll, { passive: true })
+    handleScroll()
+    return () => reader.removeEventListener('scroll', handleScroll)
+  }, [note?.path, note?.content])
 
   React.useEffect(() => {
     if (!normalizedQuery || !allTreePaths.length) return
@@ -1018,15 +2201,56 @@ export default function Notes() {
     setExpanded(current => ({ ...current, ...ancestors }))
   }, [selectedPath, topicPrefix])
 
-  React.useEffect(() => { noteReaderRef.current?.scrollTo({ top: 0 }) }, [selectedPath])
+  React.useEffect(() => {
+    if (!targetHash) {
+      noteReaderRef.current?.scrollTo({ top: 0 })
+      return undefined
+    }
 
-  const selectNote = (path, { keepMobilePanel = false } = {}) => { setSearchParams({ repo: repositoryId, path }); if (!keepMobilePanel) setMobilePanel(null) }
-  const openPreviewLink = descriptor => {
+    const clean = decodeURIComponent(targetHash).replace(/^#/, '').trim()
+    const match = findTargetHeading(headings, clean)
+    const targetId = match ? match.id : clean
+
+    const attemptScroll = (retries = 8) => {
+      const el = document.getElementById(targetId) ||
+                 document.getElementById(slug(clean)) ||
+                 noteReaderRef.current?.querySelector(`[id*="${clean}"]`)
+
+      if (el) {
+        uncollapseTargetIfNeeded(el)
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        el.classList.add('notes-target-heading-highlight')
+        setTimeout(() => el.classList.remove('notes-target-heading-highlight'), 2400)
+      } else if (retries > 0) {
+        setTimeout(() => attemptScroll(retries - 1), 60)
+      }
+    }
+
+    const timer = setTimeout(() => attemptScroll(8), 60)
+    return () => clearTimeout(timer)
+  }, [selectedPath, targetHash, headings])
+
+  const selectNote = React.useCallback((path, { keepMobilePanel = false, hash = '' } = {}) => {
+    setSearchParams({ repo: repositoryId, path })
+    setTargetHash(hash || '')
+    if (!keepMobilePanel) setMobilePanel(null)
+  }, [repositoryId, setSearchParams])
+
+  const openPreviewLink = React.useCallback(descriptor => {
     if (!descriptor?.url) return
+    if (descriptor.type === 'excalidraw') {
+      setExcalidrawModal(descriptor)
+      return
+    }
     if (!supportsDrawerPreview(descriptor)) { openInNewTab(descriptor.url); return }
     setLinkPreviewHistory([])
     setLinkPreview(descriptor)
-  }
+  }, [])
+
+  const titleNavigation = React.useMemo(() => (
+    (previousNote || nextNote) ? { previousNote, nextNote, onNavigate: selectNote } : null
+  ), [previousNote, nextNote, selectNote])
+
   const followPreviewLink = descriptor => {
     if (!descriptor?.url) return
     if (!supportsDrawerPreview(descriptor)) { openInNewTab(descriptor.url); return }
@@ -1039,7 +2263,7 @@ export default function Notes() {
     setLinkPreview(linkPreviewHistory[linkPreviewHistory.length - 1])
     setLinkPreviewHistory(current => current.slice(0, -1))
   }
-  const jumpToPreviewedNote = path => { closeLinkPreview(); selectNote(path) }
+  const jumpToPreviewedNote = (path, hash) => { closeLinkPreview(); selectNote(path, { hash }) }
   const chooseFirst = (candidates, options) => { if (candidates.length) selectNote([...candidates].sort((a, b) => a.path.localeCompare(b.path, undefined, { numeric: true }))[0].path, options) }
   const keepMobileLibraryOpen = isMobile && mobilePanel === 'library'
   const selectYear = year => chooseFirst(allNotes.filter(item => taxonomy(item, index.root_path).year === year), { keepMobilePanel: keepMobileLibraryOpen })
@@ -1085,8 +2309,32 @@ export default function Notes() {
     <header className="notes-reader-header">
       <button type="button" className="notes-nav-reveal notes-desktop-nav-toggle" onClick={() => setShowNavigation(value => !value)} aria-controls="notes-topic-navigation" aria-expanded={showNavigation} title={showNavigation ? 'Hide notes navigation' : 'Show notes navigation'} aria-label={showNavigation ? 'Hide notes navigation' : 'Show notes navigation'}><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/><path d={showNavigation ? 'm7 9-3 3 3 3' : 'm5 9 3 3-3 3'}/></svg></button>
       <Breadcrumbs index={index} selectedPath={selectedPath} onDirectory={navigateBreadcrumb} />
+      {note && (
+        <div
+          className="notes-reader-reading-badge"
+          title={`${readingStats.words.toLocaleString()} words · ${readingStats.technicalCount ? `${readingStats.technicalCount} code/diagram blocks · ` : ''}${Math.round(readingProgress)}% read`}
+        >
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="12 6 12 12 16 14"/>
+          </svg>
+          <span className="notes-reader-reading-time">{readingStats.text}</span>
+          <span className="notes-badge-divider" aria-hidden="true">·</span>
+          <span className="notes-reader-reading-words">{readingStats.words.toLocaleString()} words</span>
+          {readingProgress > 5 && (
+            <span className="notes-reading-remaining-pill">
+              {readingProgress >= 98 ? 'Finished' : `${Math.max(1, Math.ceil(readingStats.minutes * (1 - readingProgress / 100)))}m left`}
+            </span>
+          )}
+        </div>
+      )}
       <NoteSourceStatus source={noteSource} onRefresh={() => setSourceRevision(value => value + 1)} />
       <div className="notes-mobile-header-actions"><button type="button" onClick={() => { setShowNavigation(true); setMobilePanel('library') }} aria-label="Open notes library" title="Notes library"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M6 8h0M6 12h0"/></svg></button><button type="button" onClick={() => setMobilePanel('outline')} aria-label="Open page outline" title="On this page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/></svg></button></div>
+      {note && (
+        <div className="notes-reading-progress-track" aria-hidden="true">
+          <div className="notes-reading-progress-fill" style={{ width: `${readingProgress}%` }} />
+        </div>
+      )}
     </header>
     <DismissibleError message={error} />
     <div
@@ -1121,13 +2369,51 @@ export default function Notes() {
           />
         )}
       </aside>
-      <main ref={noteReaderRef} className="note-reader">{loadingNote ? <div className="note-reader-status"><span className="spinner" /> Loading note…</div> : note ? <><article className="markdown-body"><MarkdownContent note={note} headings={headings} index={index} onOpenLink={openPreviewLink} titleNavigation={{ previousNote, nextNote, onNavigate: selectNote }} /></article><NotePageNavigation previousNote={previousNote} nextNote={nextNote} rootPath={index?.root_path || ''} onNavigate={selectNote}/></> : <div className="note-reader-status">Choose a note to start reading.</div>}</main>
+      <main ref={noteReaderRef} className="note-reader">
+        {loadingNote ? (
+          <div className="note-reader-status"><span className="spinner" /> Loading note…</div>
+        ) : note ? (
+          <>
+            <article className="markdown-body">
+              <MarkdownContent note={note} headings={headings} index={index} onOpenLink={openPreviewLink} titleNavigation={titleNavigation} />
+            </article>
+            <NotePageNavigation previousNote={previousNote} nextNote={nextNote} rootPath={index?.root_path || ''} onNavigate={selectNote}/>
+            {showScrollTop && (
+              <button
+                type="button"
+                className="notes-scroll-top-btn"
+                onClick={() => noteReaderRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
+                title={`Back to top (${Math.round(readingProgress)}% read)`}
+                aria-label="Scroll back to top"
+              >
+                <svg viewBox="0 0 36 36" className="notes-scroll-progress-ring" aria-hidden="true">
+                  <circle className="notes-scroll-ring-bg" cx="18" cy="18" r="15" />
+                  <circle
+                    className="notes-scroll-ring-fill"
+                    cx="18"
+                    cy="18"
+                    r="15"
+                    strokeDasharray="94.2"
+                    strokeDashoffset={94.2 - (94.2 * readingProgress) / 100}
+                  />
+                </svg>
+                <span className="notes-scroll-top-arrow" aria-hidden="true">↑</span>
+              </button>
+            )}
+          </>
+        ) : (
+          <div className="note-reader-status">Choose a note to start reading.</div>
+        )}
+      </main>
       <OnThisPage
         note={note}
         headings={headings}
+        readingStats={readingStats}
+        scrollContainerRef={noteReaderRef}
         isMobile={isMobile}
         mobileOpen={mobilePanel === 'outline'}
         onMobileClose={() => setMobilePanel(null)}
+        onPresent={() => setPresentationMode(true)}
         splitter={
           !isMobile && (
             <PanelSplitter
@@ -1143,5 +2429,15 @@ export default function Notes() {
     </div>
     {isMobile && mobilePanel && <button type="button" className="notes-mobile-backdrop" onClick={() => setMobilePanel(null)} aria-label="Close mobile navigation" />}
     <LinkPreviewDrawer preview={linkPreview} repositoryId={repositoryId} source={noteSource} index={index} onClose={closeLinkPreview} onNavigate={jumpToPreviewedNote} onPreviewLink={followPreviewLink} canGoBack={linkPreviewHistory.length > 0} onBack={goBackInPreview}/>
+    <ExcalidrawDialog modal={excalidrawModal} onClose={() => setExcalidrawModal(null)} />
+    {presentationMode && note && (
+      <NotePresentationMode
+        note={note}
+        index={index}
+        repository={currentRepository}
+        onOpenLink={openPreviewLink}
+        onClose={() => setPresentationMode(false)}
+      />
+    )}
   </div>
 }
