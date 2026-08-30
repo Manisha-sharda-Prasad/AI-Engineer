@@ -999,12 +999,12 @@ function uncollapseTargetIfNeeded(el) {
   }
 }
 
-function MarkdownContent({ note, headings, headingIdPrefix = '', index, onOpenLink, titleNavigation }) {
+function MarkdownContent({ note, headings = [], headingIdPrefix = '', index, onOpenLink, titleNavigation }) {
   let headingIndex = 0
   let titleNavigationRendered = false
   const heading = level => ({ children, ...props }) => {
     const Tag = `h${level}`
-    const headingId = headings[headingIndex]?.id
+    const headingId = headings?.[headingIndex]?.id
     const id = headingId ? `${headingIdPrefix}${headingId}` : undefined
     headingIndex += 1
     if (level === 1 && titleNavigation && !titleNavigationRendered) {
@@ -1245,6 +1245,335 @@ function PanelSplitter({ direction = 'left', onPointerDown, onDoubleClick, isRes
   )
 }
 
+function extractSlidesFromMarkdown(content, note) {
+  if (!content) return []
+
+  const normalizedContent = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
+  const lines = normalizedContent.split('\n')
+  const slides = []
+  let currentSlide = null
+  let introLines = []
+  let inIntro = true
+  let inCodeBlock = false
+  let slideIndex = 0
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    const trimmed = line.trim()
+
+    if (trimmed.startsWith('```') || trimmed.startsWith('~~~')) {
+      inCodeBlock = !inCodeBlock
+    }
+
+    const h2Match = !inCodeBlock && line.match(/^##\s+(.+?)\s*#*\s*$/)
+
+    if (h2Match) {
+      if (inIntro) {
+        inIntro = false
+        const introMarkdown = introLines.join('\n').trim()
+        slides.push({
+          id: 'slide-0-intro',
+          slideNumber: slideIndex++,
+          type: 'intro',
+          title: note?.title || 'Overview',
+          content: introMarkdown,
+        })
+      } else if (currentSlide) {
+        currentSlide.content = currentSlide.lines.join('\n').trim()
+        delete currentSlide.lines
+        slides.push(currentSlide)
+      }
+
+      const rawTitle = cleanHeading(h2Match[1])
+      const isRef = /^references?$/i.test(rawTitle)
+
+      if (isRef) {
+        currentSlide = null
+      } else {
+        currentSlide = {
+          id: `slide-${slideIndex}-${slug(rawTitle)}`,
+          slideNumber: slideIndex++,
+          type: 'h2',
+          title: rawTitle,
+          lines: [line],
+        }
+      }
+    } else {
+      if (inIntro) {
+        introLines.push(line)
+      } else if (currentSlide) {
+        currentSlide.lines.push(line)
+      }
+    }
+  }
+
+  if (inIntro) {
+    slides.push({
+      id: 'slide-0-intro',
+      slideNumber: 0,
+      type: 'intro',
+      title: note?.title || 'Overview',
+      content: introLines.join('\n').trim(),
+    })
+  } else if (currentSlide) {
+    currentSlide.content = currentSlide.lines.join('\n').trim()
+    delete currentSlide.lines
+    slides.push(currentSlide)
+  }
+
+  return slides
+}
+
+function NotePresentationMode({ note, index, repository, onOpenLink, onClose }) {
+  const slides = React.useMemo(() => extractSlidesFromMarkdown(note?.content, note), [note?.content, note?.title])
+  const [currentIndex, setCurrentIndex] = React.useState(0)
+  const [direction, setDirection] = React.useState('next')
+  const [showOverview, setShowOverview] = React.useState(false)
+  const [isFullscreen, setIsFullscreen] = React.useState(Boolean(document.fullscreenElement))
+
+  const totalSlides = slides.length
+  const currentSlide = slides[currentIndex] || slides[0]
+  const slideHeadings = React.useMemo(() => extractHeadings(currentSlide?.content), [currentSlide?.content])
+
+  const goToSlide = React.useCallback((targetIndex, dir) => {
+    if (targetIndex < 0 || targetIndex >= totalSlides) return
+    setDirection(dir || (targetIndex >= currentIndex ? 'next' : 'prev'))
+    setCurrentIndex(targetIndex)
+    setShowOverview(false)
+  }, [currentIndex, totalSlides])
+
+  const nextSlide = React.useCallback(() => {
+    if (currentIndex < totalSlides - 1) {
+      goToSlide(currentIndex + 1, 'next')
+    }
+  }, [currentIndex, totalSlides, goToSlide])
+
+  const prevSlide = React.useCallback(() => {
+    if (currentIndex > 0) {
+      goToSlide(currentIndex - 1, 'prev')
+    }
+  }, [currentIndex, goToSlide])
+
+  const toggleFullscreen = React.useCallback(() => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen?.().catch(() => {})
+      setIsFullscreen(true)
+    } else {
+      document.exitFullscreen?.().catch(() => {})
+      setIsFullscreen(false)
+    }
+  }, [])
+
+  React.useEffect(() => {
+    const handleFullscreenChange = () => setIsFullscreen(Boolean(document.fullscreenElement))
+    document.addEventListener('fullscreenchange', handleFullscreenChange)
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange)
+  }, [])
+
+  React.useEffect(() => {
+    const handleKeyDown = event => {
+      if (['INPUT', 'TEXTAREA'].includes(event.target.tagName)) return
+
+      if (event.key === 'Escape') {
+        if (showOverview) setShowOverview(false)
+        else onClose()
+      } else if (event.key === 'ArrowRight' || event.key === ' ' || event.key === 'PageDown' || event.key === 'l' || event.key === 'L') {
+        event.preventDefault()
+        nextSlide()
+      } else if (event.key === 'ArrowLeft' || event.key === 'PageUp' || event.key === 'h' || event.key === 'H' || event.key === 'Backspace') {
+        event.preventDefault()
+        prevSlide()
+      } else if (event.key === 'Home') {
+        event.preventDefault()
+        goToSlide(0)
+      } else if (event.key === 'End') {
+        event.preventDefault()
+        goToSlide(totalSlides - 1)
+      } else if (event.key === 'f' || event.key === 'F') {
+        event.preventDefault()
+        toggleFullscreen()
+      } else if (event.key === 'g' || event.key === 'G' || event.key === 'o' || event.key === 'O') {
+        event.preventDefault()
+        setShowOverview(value => !value)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [nextSlide, prevSlide, goToSlide, showOverview, onClose, totalSlides, toggleFullscreen])
+
+  const progressPercent = totalSlides > 0 ? ((currentIndex + 1) / totalSlides) * 100 : 100
+
+  return (
+    <div className="notes-presentation-overlay" role="dialog" aria-modal="true" aria-label={`Slide presentation: ${note?.title}`}>
+      {/* Top Header & Progress Bar */}
+      <div className="notes-presentation-topbar">
+        <div className="notes-presentation-progress-track">
+          <div className="notes-presentation-progress-fill" style={{ width: `${progressPercent}%` }} />
+        </div>
+        <div className="notes-presentation-topbar-content">
+          <div className="notes-presentation-title-info">
+            <span className="notes-presentation-slide-badge">Slide {currentIndex + 1} of {totalSlides}</span>
+            <strong className="notes-presentation-note-title" title={note?.title}>{note?.title}</strong>
+          </div>
+          <div className="notes-presentation-top-actions">
+            <button
+              type="button"
+              className={`notes-presentation-btn ${showOverview ? 'is-active' : ''}`}
+              onClick={() => setShowOverview(value => !value)}
+              title="Slide Overview Grid (G)"
+              aria-label="Slide overview grid"
+            >
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <rect x="3" y="3" width="7" height="7" rx="1.5" />
+                <rect x="14" y="3" width="7" height="7" rx="1.5" />
+                <rect x="3" y="14" width="7" height="7" rx="1.5" />
+                <rect x="14" y="14" width="7" height="7" rx="1.5" />
+              </svg>
+              <span>Grid</span>
+            </button>
+            <button
+              type="button"
+              className="notes-presentation-btn"
+              onClick={toggleFullscreen}
+              title="Toggle Fullscreen (F)"
+              aria-label="Toggle fullscreen"
+            >
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                {isFullscreen ? (
+                  <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
+                ) : (
+                  <path d="M8 3H3v5m13-5h5v5M8 21H3v-5m13 5h5v-5"/>
+                )}
+              </svg>
+            </button>
+            <button
+              type="button"
+              className="notes-presentation-btn is-close"
+              onClick={onClose}
+              title="Exit Presentation (Esc)"
+              aria-label="Exit presentation"
+            >
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M18 6 6 18M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Slide Stage */}
+      <div className="notes-presentation-stage">
+        {currentSlide && (
+          <div
+            key={`${currentSlide.id}-${currentIndex}`}
+            className={`notes-slide-card is-${direction} ${currentSlide.type === 'intro' ? 'is-intro-slide' : ''}`}
+          >
+            {currentSlide.type === 'intro' && (
+              <div className="notes-slide-hero">
+                <div className="notes-slide-eyebrow">
+                  {repository && <span className="notes-slide-repo-tag">@{repository.owner}/{repository.name}</span>}
+                  <span className="notes-slide-count-tag">{totalSlides} Interactive Slides</span>
+                </div>
+                <h1 className="notes-slide-hero-title">{note?.title}</h1>
+              </div>
+            )}
+            <div className="notes-slide-body markdown-body">
+              <MarkdownContent
+                note={{ ...note, content: currentSlide.content }}
+                headings={slideHeadings}
+                index={index}
+                onOpenLink={onOpenLink}
+                headingIdPrefix={`slide-${currentIndex}-`}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Bottom Floating Control Dock */}
+      <div className="notes-presentation-dock">
+        <button
+          type="button"
+          className="notes-dock-nav-btn is-prev"
+          disabled={currentIndex === 0}
+          onClick={prevSlide}
+          title="Previous Slide (← / ArrowLeft / Backspace)"
+          aria-label="Previous slide"
+        >
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="m15 18-6-6 6-6"/>
+          </svg>
+        </button>
+
+        <div className="notes-dock-slide-counter">
+          <span className="current-num">{currentIndex + 1}</span>
+          <span className="divider">/</span>
+          <span className="total-num">{totalSlides}</span>
+        </div>
+
+        <button
+          type="button"
+          className="notes-dock-nav-btn is-next"
+          disabled={currentIndex === totalSlides - 1}
+          onClick={nextSlide}
+          title="Next Slide (→ / Space / ArrowRight)"
+          aria-label="Next slide"
+        >
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="m9 18 6-6-6-6"/>
+          </svg>
+        </button>
+
+        <div className="notes-dock-shortcuts-hint" aria-hidden="true">
+          <kbd>Space</kbd> <kbd>→</kbd> Next · <kbd>←</kbd> Prev · <kbd>G</kbd> Grid · <kbd>F</kbd> Fullscreen · <kbd>Esc</kbd> Exit
+        </div>
+      </div>
+
+      {/* Slide Overview Grid Modal */}
+      {showOverview && (
+        <div className="notes-slide-grid-modal-backdrop" onClick={() => setShowOverview(false)}>
+          <div className="notes-slide-grid-modal" onClick={e => e.stopPropagation()}>
+            <div className="notes-slide-grid-header">
+              <div>
+                <h2>Slide Overview</h2>
+                <p>Click any slide to jump directly to it</p>
+              </div>
+              <button
+                type="button"
+                className="notes-slide-grid-close"
+                onClick={() => setShowOverview(false)}
+                title="Close Overview (Esc / G)"
+              >
+                ×
+              </button>
+            </div>
+            <div className="notes-slide-grid-cards">
+              {slides.map((s, idx) => (
+                <button
+                  type="button"
+                  key={s.id}
+                  className={`notes-slide-grid-card ${idx === currentIndex ? 'is-current' : ''}`}
+                  onClick={() => goToSlide(idx)}
+                >
+                  <div className="notes-slide-grid-card-header">
+                    <span className="notes-slide-grid-num">#{idx + 1}</span>
+                    <span className="notes-slide-grid-type">{s.type === 'intro' ? 'Overview' : 'Section'}</span>
+                  </div>
+                  <strong className="notes-slide-grid-title">{s.title}</strong>
+                  <p className="notes-slide-grid-snippet">
+                    {s.content.replace(/^#+.*$/gm, '').replace(/```[\s\S]*?```/g, '[Code]').replace(/!\[.*?\]\(.*?\)/g, '[Image]').slice(0, 100).trim() || 'No preview text'}
+                  </p>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function toggleAllH2Sections(collapse) {
   const headings = document.querySelectorAll('.notes-collapsible-h2')
   headings.forEach(heading => {
@@ -1257,7 +1586,7 @@ function toggleAllH2Sections(collapse) {
   })
 }
 
-function OnThisPage({ note, headings, mobileOpen = false, isMobile = false, onMobileClose, splitter }) {
+function OnThisPage({ note, headings, mobileOpen = false, isMobile = false, onMobileClose, onPresent, splitter }) {
   const [query, setQuery] = React.useState('')
   const [allCollapsed, setAllCollapsed] = React.useState(false)
 
@@ -1281,6 +1610,21 @@ function OnThisPage({ note, headings, mobileOpen = false, isMobile = false, onMo
       <div className="notes-outline-header-row">
         <span>On this page</span>
         <div className="notes-outline-actions">
+          {note && (
+            <button
+              type="button"
+              className="notes-outline-action-btn notes-outline-present"
+              onClick={onPresent}
+              title="Present note as interactive slides (H2 sections)"
+              aria-label="Present note as interactive slides"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M2 3h20v14H2z" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M8 21h8M12 17v4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                <path d="m10 7.5 5 3.5-5 3.5V7.5z" fill="currentColor"/>
+              </svg>
+            </button>
+          )}
           <button
             type="button"
             className="notes-outline-action-btn"
@@ -1455,6 +1799,7 @@ export default function Notes() {
   const [loadingCatalog, setLoadingCatalog] = React.useState(true)
   const [loadingIndex, setLoadingIndex] = React.useState(false)
   const [loadingNote, setLoadingNote] = React.useState(false)
+  const [presentationMode, setPresentationMode] = React.useState(false)
   const [error, setError] = React.useState('')
 
   const leftPanel = useResizablePanel({
@@ -1697,6 +2042,7 @@ export default function Notes() {
         isMobile={isMobile}
         mobileOpen={mobilePanel === 'outline'}
         onMobileClose={() => setMobilePanel(null)}
+        onPresent={() => setPresentationMode(true)}
         splitter={
           !isMobile && (
             <PanelSplitter
@@ -1713,5 +2059,14 @@ export default function Notes() {
     {isMobile && mobilePanel && <button type="button" className="notes-mobile-backdrop" onClick={() => setMobilePanel(null)} aria-label="Close mobile navigation" />}
     <LinkPreviewDrawer preview={linkPreview} repositoryId={repositoryId} source={noteSource} index={index} onClose={closeLinkPreview} onNavigate={jumpToPreviewedNote} onPreviewLink={followPreviewLink} canGoBack={linkPreviewHistory.length > 0} onBack={goBackInPreview}/>
     <ExcalidrawDialog modal={excalidrawModal} onClose={() => setExcalidrawModal(null)} />
+    {presentationMode && note && (
+      <NotePresentationMode
+        note={note}
+        index={index}
+        repository={currentRepository}
+        onOpenLink={openPreviewLink}
+        onClose={() => setPresentationMode(false)}
+      />
+    )}
   </div>
 }
