@@ -11864,6 +11864,7 @@ svg.close-icon {
   min-height: 480px;
   max-height: calc(100vh - 10.5rem);
   overflow-y: auto;
+  scroll-behavior: smooth;
   padding: clamp(1.75rem, 3.5vw, 3rem) clamp(2rem, 4vw, 3.5rem);
   background: var(--card-bg);
   border: 1px solid color-mix(in srgb, var(--notes-accent) 24%, var(--border-color));
@@ -12181,48 +12182,63 @@ svg.close-icon {
 
 /* Staggered Cascade Animations on Slide Entrance */
 .notes-slide-card:not(.is-step-mode) .notes-slide-body > h2 {
-  animation: slideElementFade 0.35s cubic-bezier(0.16, 1, 0.3, 1) 0.03s both;
+  animation: slideElementFade 0.45s cubic-bezier(0.16, 1, 0.3, 1) 0.05s both;
 }
 
-.notes-slide-card:not(.is-step-mode) .notes-slide-body > p,
+.notes-slide-card:not(.is-step-mode) .notes-slide-body > p {
+  animation: slideElementFade 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.14s both;
+}
+
+/* Blockquote 3D Flip Reveal */
 .notes-slide-card:not(.is-step-mode) .notes-slide-body > blockquote {
-  animation: slideElementFade 0.35s cubic-bezier(0.16, 1, 0.3, 1) 0.08s both;
+  transform-origin: top center;
+  animation: slideBlockquoteFlip 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.28s both;
 }
 
+/* Bullets Sequential Cascade */
 .notes-slide-card:not(.is-step-mode) .notes-slide-body > ul > li,
 .notes-slide-card:not(.is-step-mode) .notes-slide-body > ol > li {
-  animation: slideElementFade 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: slideElementFade 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .notes-slide-card:not(.is-step-mode) .notes-slide-body > ul > li:nth-child(1),
-.notes-slide-card:not(.is-step-mode) .notes-slide-body > ol > li:nth-child(1) { animation-delay: 0.12s; }
+.notes-slide-card:not(.is-step-mode) .notes-slide-body > ol > li:nth-child(1) { animation-delay: 0.18s; }
 .notes-slide-card:not(.is-step-mode) .notes-slide-body > ul > li:nth-child(2),
-.notes-slide-card:not(.is-step-mode) .notes-slide-body > ol > li:nth-child(2) { animation-delay: 0.18s; }
+.notes-slide-card:not(.is-step-mode) .notes-slide-body > ol > li:nth-child(2) { animation-delay: 0.30s; }
 .notes-slide-card:not(.is-step-mode) .notes-slide-body > ul > li:nth-child(3),
-.notes-slide-card:not(.is-step-mode) .notes-slide-body > ol > li:nth-child(3) { animation-delay: 0.24s; }
+.notes-slide-card:not(.is-step-mode) .notes-slide-body > ol > li:nth-child(3) { animation-delay: 0.42s; }
 .notes-slide-card:not(.is-step-mode) .notes-slide-body > ul > li:nth-child(4),
-.notes-slide-card:not(.is-step-mode) .notes-slide-body > ol > li:nth-child(4) { animation-delay: 0.30s; }
+.notes-slide-card:not(.is-step-mode) .notes-slide-body > ol > li:nth-child(4) { animation-delay: 0.54s; }
 .notes-slide-card:not(.is-step-mode) .notes-slide-body > ul > li:nth-child(5),
-.notes-slide-card:not(.is-step-mode) .notes-slide-body > ol > li:nth-child(5) { animation-delay: 0.36s; }
+.notes-slide-card:not(.is-step-mode) .notes-slide-body > ol > li:nth-child(5) { animation-delay: 0.66s; }
 .notes-slide-card:not(.is-step-mode) .notes-slide-body > ul > li:nth-child(n+6),
-.notes-slide-card:not(.is-step-mode) .notes-slide-body > ol > li:nth-child(n+6) { animation-delay: 0.42s; }
+.notes-slide-card:not(.is-step-mode) .notes-slide-body > ol > li:nth-child(n+6) { animation-delay: 0.78s; }
 
+/* Table Slide from Right */
 .notes-slide-card:not(.is-step-mode) .notes-slide-body > .notes-table-container,
 .notes-slide-card:not(.is-step-mode) .notes-slide-body > table {
-  animation: slideElementFade 0.4s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both;
+  animation: slideTableFromRight 0.65s cubic-bezier(0.16, 1, 0.3, 1) 0.28s both;
 }
 
-.notes-slide-card:not(.is-step-mode) .notes-slide-body > pre,
-.notes-slide-card:not(.is-step-mode) .notes-slide-body > .notes-mermaid-container,
+/* Image & Diagram Zoom Out from Point */
 .notes-slide-card:not(.is-step-mode) .notes-slide-body > .notes-image-container,
+.notes-slide-card:not(.is-step-mode) .notes-slide-body > .notes-mermaid-container,
+.notes-slide-card:not(.is-step-mode) .notes-slide-body > .mermaid-preview-card,
 .notes-slide-card:not(.is-step-mode) .notes-slide-body > img {
-  animation: slideElementPop 0.45s cubic-bezier(0.16, 1, 0.3, 1) 0.22s both;
+  transform-origin: center center;
+  animation: slideImageZoomOut 0.75s cubic-bezier(0.16, 1, 0.3, 1) 0.25s both;
+}
+
+/* Code Block Lift */
+.notes-slide-card:not(.is-step-mode) .notes-slide-body > pre,
+.notes-slide-card:not(.is-step-mode) .notes-slide-body > .notes-code-block-card {
+  animation: slideCodeBlockLift 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.24s both;
 }
 
 @keyframes slideElementFade {
   from {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(14px);
   }
   to {
     opacity: 1;
@@ -12230,10 +12246,49 @@ svg.close-icon {
   }
 }
 
-@keyframes slideElementPop {
+@keyframes slideTableFromRight {
   from {
     opacity: 0;
-    transform: translateY(14px) scale(0.98);
+    transform: translateX(80px);
+    filter: blur(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes slideBlockquoteFlip {
+  from {
+    opacity: 0;
+    transform: perspective(800px) rotateX(-36deg) translateY(-14px) scale(0.96);
+    filter: blur(2px);
+  }
+  to {
+    opacity: 1;
+    transform: perspective(800px) rotateX(0deg) translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes slideImageZoomOut {
+  from {
+    opacity: 0;
+    transform: scale(1.22);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes slideCodeBlockLift {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.96);
   }
   to {
     opacity: 1;
@@ -12281,7 +12336,8 @@ svg.close-icon {
 
 /* Step-by-Step Reveal Mode ("Fragments") */
 .notes-reveal-item {
-  transition: opacity 0.32s cubic-bezier(0.16, 1, 0.3, 1), filter 0.32s ease, transform 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+  scroll-margin: 3.5rem 1rem;
+  transition: opacity 0.38s cubic-bezier(0.16, 1, 0.3, 1), filter 0.38s ease, transform 0.38s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .notes-reveal-item.is-pending {
@@ -12296,17 +12352,39 @@ svg.close-icon {
   opacity: 1;
   filter: none;
   transform: translateY(0);
-  animation: revealHighlight 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: revealHighlight 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.notes-reveal-item.is-revealed.notes-table-container,
+.notes-reveal-item.is-revealed > table {
+  animation: slideTableFromRight 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+blockquote.notes-reveal-item.is-revealed {
+  transform-origin: top center;
+  animation: slideBlockquoteFlip 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.notes-reveal-item.is-revealed.notes-image-container,
+.notes-reveal-item.is-revealed.notes-mermaid-container,
+.notes-reveal-item.is-revealed.mermaid-preview-card,
+img.notes-reveal-item.is-revealed {
+  transform-origin: center center;
+  animation: slideImageZoomOut 0.65s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.notes-reveal-item.is-revealed.notes-code-block-card {
+  animation: slideCodeBlockLift 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 @keyframes revealHighlight {
   0% {
     opacity: 0.2;
-    transform: translateY(8px) scale(0.99);
+    transform: translateY(10px) scale(0.985);
   }
   60% {
     opacity: 1;
-    transform: translateY(-1px) scale(1.005);
+    transform: translateY(-1.5px) scale(1.006);
   }
   100% {
     opacity: 1;

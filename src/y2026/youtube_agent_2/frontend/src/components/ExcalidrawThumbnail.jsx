@@ -2,16 +2,21 @@ import React from 'react'
 import { Excalidraw } from '@excalidraw/excalidraw'
 import '@excalidraw/excalidraw/index.css'
 
-/** Helper to fetch and parse local/remote .excalidraw JSON */
+const excalidrawCache = new Map()
+
+/** Helper to fetch and parse local/remote .excalidraw JSON with caching */
 async function fetchExcalidrawJson(url) {
+  if (excalidrawCache.has(url)) return excalidrawCache.get(url)
   const response = await fetch(url)
   if (!response.ok) throw new Error(`HTTP ${response.status}`)
-  return await response.json()
+  const data = await response.json()
+  excalidrawCache.set(url, data)
+  return data
 }
 
-export default function ExcalidrawThumbnail({ url, descriptor, label, onOpen }) {
-  const [sceneData, setSceneData] = React.useState(null)
-  const [loading, setLoading] = React.useState(true)
+function ExcalidrawThumbnail({ url, descriptor, label, onOpen }) {
+  const [sceneData, setSceneData] = React.useState(() => excalidrawCache.get(url) || null)
+  const [loading, setLoading] = React.useState(() => !excalidrawCache.has(url))
   const [error, setError] = React.useState(false)
   const [excalidrawAPI, setExcalidrawAPI] = React.useState(null)
   const [zoomPercent, setZoomPercent] = React.useState(100)
@@ -20,6 +25,12 @@ export default function ExcalidrawThumbnail({ url, descriptor, label, onOpen }) 
   const fileName = url ? decodeURIComponent(url.split('/').at(-1) || '') : ''
 
   React.useEffect(() => {
+    if (excalidrawCache.has(url)) {
+      setSceneData(excalidrawCache.get(url))
+      setLoading(false)
+      return
+    }
+
     let cancelled = false
     setLoading(true)
     setError(false)
@@ -222,3 +233,5 @@ export default function ExcalidrawThumbnail({ url, descriptor, label, onOpen }) 
     </div>
   )
 }
+
+export default React.memo(ExcalidrawThumbnail)

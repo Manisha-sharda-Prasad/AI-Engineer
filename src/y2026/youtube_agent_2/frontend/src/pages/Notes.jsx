@@ -999,7 +999,7 @@ function uncollapseTargetIfNeeded(el) {
   }
 }
 
-function MarkdownContent({ note, headings = [], headingIdPrefix = '', index, onOpenLink, titleNavigation }) {
+const MarkdownContent = React.memo(function MarkdownContent({ note, headings = [], headingIdPrefix = '', index, onOpenLink, titleNavigation }) {
   let headingIndex = 0
   let titleNavigationRendered = false
   const heading = level => ({ children, ...props }) => {
@@ -1125,7 +1125,7 @@ function MarkdownContent({ note, headings = [], headingIdPrefix = '', index, onO
   }
   const transformed = markdownWithReferences(markdownWithTrustedIframes(note.content), note, index)
   return <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>{transformed}</ReactMarkdown>
-}
+})
 
 function NotePageNavigation({ previousNote, nextNote, rootPath, onNavigate }) {
   const context = item => {
@@ -1341,6 +1341,7 @@ function NotePresentationMode({ note, index, repository, onOpenLink, onClose }) 
   const totalSlides = slides.length
   const currentSlide = slides[currentIndex] || slides[0]
   const slideHeadings = React.useMemo(() => extractHeadings(currentSlide?.content), [currentSlide?.content])
+  const slideNote = React.useMemo(() => (note && currentSlide ? { ...note, content: currentSlide.content } : note), [note, currentSlide?.content])
 
   const goToSlide = React.useCallback((targetIndex, dir) => {
     if (targetIndex < 0 || targetIndex >= totalSlides) return
@@ -1349,6 +1350,12 @@ function NotePresentationMode({ note, index, repository, onOpenLink, onClose }) 
     setCurrentStep(0)
     setShowOverview(false)
   }, [currentIndex, totalSlides])
+
+  React.useEffect(() => {
+    if (slideCardRef.current) {
+      slideCardRef.current.scrollTo({ top: 0 })
+    }
+  }, [currentIndex])
 
   // Track and update fragment elements for step-by-step reveal
   React.useLayoutEffect(() => {
@@ -1359,7 +1366,7 @@ function NotePresentationMode({ note, index, repository, onOpenLink, onClose }) 
       return
     }
 
-    const items = [...container.querySelectorAll(':scope > p, :scope > blockquote, :scope > pre, :scope > .notes-table-container, :scope > .notes-mermaid-container, :scope > img, :scope ul > li, :scope ol > li')]
+    const items = [...container.querySelectorAll(':scope > p, :scope > blockquote, :scope > pre, :scope > .notes-code-block-card, :scope > .notes-table-container, :scope > table, :scope > .notes-mermaid-container, :scope > .mermaid-preview-card, :scope > .notes-image-container, :scope > img, :scope > .notes-trusted-iframe-wrapper, :scope > hr, :scope ul > li, :scope ol > li')]
     setFragmentCount(items.length)
 
     items.forEach((item, idx) => {
@@ -1376,6 +1383,12 @@ function NotePresentationMode({ note, index, repository, onOpenLink, onClose }) 
         item.classList.remove('notes-reveal-item', 'is-revealed', 'is-pending')
       }
     })
+
+    if (stepMode && items[currentStep] && currentStep > 0) {
+      items[currentStep].scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    } else if (stepMode && currentStep === 0) {
+      slideCardRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
+    }
   }, [currentIndex, currentSlide, stepMode, currentStep])
 
   const nextSlide = React.useCallback(() => {
@@ -1596,7 +1609,7 @@ function NotePresentationMode({ note, index, repository, onOpenLink, onClose }) 
             )}
             <div className="notes-slide-body markdown-body">
               <MarkdownContent
-                note={{ ...note, content: currentSlide.content }}
+                note={slideNote}
                 headings={slideHeadings}
                 index={index}
                 onOpenLink={onOpenLink}
