@@ -836,8 +836,9 @@ function FolderPreviewTree({ node, landingPath, selectedPath, onSelect, depth = 
   </div>
 }
 
-function PreviewOnThisPage({ note, headings, headingIdPrefix }) {
+function PreviewOnThisPage({ note, headings, headingIdPrefix, scrollContainerRef }) {
   const [query, setQuery] = React.useState('')
+  const activeId = useHeadingScrollspy(headings, scrollContainerRef, headingIdPrefix)
   React.useEffect(() => setQuery(''), [note?.path])
   const normalizedQuery = query.trim().toLowerCase()
   const visibleHeadingTree = filterHeadingTree(headingTree(headings), normalizedQuery)
@@ -845,7 +846,7 @@ function PreviewOnThisPage({ note, headings, headingIdPrefix }) {
   return <aside className="notes-preview-outline" aria-label="On this page">
     <div className="notes-preview-outline-header"><span>On this page</span><strong>{note?.title || 'Note outline'}</strong></div>
     <label className="notes-outline-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg><input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Find a heading…" aria-label="Search headings in this preview"/></label>
-    {visibleHeadingTree.length ? <nav><OutlineHeadingTree nodes={visibleHeadingTree} onSelectHeading={selectHeading}/></nav> : <p>{headings.length ? 'No headings match your search.' : 'No headings in this note.'}</p>}
+    {visibleHeadingTree.length ? <nav><OutlineHeadingTree nodes={visibleHeadingTree} activeId={activeId} onSelectHeading={selectHeading}/></nav> : <p>{headings.length ? 'No headings match your search.' : 'No headings in this note.'}</p>}
   </aside>
 }
 
@@ -888,7 +889,7 @@ function PreviewMarkdownLayout({ note, headings, targetHash, index, onOpenLink }
         <MarkdownContent note={note} headings={headings} headingIdPrefix={headingIdPrefix} index={index} onOpenLink={onOpenLink}/>
       </article>
     </div>
-    <PreviewOnThisPage note={note} headings={headings} headingIdPrefix={headingIdPrefix}/>
+    <PreviewOnThisPage note={note} headings={headings} headingIdPrefix={headingIdPrefix} scrollContainerRef={contentContainerRef}/>
   </div>
 }
 
@@ -1157,6 +1158,59 @@ function headingTree(headings) {
   return roots
 }
 
+function useHeadingScrollspy(headings, scrollContainerRef, headingIdPrefix = '') {
+  const [activeId, setActiveId] = React.useState('')
+
+  React.useEffect(() => {
+    if (!headings || !headings.length) {
+      setActiveId('')
+      return
+    }
+
+    const getContainer = () => scrollContainerRef?.current || document.querySelector('.note-reader')
+
+    const updateActiveHeading = () => {
+      const container = getContainer()
+      if (!container) return
+
+      const containerRect = container.getBoundingClientRect()
+      const threshold = containerRect.top + 140
+
+      let matchedId = headings[0]?.id || ''
+
+      for (let i = 0; i < headings.length; i++) {
+        const heading = headings[i]
+        const targetId = headingIdPrefix ? `${headingIdPrefix}${heading.id}` : heading.id
+        const el = document.getElementById(targetId)
+        if (!el) continue
+
+        const rect = el.getBoundingClientRect()
+        if (rect.top <= threshold) {
+          matchedId = heading.id
+        } else {
+          break
+        }
+      }
+
+      setActiveId(matchedId)
+    }
+
+    const container = getContainer()
+    if (container) {
+      container.addEventListener('scroll', updateActiveHeading, { passive: true })
+    }
+
+    const timer = setTimeout(updateActiveHeading, 120)
+
+    return () => {
+      if (container) container.removeEventListener('scroll', updateActiveHeading)
+      clearTimeout(timer)
+    }
+  }, [headings, scrollContainerRef, headingIdPrefix])
+
+  return activeId
+}
+
 function filterHeadingTree(nodes, query) {
   if (!query) return nodes
   return nodes.flatMap(node => {
@@ -1165,11 +1219,42 @@ function filterHeadingTree(nodes, query) {
   })
 }
 
-function OutlineHeadingTree({ nodes, depth = 0, onNavigate, onSelectHeading }) {
+function OutlineHeadingTree({ nodes, depth = 0, onNavigate, onSelectHeading, activeId }) {
   return <ol className={depth === 0 ? 'notes-outline-tree' : 'notes-outline-branch'}>{nodes.map(node => {
+    const isActive = node.id === activeId
     return <li key={node.id}>
-      <button type="button" className={`outline-heading-level-${node.level}`} onClick={() => { if (onSelectHeading) onSelectHeading(node); else document.getElementById(node.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); onNavigate?.() }} title={node.title}><span className="notes-outline-heading-title">{node.title}</span></button>
-      {node.children.length > 0 && <OutlineHeadingTree nodes={node.children} depth={depth + 1} onNavigate={onNavigate} onSelectHeading={onSelectHeading}/>}
+      <button
+        type="button"
+        data-heading-id={node.id}
+        className={`outline-heading-level-${node.level} ${isActive ? 'is-active-heading' : ''}`}
+        aria-current={isActive ? 'location' : undefined}
+        onClick={() => {
+          if (onSelectHeading) {
+            onSelectHeading(node)
+          } else {
+            const el = document.getElementById(node.id)
+            if (el) {
+              uncollapseTargetIfNeeded(el)
+              el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+              el.classList.add('notes-target-heading-highlight')
+              setTimeout(() => el.classList.remove('notes-target-heading-highlight'), 2400)
+            }
+          }
+          onNavigate?.()
+        }}
+        title={node.title}
+      >
+        <span className="notes-outline-heading-title">{node.title}</span>
+      </button>
+      {node.children.length > 0 && (
+        <OutlineHeadingTree
+          nodes={node.children}
+          depth={depth + 1}
+          onNavigate={onNavigate}
+          onSelectHeading={onSelectHeading}
+          activeId={activeId}
+        />
+      )}
     </li>
   })}</ol>
 }
@@ -1243,6 +1328,29 @@ function PanelSplitter({ direction = 'left', onPointerDown, onDoubleClick, isRes
       <div className="notes-splitter-handle" aria-hidden="true" />
     </div>
   )
+}
+
+function calculateReadingStats(content = '') {
+  if (!content) return { words: 0, minutes: 1, text: '1 min read', technicalCount: 0 }
+
+  const stripped = content
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/!\[.*?\]\(.*?\)/g, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/[#*`_~>[\]]/g, ' ')
+
+  const words = stripped.trim().split(/\s+/).filter(Boolean).length
+  const codeBlockCount = (content.match(/```[a-z0-9_-]*/gi) || []).length / 2
+  const diagramCount = (content.match(/```mermaid/gi) || []).length + (content.match(/\.excalidraw/gi) || []).length
+  const technicalTimeSec = (codeBlockCount * 15) + (diagramCount * 20)
+  const readingMinutes = Math.max(1, Math.ceil((words / 200) + (technicalTimeSec / 60)))
+
+  return {
+    words,
+    minutes: readingMinutes,
+    text: `${readingMinutes} min read`,
+    technicalCount: Math.round(codeBlockCount + diagramCount)
+  }
 }
 
 function extractSlidesFromMarkdown(content, note) {
@@ -1732,9 +1840,10 @@ function toggleAllH2Sections(collapse) {
   })
 }
 
-function OnThisPage({ note, headings, mobileOpen = false, isMobile = false, onMobileClose, onPresent, splitter }) {
+function OnThisPage({ note, headings, readingStats, scrollContainerRef, mobileOpen = false, isMobile = false, onMobileClose, onPresent, splitter }) {
   const [query, setQuery] = React.useState('')
   const [allCollapsed, setAllCollapsed] = React.useState(false)
+  const activeId = useHeadingScrollspy(headings, scrollContainerRef)
 
   React.useEffect(() => {
     setQuery('')
@@ -1754,7 +1863,10 @@ function OnThisPage({ note, headings, mobileOpen = false, isMobile = false, onMo
     <div className="notes-outline-sticky">
       <button type="button" className="notes-mobile-drawer-close" onClick={onMobileClose} aria-label="Close page outline">×</button>
       <div className="notes-outline-header-row">
-        <span>On this page</span>
+        <div className="notes-outline-header-title">
+          <span>On this page</span>
+          {readingStats && <span className="notes-outline-reading-tag">{readingStats.text}</span>}
+        </div>
         <div className="notes-outline-actions">
           {note && (
             <button
@@ -1795,7 +1907,7 @@ function OnThisPage({ note, headings, mobileOpen = false, isMobile = false, onMo
       </div>
       <strong>{note?.title || 'Note outline'}</strong>
       <label className="notes-outline-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg><input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Find a heading…" aria-label="Search headings in this note"/></label>
-      {visibleHeadingTree.length ? <nav><OutlineHeadingTree nodes={visibleHeadingTree} onNavigate={onMobileClose}/></nav> : <p>{headings.length ? 'No headings match your search.' : 'No headings in this note.'}</p>}
+      {visibleHeadingTree.length ? <nav><OutlineHeadingTree nodes={visibleHeadingTree} activeId={activeId} onNavigate={onMobileClose}/></nav> : <p>{headings.length ? 'No headings match your search.' : 'No headings in this note.'}</p>}
     </div>
   </aside>
 }
@@ -2041,12 +2153,40 @@ export default function Notes() {
     return new Set(directories.map((_, position) => directories.slice(0, position + 1).join('/')))
   }, [selectedPath, topicPrefix])
   const headings = React.useMemo(() => extractHeadings(note?.content), [note?.content])
+  const readingStats = React.useMemo(() => calculateReadingStats(note?.content), [note?.content])
+  const [readingProgress, setReadingProgress] = React.useState(0)
+  const [showScrollTop, setShowScrollTop] = React.useState(false)
   const orderedNotes = React.useMemo(() => [...allNotes].sort((left, right) => left.path.localeCompare(right.path, undefined, { numeric: true })), [allNotes])
   const selectedNotePosition = orderedNotes.findIndex(item => item.path === selectedPath)
   const previousNote = selectedNotePosition > 0 ? orderedNotes[selectedNotePosition - 1] : null
   const nextNote = selectedNotePosition >= 0 && selectedNotePosition < orderedNotes.length - 1 ? orderedNotes[selectedNotePosition + 1] : null
 
   React.useEffect(() => setExpanded({}), [repositoryId, selectedYear, selectedTopic])
+
+  React.useEffect(() => {
+    const reader = noteReaderRef.current
+    if (!reader) return
+
+    setReadingProgress(0)
+    setShowScrollTop(false)
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = reader
+      const totalScrollable = scrollHeight - clientHeight
+      if (totalScrollable <= 0) {
+        setReadingProgress(0)
+        setShowScrollTop(false)
+        return
+      }
+      const pct = Math.min(100, Math.max(0, (scrollTop / totalScrollable) * 100))
+      setReadingProgress(pct)
+      setShowScrollTop(pct > 12)
+    }
+
+    reader.addEventListener('scroll', handleScroll, { passive: true })
+    handleScroll()
+    return () => reader.removeEventListener('scroll', handleScroll)
+  }, [note?.path, note?.content])
 
   React.useEffect(() => {
     if (!normalizedQuery || !allTreePaths.length) return
@@ -2090,12 +2230,13 @@ export default function Notes() {
     return () => clearTimeout(timer)
   }, [selectedPath, targetHash, headings])
 
-  const selectNote = (path, { keepMobilePanel = false, hash = '' } = {}) => {
+  const selectNote = React.useCallback((path, { keepMobilePanel = false, hash = '' } = {}) => {
     setSearchParams({ repo: repositoryId, path })
     setTargetHash(hash || '')
     if (!keepMobilePanel) setMobilePanel(null)
-  }
-  const openPreviewLink = descriptor => {
+  }, [repositoryId, setSearchParams])
+
+  const openPreviewLink = React.useCallback(descriptor => {
     if (!descriptor?.url) return
     if (descriptor.type === 'excalidraw') {
       setExcalidrawModal(descriptor)
@@ -2104,7 +2245,12 @@ export default function Notes() {
     if (!supportsDrawerPreview(descriptor)) { openInNewTab(descriptor.url); return }
     setLinkPreviewHistory([])
     setLinkPreview(descriptor)
-  }
+  }, [])
+
+  const titleNavigation = React.useMemo(() => (
+    (previousNote || nextNote) ? { previousNote, nextNote, onNavigate: selectNote } : null
+  ), [previousNote, nextNote, selectNote])
+
   const followPreviewLink = descriptor => {
     if (!descriptor?.url) return
     if (!supportsDrawerPreview(descriptor)) { openInNewTab(descriptor.url); return }
@@ -2145,8 +2291,32 @@ export default function Notes() {
     <header className="notes-reader-header">
       <button type="button" className="notes-nav-reveal notes-desktop-nav-toggle" onClick={() => setShowNavigation(value => !value)} aria-controls="notes-topic-navigation" aria-expanded={showNavigation} title={showNavigation ? 'Hide notes navigation' : 'Show notes navigation'} aria-label={showNavigation ? 'Hide notes navigation' : 'Show notes navigation'}><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/><path d={showNavigation ? 'm7 9-3 3 3 3' : 'm5 9 3 3-3 3'}/></svg></button>
       <Breadcrumbs index={index} selectedPath={selectedPath} onDirectory={navigateBreadcrumb} />
+      {note && (
+        <div
+          className="notes-reader-reading-badge"
+          title={`${readingStats.words.toLocaleString()} words · ${readingStats.technicalCount ? `${readingStats.technicalCount} code/diagram blocks · ` : ''}${Math.round(readingProgress)}% read`}
+        >
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="12 6 12 12 16 14"/>
+          </svg>
+          <span className="notes-reader-reading-time">{readingStats.text}</span>
+          <span className="notes-badge-divider" aria-hidden="true">·</span>
+          <span className="notes-reader-reading-words">{readingStats.words.toLocaleString()} words</span>
+          {readingProgress > 5 && (
+            <span className="notes-reading-remaining-pill">
+              {readingProgress >= 98 ? 'Finished' : `${Math.max(1, Math.ceil(readingStats.minutes * (1 - readingProgress / 100)))}m left`}
+            </span>
+          )}
+        </div>
+      )}
       <NoteSourceStatus source={noteSource} onRefresh={() => setSourceRevision(value => value + 1)} />
       <div className="notes-mobile-header-actions"><button type="button" onClick={() => { setShowNavigation(true); setMobilePanel('library') }} aria-label="Open notes library" title="Notes library"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16M6 8h0M6 12h0"/></svg></button><button type="button" onClick={() => setMobilePanel('outline')} aria-label="Open page outline" title="On this page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/></svg></button></div>
+      {note && (
+        <div className="notes-reading-progress-track" aria-hidden="true">
+          <div className="notes-reading-progress-fill" style={{ width: `${readingProgress}%` }} />
+        </div>
+      )}
     </header>
     <DismissibleError message={error} />
     <div
@@ -2181,10 +2351,47 @@ export default function Notes() {
           />
         )}
       </aside>
-      <main ref={noteReaderRef} className="note-reader">{loadingNote ? <div className="note-reader-status"><span className="spinner" /> Loading note…</div> : note ? <><article className="markdown-body"><MarkdownContent note={note} headings={headings} index={index} onOpenLink={openPreviewLink} titleNavigation={{ previousNote, nextNote, onNavigate: selectNote }} /></article><NotePageNavigation previousNote={previousNote} nextNote={nextNote} rootPath={index?.root_path || ''} onNavigate={selectNote}/></> : <div className="note-reader-status">Choose a note to start reading.</div>}</main>
+      <main ref={noteReaderRef} className="note-reader">
+        {loadingNote ? (
+          <div className="note-reader-status"><span className="spinner" /> Loading note…</div>
+        ) : note ? (
+          <>
+            <article className="markdown-body">
+              <MarkdownContent note={note} headings={headings} index={index} onOpenLink={openPreviewLink} titleNavigation={titleNavigation} />
+            </article>
+            <NotePageNavigation previousNote={previousNote} nextNote={nextNote} rootPath={index?.root_path || ''} onNavigate={selectNote}/>
+            {showScrollTop && (
+              <button
+                type="button"
+                className="notes-scroll-top-btn"
+                onClick={() => noteReaderRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
+                title={`Back to top (${Math.round(readingProgress)}% read)`}
+                aria-label="Scroll back to top"
+              >
+                <svg viewBox="0 0 36 36" className="notes-scroll-progress-ring" aria-hidden="true">
+                  <circle className="notes-scroll-ring-bg" cx="18" cy="18" r="15" />
+                  <circle
+                    className="notes-scroll-ring-fill"
+                    cx="18"
+                    cy="18"
+                    r="15"
+                    strokeDasharray="94.2"
+                    strokeDashoffset={94.2 - (94.2 * readingProgress) / 100}
+                  />
+                </svg>
+                <span className="notes-scroll-top-arrow" aria-hidden="true">↑</span>
+              </button>
+            )}
+          </>
+        ) : (
+          <div className="note-reader-status">Choose a note to start reading.</div>
+        )}
+      </main>
       <OnThisPage
         note={note}
         headings={headings}
+        readingStats={readingStats}
+        scrollContainerRef={noteReaderRef}
         isMobile={isMobile}
         mobileOpen={mobilePanel === 'outline'}
         onMobileClose={() => setMobilePanel(null)}
