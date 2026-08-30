@@ -1330,6 +1330,13 @@ function NotePresentationMode({ note, index, repository, onOpenLink, onClose }) 
   const [direction, setDirection] = React.useState('next')
   const [showOverview, setShowOverview] = React.useState(false)
   const [isFullscreen, setIsFullscreen] = React.useState(Boolean(document.fullscreenElement))
+  const [stepMode, setStepMode] = React.useState(false)
+  const [currentStep, setCurrentStep] = React.useState(0)
+  const [fragmentCount, setFragmentCount] = React.useState(0)
+  const [laserPointer, setLaserPointer] = React.useState(false)
+  const [altPressed, setAltPressed] = React.useState(false)
+  const [laserPos, setLaserPos] = React.useState({ x: 0, y: 0, visible: false })
+  const slideCardRef = React.useRef(null)
 
   const totalSlides = slides.length
   const currentSlide = slides[currentIndex] || slides[0]
@@ -1339,20 +1346,57 @@ function NotePresentationMode({ note, index, repository, onOpenLink, onClose }) 
     if (targetIndex < 0 || targetIndex >= totalSlides) return
     setDirection(dir || (targetIndex >= currentIndex ? 'next' : 'prev'))
     setCurrentIndex(targetIndex)
+    setCurrentStep(0)
     setShowOverview(false)
   }, [currentIndex, totalSlides])
 
+  // Track and update fragment elements for step-by-step reveal
+  React.useLayoutEffect(() => {
+    if (!slideCardRef.current) return
+    const container = slideCardRef.current.querySelector('.notes-slide-body')
+    if (!container) {
+      setFragmentCount(0)
+      return
+    }
+
+    const items = [...container.querySelectorAll(':scope > p, :scope > blockquote, :scope > pre, :scope > .notes-table-container, :scope > .notes-mermaid-container, :scope > img, :scope ul > li, :scope ol > li')]
+    setFragmentCount(items.length)
+
+    items.forEach((item, idx) => {
+      if (stepMode) {
+        item.classList.add('notes-reveal-item')
+        if (idx <= currentStep) {
+          item.classList.add('is-revealed')
+          item.classList.remove('is-pending')
+        } else {
+          item.classList.remove('is-revealed')
+          item.classList.add('is-pending')
+        }
+      } else {
+        item.classList.remove('notes-reveal-item', 'is-revealed', 'is-pending')
+      }
+    })
+  }, [currentIndex, currentSlide, stepMode, currentStep])
+
   const nextSlide = React.useCallback(() => {
+    if (stepMode && fragmentCount > 0 && currentStep < fragmentCount - 1) {
+      setCurrentStep(step => step + 1)
+      return
+    }
     if (currentIndex < totalSlides - 1) {
       goToSlide(currentIndex + 1, 'next')
     }
-  }, [currentIndex, totalSlides, goToSlide])
+  }, [stepMode, fragmentCount, currentStep, currentIndex, totalSlides, goToSlide])
 
   const prevSlide = React.useCallback(() => {
+    if (stepMode && currentStep > 0) {
+      setCurrentStep(step => step - 1)
+      return
+    }
     if (currentIndex > 0) {
       goToSlide(currentIndex - 1, 'prev')
     }
-  }, [currentIndex, goToSlide])
+  }, [stepMode, currentStep, currentIndex, goToSlide])
 
   const toggleFullscreen = React.useCallback(() => {
     if (!document.fullscreenElement) {
@@ -1372,6 +1416,7 @@ function NotePresentationMode({ note, index, repository, onOpenLink, onClose }) 
 
   React.useEffect(() => {
     const handleKeyDown = event => {
+      if (event.key === 'Alt') setAltPressed(true)
       if (['INPUT', 'TEXTAREA'].includes(event.target.tagName)) return
 
       if (event.key === 'Escape') {
@@ -1395,17 +1440,50 @@ function NotePresentationMode({ note, index, repository, onOpenLink, onClose }) 
       } else if (event.key === 'g' || event.key === 'G' || event.key === 'o' || event.key === 'O') {
         event.preventDefault()
         setShowOverview(value => !value)
+      } else if (event.key === 'r' || event.key === 'R') {
+        event.preventDefault()
+        setStepMode(value => !value)
+      } else if (event.key === 'p' || event.key === 'P') {
+        event.preventDefault()
+        setLaserPointer(value => !value)
       }
     }
 
+    const handleKeyUp = event => {
+      if (event.key === 'Alt') setAltPressed(false)
+    }
+
     window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
+    window.addEventListener('keyup', handleKeyUp)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('keyup', handleKeyUp)
+    }
   }, [nextSlide, prevSlide, goToSlide, showOverview, onClose, totalSlides, toggleFullscreen])
+
+  const isLaserActive = laserPointer || altPressed
+
+  const handlePointerMove = event => {
+    if (isLaserActive) {
+      setLaserPos({ x: event.clientX, y: event.clientY, visible: true })
+    }
+  }
+
+  const handlePointerLeave = () => {
+    setLaserPos(pos => ({ ...pos, visible: false }))
+  }
 
   const progressPercent = totalSlides > 0 ? ((currentIndex + 1) / totalSlides) * 100 : 100
 
   return (
-    <div className="notes-presentation-overlay" role="dialog" aria-modal="true" aria-label={`Slide presentation: ${note?.title}`}>
+    <div
+      className={`notes-presentation-overlay ${isLaserActive ? 'is-laser-active' : ''}`}
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Slide presentation: ${note?.title}`}
+      onPointerMove={handlePointerMove}
+      onPointerLeave={handlePointerLeave}
+    >
       {/* Top Header & Progress Bar */}
       <div className="notes-presentation-topbar">
         <div className="notes-presentation-progress-track">
@@ -1417,6 +1495,39 @@ function NotePresentationMode({ note, index, repository, onOpenLink, onClose }) 
             <strong className="notes-presentation-note-title" title={note?.title}>{note?.title}</strong>
           </div>
           <div className="notes-presentation-top-actions">
+            {/* Step-by-Step Reveal Mode Toggle */}
+            <button
+              type="button"
+              className={`notes-presentation-btn ${stepMode ? 'is-active' : ''}`}
+              onClick={() => setStepMode(value => !value)}
+              title="Toggle Step-by-Step Reveal Mode (R)"
+              aria-label="Toggle step-by-step reveal mode"
+              aria-pressed={stepMode}
+            >
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M4 6h16M4 12h10M4 18h6" />
+                <path d="m15 15 3 3 5-5" />
+              </svg>
+              <span>{stepMode ? (fragmentCount > 0 ? `Step ${Math.min(currentStep + 1, fragmentCount)}/${fragmentCount}` : 'Step Mode') : 'Reveal'}</span>
+            </button>
+
+            {/* Virtual Laser Pointer Toggle */}
+            <button
+              type="button"
+              className={`notes-presentation-btn ${isLaserActive ? 'is-laser-btn-active' : ''}`}
+              onClick={() => setLaserPointer(value => !value)}
+              title="Toggle Laser Pointer (P or hold Alt)"
+              aria-label="Toggle laser pointer"
+              aria-pressed={isLaserActive}
+            >
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="4" fill="currentColor" stroke="none" />
+                <path d="M12 2v3m0 14v3M2 12h3m14 0h3" />
+              </svg>
+              <span>Laser</span>
+            </button>
+
+            {/* Slide Grid Overview */}
             <button
               type="button"
               className={`notes-presentation-btn ${showOverview ? 'is-active' : ''}`}
@@ -1424,7 +1535,7 @@ function NotePresentationMode({ note, index, repository, onOpenLink, onClose }) 
               title="Slide Overview Grid (G)"
               aria-label="Slide overview grid"
             >
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <rect x="3" y="3" width="7" height="7" rx="1.5" />
                 <rect x="14" y="3" width="7" height="7" rx="1.5" />
                 <rect x="3" y="14" width="7" height="7" rx="1.5" />
@@ -1432,6 +1543,8 @@ function NotePresentationMode({ note, index, repository, onOpenLink, onClose }) 
               </svg>
               <span>Grid</span>
             </button>
+
+            {/* Fullscreen Toggle */}
             <button
               type="button"
               className="notes-presentation-btn"
@@ -1439,7 +1552,7 @@ function NotePresentationMode({ note, index, repository, onOpenLink, onClose }) 
               title="Toggle Fullscreen (F)"
               aria-label="Toggle fullscreen"
             >
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 {isFullscreen ? (
                   <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
                 ) : (
@@ -1447,6 +1560,8 @@ function NotePresentationMode({ note, index, repository, onOpenLink, onClose }) 
                 )}
               </svg>
             </button>
+
+            {/* Exit Button */}
             <button
               type="button"
               className="notes-presentation-btn is-close"
@@ -1454,7 +1569,7 @@ function NotePresentationMode({ note, index, repository, onOpenLink, onClose }) 
               title="Exit Presentation (Esc)"
               aria-label="Exit presentation"
             >
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M18 6 6 18M6 6l12 12"/>
               </svg>
             </button>
@@ -1466,8 +1581,9 @@ function NotePresentationMode({ note, index, repository, onOpenLink, onClose }) 
       <div className="notes-presentation-stage">
         {currentSlide && (
           <div
+            ref={slideCardRef}
             key={`${currentSlide.id}-${currentIndex}`}
-            className={`notes-slide-card is-${direction} ${currentSlide.type === 'intro' ? 'is-intro-slide' : ''}`}
+            className={`notes-slide-card is-${direction} ${currentSlide.type === 'intro' ? 'is-intro-slide' : ''} ${stepMode ? 'is-step-mode' : ''}`}
           >
             {currentSlide.type === 'intro' && (
               <div className="notes-slide-hero">
@@ -1491,15 +1607,27 @@ function NotePresentationMode({ note, index, repository, onOpenLink, onClose }) 
         )}
       </div>
 
+      {/* Virtual Laser Pointer Dot */}
+      {isLaserActive && laserPos.visible && (
+        <div
+          className="notes-presentation-laser-dot"
+          style={{
+            left: `${laserPos.x}px`,
+            top: `${laserPos.y}px`,
+          }}
+          aria-hidden="true"
+        />
+      )}
+
       {/* Bottom Floating Control Dock */}
       <div className="notes-presentation-dock">
         <button
           type="button"
           className="notes-dock-nav-btn is-prev"
-          disabled={currentIndex === 0}
+          disabled={currentIndex === 0 && (!stepMode || currentStep === 0)}
           onClick={prevSlide}
-          title="Previous Slide (← / ArrowLeft / Backspace)"
-          aria-label="Previous slide"
+          title="Previous (← / ArrowLeft / Backspace)"
+          aria-label="Previous step or slide"
         >
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="m15 18-6-6 6-6"/>
@@ -1510,15 +1638,20 @@ function NotePresentationMode({ note, index, repository, onOpenLink, onClose }) 
           <span className="current-num">{currentIndex + 1}</span>
           <span className="divider">/</span>
           <span className="total-num">{totalSlides}</span>
+          {stepMode && fragmentCount > 0 && (
+            <span className="notes-dock-step-badge">
+              Step {Math.min(currentStep + 1, fragmentCount)}/{fragmentCount}
+            </span>
+          )}
         </div>
 
         <button
           type="button"
           className="notes-dock-nav-btn is-next"
-          disabled={currentIndex === totalSlides - 1}
+          disabled={currentIndex === totalSlides - 1 && (!stepMode || currentStep === fragmentCount - 1)}
           onClick={nextSlide}
-          title="Next Slide (→ / Space / ArrowRight)"
-          aria-label="Next slide"
+          title="Next (→ / Space / ArrowRight)"
+          aria-label="Next step or slide"
         >
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="m9 18 6-6-6-6"/>
@@ -1526,7 +1659,7 @@ function NotePresentationMode({ note, index, repository, onOpenLink, onClose }) 
         </button>
 
         <div className="notes-dock-shortcuts-hint" aria-hidden="true">
-          <kbd>Space</kbd> <kbd>→</kbd> Next · <kbd>←</kbd> Prev · <kbd>G</kbd> Grid · <kbd>F</kbd> Fullscreen · <kbd>Esc</kbd> Exit
+          <kbd>Space</kbd> Next · <kbd>R</kbd> Reveal · <kbd>P</kbd> Laser · <kbd>G</kbd> Grid · <kbd>F</kbd> Fullscreen · <kbd>Esc</kbd> Exit
         </div>
       </div>
 

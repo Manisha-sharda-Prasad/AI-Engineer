@@ -12174,3 +12174,189 @@ svg.close-icon {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+/* ==========================================================================
+   Presenter Suite: Staggered Animations, Reveal Mode, Spotlight, Laser
+   ========================================================================== */
+
+/* Staggered Cascade Animations on Slide Entrance */
+.notes-slide-card:not(.is-step-mode) .notes-slide-body > h2 {
+  animation: slideElementFade 0.35s cubic-bezier(0.16, 1, 0.3, 1) 0.03s both;
+}
+
+.notes-slide-card:not(.is-step-mode) .notes-slide-body > p,
+.notes-slide-card:not(.is-step-mode) .notes-slide-body > blockquote {
+  animation: slideElementFade 0.35s cubic-bezier(0.16, 1, 0.3, 1) 0.08s both;
+}
+
+.notes-slide-card:not(.is-step-mode) .notes-slide-body > ul > li,
+.notes-slide-card:not(.is-step-mode) .notes-slide-body > ol > li {
+  animation: slideElementFade 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.notes-slide-card:not(.is-step-mode) .notes-slide-body > ul > li:nth-child(1),
+.notes-slide-card:not(.is-step-mode) .notes-slide-body > ol > li:nth-child(1) { animation-delay: 0.12s; }
+.notes-slide-card:not(.is-step-mode) .notes-slide-body > ul > li:nth-child(2),
+.notes-slide-card:not(.is-step-mode) .notes-slide-body > ol > li:nth-child(2) { animation-delay: 0.18s; }
+.notes-slide-card:not(.is-step-mode) .notes-slide-body > ul > li:nth-child(3),
+.notes-slide-card:not(.is-step-mode) .notes-slide-body > ol > li:nth-child(3) { animation-delay: 0.24s; }
+.notes-slide-card:not(.is-step-mode) .notes-slide-body > ul > li:nth-child(4),
+.notes-slide-card:not(.is-step-mode) .notes-slide-body > ol > li:nth-child(4) { animation-delay: 0.30s; }
+.notes-slide-card:not(.is-step-mode) .notes-slide-body > ul > li:nth-child(5),
+.notes-slide-card:not(.is-step-mode) .notes-slide-body > ol > li:nth-child(5) { animation-delay: 0.36s; }
+.notes-slide-card:not(.is-step-mode) .notes-slide-body > ul > li:nth-child(n+6),
+.notes-slide-card:not(.is-step-mode) .notes-slide-body > ol > li:nth-child(n+6) { animation-delay: 0.42s; }
+
+.notes-slide-card:not(.is-step-mode) .notes-slide-body > .notes-table-container,
+.notes-slide-card:not(.is-step-mode) .notes-slide-body > table {
+  animation: slideElementFade 0.4s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both;
+}
+
+.notes-slide-card:not(.is-step-mode) .notes-slide-body > pre,
+.notes-slide-card:not(.is-step-mode) .notes-slide-body > .notes-mermaid-container,
+.notes-slide-card:not(.is-step-mode) .notes-slide-body > .notes-image-container,
+.notes-slide-card:not(.is-step-mode) .notes-slide-body > img {
+  animation: slideElementPop 0.45s cubic-bezier(0.16, 1, 0.3, 1) 0.22s both;
+}
+
+@keyframes slideElementFade {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideElementPop {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Presenter Focus & Spotlight on Bullet Points */
+.notes-slide-card .markdown-body ul,
+.notes-slide-card .markdown-body ol {
+  transition: opacity 0.2s ease;
+}
+
+.notes-slide-card .markdown-body ul:hover > li:not(:hover),
+.notes-slide-card .markdown-body ol:hover > li:not(:hover) {
+  opacity: 0.35;
+  filter: blur(0.4px);
+  transition: all 0.2s ease;
+}
+
+.notes-slide-card .markdown-body ul > li,
+.notes-slide-card .markdown-body ol > li {
+  transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), color 0.15s ease, filter 0.2s ease;
+}
+
+.notes-slide-card .markdown-body ul > li:hover,
+.notes-slide-card .markdown-body ol > li:hover {
+  opacity: 1;
+  color: var(--text-primary);
+  transform: translateX(6px);
+}
+
+/* Presenter Focus on Table Rows */
+.notes-slide-card .markdown-body table tr {
+  transition: background-color 0.15s ease, transform 0.15s ease;
+}
+
+.notes-slide-card .markdown-body table tbody tr:hover {
+  background-color: color-mix(in srgb, var(--notes-accent) 12%, var(--card-bg));
+}
+
+.notes-slide-card .markdown-body table tbody tr:hover td {
+  color: var(--text-primary);
+}
+
+/* Step-by-Step Reveal Mode ("Fragments") */
+.notes-reveal-item {
+  transition: opacity 0.32s cubic-bezier(0.16, 1, 0.3, 1), filter 0.32s ease, transform 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.notes-reveal-item.is-pending {
+  opacity: 0.12 !important;
+  filter: blur(2px) !important;
+  transform: translateY(6px) !important;
+  pointer-events: none;
+  user-select: none;
+}
+
+.notes-reveal-item.is-revealed {
+  opacity: 1;
+  filter: none;
+  transform: translateY(0);
+  animation: revealHighlight 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes revealHighlight {
+  0% {
+    opacity: 0.2;
+    transform: translateY(8px) scale(0.99);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(-1px) scale(1.005);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.notes-dock-step-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0.45rem;
+  padding: 0.12rem 0.45rem;
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #ffffff;
+  background: linear-gradient(135deg, var(--notes-accent), var(--notes-accent-2, #8b5cf6));
+  border-radius: 999px;
+}
+
+/* Virtual Laser Pointer Tool */
+.notes-presentation-overlay.is-laser-active {
+  cursor: crosshair;
+}
+
+.notes-presentation-laser-dot {
+  position: fixed;
+  pointer-events: none;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #ffffff 10%, #ff0055 60%, #e11d48 100%);
+  box-shadow:
+    0 0 10px 3px rgba(255, 0, 85, 0.95),
+    0 0 24px 8px rgba(255, 0, 85, 0.6),
+    0 0 48px 16px rgba(255, 0, 85, 0.3);
+  transform: translate(-50%, -50%);
+  z-index: 99999;
+  animation: laserPulse 1.2s ease-in-out infinite alternate;
+}
+
+@keyframes laserPulse {
+  0% { transform: translate(-50%, -50%) scale(0.95); opacity: 0.92; }
+  100% { transform: translate(-50%, -50%) scale(1.18); opacity: 1; }
+}
+
+.notes-presentation-btn.is-laser-btn-active {
+  color: #ff0055 !important;
+  border-color: #ff0055 !important;
+  background: color-mix(in srgb, #ff0055 14%, transparent) !important;
+  box-shadow: 0 0 12px rgba(255, 0, 85, 0.45);
+}
