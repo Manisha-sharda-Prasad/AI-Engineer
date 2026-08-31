@@ -1205,7 +1205,27 @@ const MarkdownContent = React.memo(function MarkdownContent({ note, headings = [
       const linkClassName = ['notes-rich-link', `link-type-${descriptor.type}`, className].filter(Boolean).join(' ')
       return <a href={resolved} className={linkClassName} onClick={event => { event.preventDefault(); onOpenLink?.(descriptor) }} {...props}><span className="notes-rich-link-icon"><LinkBrandIcon type={descriptor.type}/></span>{children}</a>
     },
-    img: ({ src, alt, ...props }) => <ClickableImage src={relativeUrl(src, note.raw_url)} alt={alt} {...props} />,
+    img: ({ src, alt, ...props }) => {
+      const resolved = relativeUrl(src, note.raw_url)
+      const isExcalidraw = (
+        (src && /\.excalidraw(\?.*)?(#.*)?$/i.test(src)) ||
+        (resolved && /\.excalidraw(\?.*)?(#.*)?$/i.test(resolved))
+      )
+      if (isExcalidraw) {
+        const descriptor = linkDescriptor(src, note, index, alt)
+        return (
+          <React.Suspense fallback={<div className="notes-excalidraw-fallback-link"><span className="spinner"/> Loading drawing…</div>}>
+            <ExcalidrawThumbnail
+              url={resolved}
+              descriptor={descriptor}
+              label={alt}
+              onOpen={onOpenLink}
+            />
+          </React.Suspense>
+        )
+      }
+      return <ClickableImage src={resolved} alt={alt} {...props} />
+    },
     table: ({ children, ...props }) => <ClickableTable {...props}>{children}</ClickableTable>,
     h1: heading(1), h2: heading(2), h3: heading(3), h4: heading(4), h5: heading(5), h6: heading(6),
     code: ({ inline, className, children, ...props }) => {
