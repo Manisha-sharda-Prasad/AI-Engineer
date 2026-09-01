@@ -1587,6 +1587,67 @@ function calculateReadingStats(content = '') {
   }
 }
 
+function extractTabsFromSlideContent(slideLines) {
+  const tabs = []
+  let inCode = false
+  let currentTab = null
+  let introLines = []
+  let inTabIntro = true
+
+  for (let i = 0; i < slideLines.length; i++) {
+    const line = slideLines[i]
+    const trimmed = line.trim()
+
+    if (trimmed.startsWith('```') || trimmed.startsWith('~~~')) {
+      inCode = !inCode
+    }
+
+    const h3Match = !inCode && line.match(/^###\s+(.+?)\s*#*\s*$/)
+
+    if (h3Match) {
+      if (inTabIntro) {
+        inTabIntro = false
+        const introText = introLines.join('\n').trim()
+        if (introText) {
+          tabs.push({
+            id: 'tab-0-overview',
+            label: 'Overview',
+            content: introText,
+          })
+        }
+      } else if (currentTab) {
+        currentTab.content = currentTab.lines.join('\n').trim()
+        delete currentTab.lines
+        tabs.push(currentTab)
+      }
+
+      const rawTitle = cleanHeading(h3Match[1])
+      currentTab = {
+        id: `tab-${tabs.length + 1}-${slug(rawTitle)}`,
+        label: rawTitle,
+        lines: [line],
+      }
+    } else {
+      if (inTabIntro) {
+        introLines.push(line)
+      } else if (currentTab) {
+        currentTab.lines.push(line)
+      }
+    }
+  }
+
+  if (inTabIntro) {
+    // No H3 found in this slide
+    return []
+  } else if (currentTab) {
+    currentTab.content = currentTab.lines.join('\n').trim()
+    delete currentTab.lines
+    tabs.push(currentTab)
+  }
+
+  return tabs.length > 1 ? tabs : []
+}
+
 function extractSlidesFromMarkdown(content, note) {
   if (!content) return []
 
@@ -1598,6 +1659,20 @@ function extractSlidesFromMarkdown(content, note) {
   let inIntro = true
   let inCodeBlock = false
   let slideIndex = 0
+
+  const finishSlide = (slide) => {
+    if (!slide) return
+    const rawContent = slide.lines.join('\n').trim()
+    const tabs = extractTabsFromSlideContent(slide.lines)
+    slides.push({
+      id: slide.id,
+      slideNumber: slide.slideNumber,
+      type: slide.type,
+      title: slide.title,
+      content: rawContent,
+      tabs: tabs.length > 0 ? tabs : null,
+    })
+  }
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]
@@ -1613,17 +1688,17 @@ function extractSlidesFromMarkdown(content, note) {
       if (inIntro) {
         inIntro = false
         const introMarkdown = introLines.join('\n').trim()
+        const introTabs = extractTabsFromSlideContent(introLines)
         slides.push({
           id: 'slide-0-intro',
           slideNumber: slideIndex++,
           type: 'intro',
           title: note?.title || 'Overview',
           content: introMarkdown,
+          tabs: introTabs.length > 0 ? introTabs : null,
         })
       } else if (currentSlide) {
-        currentSlide.content = currentSlide.lines.join('\n').trim()
-        delete currentSlide.lines
-        slides.push(currentSlide)
+        finishSlide(currentSlide)
       }
 
       const rawTitle = cleanHeading(h2Match[1])
@@ -1650,17 +1725,18 @@ function extractSlidesFromMarkdown(content, note) {
   }
 
   if (inIntro) {
+    const introMarkdown = introLines.join('\n').trim()
+    const introTabs = extractTabsFromSlideContent(introLines)
     slides.push({
       id: 'slide-0-intro',
       slideNumber: 0,
       type: 'intro',
       title: note?.title || 'Overview',
-      content: introLines.join('\n').trim(),
+      content: introMarkdown,
+      tabs: introTabs.length > 0 ? introTabs : null,
     })
   } else if (currentSlide) {
-    currentSlide.content = currentSlide.lines.join('\n').trim()
-    delete currentSlide.lines
-    slides.push(currentSlide)
+    finishSlide(currentSlide)
   }
 
   return slides
@@ -1669,6 +1745,7 @@ function extractSlidesFromMarkdown(content, note) {
 function NotePresentationMode({ note, index, repository, onOpenLink, onClose }) {
   const slides = React.useMemo(() => extractSlidesFromMarkdown(note?.content, note), [note?.content, note?.title])
   const [currentIndex, setCurrentIndex] = React.useState(0)
+  const [currentTabIdx, setCurrentTabIdx] = React.useState(0)
   const [direction, setDirection] = React.useState('next')
   const [showOverview, setShowOverview] = React.useState(false)
   const [isFullscreen, setIsFullscreen] = React.useState(Boolean(document.fullscreenElement))
@@ -1682,13 +1759,16 @@ function NotePresentationMode({ note, index, repository, onOpenLink, onClose }) 
 
   const totalSlides = slides.length
   const currentSlide = slides[currentIndex] || slides[0]
-  const slideHeadings = React.useMemo(() => extractHeadings(currentSlide?.content), [currentSlide?.content])
-  const slideNote = React.useMemo(() => (note && currentSlide ? { ...note, content: currentSlide.content } : note), [note, currentSlide?.content])
+  const hasTabs = Boolean(currentSlide?.tabs && currentSlide.tabs.length > 1)
+  const activeContent = hasTabs ? (currentSlide.tabs[currentTabIdx]?.content || currentSlide.content) : currentSlide?.content
+  const slideHeadings = React.useMemo(() => extractHeadings(activeContent), [activeContent])
+  const slideNote = React.useMemo(() => (note && currentSlide ? { ...note, content: activeContent } : note), [note, activeContent])
 
-  const goToSlide = React.useCallback((targetIndex, dir) => {
+  const goToSlide = React.useCallback((targetIndex, dir, targetTab = 0) => {
     if (targetIndex < 0 || targetIndex >= totalSlides) return
     setDirection(dir || (targetIndex >= currentIndex ? 'next' : 'prev'))
     setCurrentIndex(targetIndex)
+    setCurrentTabIdx(targetTab)
     setCurrentStep(0)
     setShowOverview(false)
   }, [currentIndex, totalSlides])
@@ -1697,7 +1777,7 @@ function NotePresentationMode({ note, index, repository, onOpenLink, onClose }) 
     if (slideCardRef.current) {
       slideCardRef.current.scrollTo({ top: 0 })
     }
-  }, [currentIndex])
+  }, [currentIndex, currentTabIdx])
 
   // Track and update fragment elements for step-by-step reveal
   React.useLayoutEffect(() => {
@@ -1731,27 +1811,42 @@ function NotePresentationMode({ note, index, repository, onOpenLink, onClose }) 
     } else if (stepMode && currentStep === 0) {
       slideCardRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
     }
-  }, [currentIndex, currentSlide, stepMode, currentStep])
+  }, [currentIndex, currentSlide, activeContent, stepMode, currentStep])
 
   const nextSlide = React.useCallback(() => {
     if (stepMode && fragmentCount > 0 && currentStep < fragmentCount - 1) {
       setCurrentStep(step => step + 1)
       return
     }
-    if (currentIndex < totalSlides - 1) {
-      goToSlide(currentIndex + 1, 'next')
+    if (hasTabs && currentTabIdx < currentSlide.tabs.length - 1) {
+      setCurrentTabIdx(t => t + 1)
+      setCurrentStep(0)
+      if (slideCardRef.current) slideCardRef.current.scrollTo({ top: 0, behavior: 'smooth' })
+      return
     }
-  }, [stepMode, fragmentCount, currentStep, currentIndex, totalSlides, goToSlide])
+    if (currentIndex < totalSlides - 1) {
+      goToSlide(currentIndex + 1, 'next', 0)
+    }
+  }, [stepMode, fragmentCount, currentStep, hasTabs, currentTabIdx, currentSlide, currentIndex, totalSlides, goToSlide])
 
   const prevSlide = React.useCallback(() => {
     if (stepMode && currentStep > 0) {
       setCurrentStep(step => step - 1)
       return
     }
-    if (currentIndex > 0) {
-      goToSlide(currentIndex - 1, 'prev')
+    if (hasTabs && currentTabIdx > 0) {
+      setCurrentTabIdx(t => t - 1)
+      setCurrentStep(0)
+      if (slideCardRef.current) slideCardRef.current.scrollTo({ top: 0, behavior: 'smooth' })
+      return
     }
-  }, [stepMode, currentStep, currentIndex, goToSlide])
+    if (currentIndex > 0) {
+      const prevSlideItem = slides[currentIndex - 1]
+      const prevTabCount = prevSlideItem?.tabs?.length || 0
+      const lastTab = prevTabCount > 1 ? prevTabCount - 1 : 0
+      goToSlide(currentIndex - 1, 'prev', lastTab)
+    }
+  }, [stepMode, currentStep, hasTabs, currentTabIdx, currentIndex, slides, goToSlide])
 
   const toggleFullscreen = React.useCallback(() => {
     if (!document.fullscreenElement) {
@@ -1783,12 +1878,29 @@ function NotePresentationMode({ note, index, repository, onOpenLink, onClose }) 
       } else if (event.key === 'ArrowLeft' || event.key === 'PageUp' || event.key === 'h' || event.key === 'H' || event.key === 'Backspace') {
         event.preventDefault()
         prevSlide()
+      } else if (event.key === 'Tab' && hasTabs) {
+        event.preventDefault()
+        if (event.shiftKey) {
+          setCurrentTabIdx(prev => (prev > 0 ? prev - 1 : currentSlide.tabs.length - 1))
+        } else {
+          setCurrentTabIdx(prev => (prev < currentSlide.tabs.length - 1 ? prev + 1 : 0))
+        }
+        setCurrentStep(0)
+        if (slideCardRef.current) slideCardRef.current.scrollTo({ top: 0, behavior: 'smooth' })
+      } else if (event.key >= '1' && event.key <= '9' && hasTabs) {
+        const targetTab = parseInt(event.key, 10) - 1
+        if (targetTab < currentSlide.tabs.length) {
+          event.preventDefault()
+          setCurrentTabIdx(targetTab)
+          setCurrentStep(0)
+          if (slideCardRef.current) slideCardRef.current.scrollTo({ top: 0, behavior: 'smooth' })
+        }
       } else if (event.key === 'Home') {
         event.preventDefault()
-        goToSlide(0)
+        goToSlide(0, 'prev', 0)
       } else if (event.key === 'End') {
         event.preventDefault()
-        goToSlide(totalSlides - 1)
+        goToSlide(totalSlides - 1, 'next', 0)
       } else if (event.key === 'f' || event.key === 'F') {
         event.preventDefault()
         toggleFullscreen()
@@ -1814,7 +1926,7 @@ function NotePresentationMode({ note, index, repository, onOpenLink, onClose }) 
       window.removeEventListener('keydown', handleKeyDown)
       window.removeEventListener('keyup', handleKeyUp)
     }
-  }, [nextSlide, prevSlide, goToSlide, showOverview, onClose, totalSlides, toggleFullscreen])
+  }, [nextSlide, prevSlide, goToSlide, showOverview, onClose, totalSlides, toggleFullscreen, hasTabs, currentSlide])
 
   const isLaserActive = laserPointer || altPressed
 
@@ -1937,7 +2049,7 @@ function NotePresentationMode({ note, index, repository, onOpenLink, onClose }) 
         {currentSlide && (
           <div
             ref={slideCardRef}
-            key={`${currentSlide.id}-${currentIndex}`}
+            key={`${currentSlide.id}-${currentIndex}-${currentTabIdx}`}
             className={`notes-slide-card is-${direction} ${currentSlide.type === 'intro' ? 'is-intro-slide' : ''} ${stepMode ? 'is-step-mode' : ''}`}
           >
             {currentSlide.type === 'intro' && (
@@ -1949,13 +2061,38 @@ function NotePresentationMode({ note, index, repository, onOpenLink, onClose }) 
                 <h1 className="notes-slide-hero-title">{note?.title}</h1>
               </div>
             )}
+
+            {/* In-Slide Sub-Topic Tabs (Option 3) */}
+            {hasTabs && (
+              <div className="notes-slide-tabs-bar" role="tablist" aria-label="Slide sub-topics">
+                {currentSlide.tabs.map((tab, idx) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={currentTabIdx === idx}
+                    className={`notes-slide-tab-pill ${currentTabIdx === idx ? 'is-active' : ''}`}
+                    onClick={() => {
+                      setCurrentTabIdx(idx)
+                      setCurrentStep(0)
+                      if (slideCardRef.current) slideCardRef.current.scrollTo({ top: 0, behavior: 'smooth' })
+                    }}
+                    title={`Sub-topic ${idx + 1}: ${tab.label} (Press ${idx + 1})`}
+                  >
+                    <span className="notes-slide-tab-num">{idx + 1}</span>
+                    <span className="notes-slide-tab-label">{tab.label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
             <div className="notes-slide-body markdown-body">
               <MarkdownContent
                 note={slideNote}
                 headings={slideHeadings}
                 index={index}
                 onOpenLink={onOpenLink}
-                headingIdPrefix={`slide-${currentIndex}-`}
+                headingIdPrefix={`slide-${currentIndex}-${currentTabIdx}-`}
               />
             </div>
           </div>
@@ -1979,7 +2116,7 @@ function NotePresentationMode({ note, index, repository, onOpenLink, onClose }) 
         <button
           type="button"
           className="notes-dock-nav-btn is-prev"
-          disabled={currentIndex === 0 && (!stepMode || currentStep === 0)}
+          disabled={currentIndex === 0 && currentTabIdx === 0 && (!stepMode || currentStep === 0)}
           onClick={prevSlide}
           title="Previous (← / ArrowLeft / Backspace)"
           aria-label="Previous step or slide"
@@ -1993,6 +2130,11 @@ function NotePresentationMode({ note, index, repository, onOpenLink, onClose }) 
           <span className="current-num">{currentIndex + 1}</span>
           <span className="divider">/</span>
           <span className="total-num">{totalSlides}</span>
+          {hasTabs && (
+            <span className="notes-dock-tab-badge" title="Active sub-topic tab">
+              Tab {currentTabIdx + 1}/{currentSlide.tabs.length}
+            </span>
+          )}
           {stepMode && fragmentCount > 0 && (
             <span className="notes-dock-step-badge">
               Step {Math.min(currentStep + 1, fragmentCount)}/{fragmentCount}
@@ -2003,7 +2145,7 @@ function NotePresentationMode({ note, index, repository, onOpenLink, onClose }) 
         <button
           type="button"
           className="notes-dock-nav-btn is-next"
-          disabled={currentIndex === totalSlides - 1 && (!stepMode || currentStep === fragmentCount - 1)}
+          disabled={currentIndex === totalSlides - 1 && (!hasTabs || currentTabIdx === currentSlide.tabs.length - 1) && (!stepMode || currentStep === fragmentCount - 1)}
           onClick={nextSlide}
           title="Next (→ / Space / ArrowRight)"
           aria-label="Next step or slide"
@@ -2014,7 +2156,7 @@ function NotePresentationMode({ note, index, repository, onOpenLink, onClose }) 
         </button>
 
         <div className="notes-dock-shortcuts-hint" aria-hidden="true">
-          <kbd>Space</kbd> Next · <kbd>R</kbd> Reveal · <kbd>P</kbd> Laser · <kbd>G</kbd> Grid · <kbd>F</kbd> Fullscreen · <kbd>Esc</kbd> Exit
+          <kbd>Space</kbd> Next {hasTabs && <>· <kbd>1-{currentSlide.tabs.length}</kbd> / <kbd>Tab</kbd> Sub-topic </>}· <kbd>R</kbd> Reveal · <kbd>P</kbd> Laser · <kbd>G</kbd> Grid · <kbd>F</kbd> Fullscreen · <kbd>Esc</kbd> Exit
         </div>
       </div>
 
@@ -2047,6 +2189,9 @@ function NotePresentationMode({ note, index, repository, onOpenLink, onClose }) 
                   <div className="notes-slide-grid-card-header">
                     <span className="notes-slide-grid-num">#{idx + 1}</span>
                     <span className="notes-slide-grid-type">{s.type === 'intro' ? 'Overview' : 'Section'}</span>
+                    {s.tabs && s.tabs.length > 1 && (
+                      <span className="notes-slide-grid-tabs-badge">{s.tabs.length} Tabs</span>
+                    )}
                   </div>
                   <strong className="notes-slide-grid-title">{s.title}</strong>
                   <p className="notes-slide-grid-snippet">

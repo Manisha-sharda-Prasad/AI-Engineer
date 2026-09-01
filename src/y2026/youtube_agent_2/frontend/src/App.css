@@ -12008,6 +12008,91 @@ svg.close-icon {
   margin-bottom: 1.25rem;
 }
 
+/* ── In-Slide Sub-Topic Tab Bar (Option 3) ── */
+
+.notes-slide-tabs-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem;
+  margin-bottom: 1.35rem;
+  background: color-mix(in srgb, var(--card-bg) 70%, var(--border-color) 30%);
+  border: 1px solid color-mix(in srgb, var(--notes-accent) 25%, var(--border-color));
+  border-radius: 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.notes-slide-tabs-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.notes-slide-tab-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.notes-slide-tab-pill:hover {
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--notes-accent) 12%, transparent);
+  border-color: color-mix(in srgb, var(--notes-accent) 25%, transparent);
+}
+
+.notes-slide-tab-pill.is-active {
+  color: #ffffff;
+  background: linear-gradient(135deg, var(--notes-accent, #6366f1), var(--notes-accent-2, #8b5cf6));
+  border-color: transparent;
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--notes-accent, #6366f1) 45%, transparent);
+  font-weight: 700;
+}
+
+.notes-slide-tab-num {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  font-size: 0.68rem;
+  font-weight: 750;
+  border-radius: 999px;
+  background: color-mix(in srgb, currentColor 15%, transparent);
+}
+
+.notes-slide-tab-pill.is-active .notes-slide-tab-num {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+.notes-dock-tab-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  color: #ffffff;
+  background: linear-gradient(135deg, var(--notes-accent, #6366f1), #8b5cf6);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--notes-accent, #6366f1) 35%, transparent);
+}
+
+.notes-slide-grid-tabs-badge {
+  font-size: 0.62rem;
+  font-weight: 750;
+  color: var(--notes-accent, #6366f1);
+  background: color-mix(in srgb, var(--notes-accent, #6366f1) 12%, transparent);
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  border: 1px solid color-mix(in srgb, var(--notes-accent, #6366f1) 25%, transparent);
+}
+
 /* Floating Bottom Control Dock */
 .notes-presentation-dock {
   position: fixed;
