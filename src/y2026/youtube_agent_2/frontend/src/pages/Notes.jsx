@@ -7,6 +7,8 @@ import 'katex/dist/katex.min.css'
 
 import DismissibleError from '../components/DismissibleError'
 import CodeBlock from '../components/CodeBlock'
+import CodeEmbedCard from '../components/CodeEmbedCard'
+import CodeViewerDialog from '../components/CodeViewerDialog'
 import ReferencesSection from '../components/ReferencesSection'
 import { getNoteContent, getNoteRepositories, getNotes } from '../api/githubNotes'
 
@@ -616,6 +618,46 @@ function markdownWithTrustedIframes(content = '') {
   })
 }
 
+function markdownWithCodeEmbeds(content = '') {
+  if (!content || typeof content !== 'string') return content || ''
+
+  // Split by code blocks (```...```) and inline code (`...`) to preserve verbatim code
+  const tokenRegex = /(```[\s\S]*?```|`[^`\n]+`)/g
+  const parts = content.split(tokenRegex)
+
+  for (let i = 0; i < parts.length; i++) {
+    if (i % 2 === 1) continue // Skip code segments
+
+    let text = parts[i]
+
+    // Match @[code:274-], @[code:274-end], @[code:1-35], @[code:274], @[code](path)
+    text = text.replace(/@\[code(?::(?:(\d+|start))?(?:-(?:(\d+|end))?)?)?\]\(([^)]+)\)/gi, (match, start, end, srcPath) => {
+      let startLine = null
+      if (start && start.toLowerCase() !== 'start') {
+        startLine = parseInt(start, 10)
+      } else if (start && start.toLowerCase() === 'start') {
+        startLine = 1
+      }
+
+      let endLine = null
+      if (end && end.toLowerCase() !== 'end') {
+        endLine = parseInt(end, 10)
+      }
+
+      const data = {
+        src: srcPath.trim(),
+        startLine,
+        endLine,
+      }
+      return `\n\n\`\`\`notes-code-embed\n${JSON.stringify(data)}\n\`\`\`\n\n`
+    })
+
+    parts[i] = text
+  }
+
+  return parts.join('')
+}
+
 function markdownWithMath(content = '') {
   if (!content || typeof content !== 'string') return content || ''
 
@@ -959,7 +1001,7 @@ function PreviewOnThisPage({ note, headings, headingIdPrefix, scrollContainerRef
   </aside>
 }
 
-function PreviewMarkdownLayout({ note, headings, targetHash, index, onOpenLink }) {
+function PreviewMarkdownLayout({ note, headings, targetHash, index, onOpenLink, onOpenCodeModal }) {
   const headingIdPrefix = 'notes-link-preview-heading-'
   const contentContainerRef = React.useRef(null)
 
@@ -995,7 +1037,7 @@ function PreviewMarkdownLayout({ note, headings, targetHash, index, onOpenLink }
   return <div className="notes-preview-markdown-layout">
     <div className="notes-preview-markdown-content" ref={contentContainerRef}>
       <article className="markdown-body notes-link-note-preview">
-        <MarkdownContent note={note} headings={headings} headingIdPrefix={headingIdPrefix} index={index} onOpenLink={onOpenLink}/>
+        <MarkdownContent note={note} headings={headings} headingIdPrefix={headingIdPrefix} index={index} onOpenLink={onOpenLink} onOpenCodeModal={onOpenCodeModal}/>
       </article>
     </div>
     <PreviewOnThisPage note={note} headings={headings} headingIdPrefix={headingIdPrefix} scrollContainerRef={contentContainerRef}/>
@@ -1109,14 +1151,49 @@ function uncollapseTargetIfNeeded(el) {
   }
 }
 
-const MarkdownContent = React.memo(function MarkdownContent({ note, headings = [], headingIdPrefix = '', index, onOpenLink, titleNavigation }) {
-  let headingIndex = 0
+function getNodeText(node) {
+  if (!node) return ''
+  if (typeof node === 'string' || typeof node === 'number') return String(node)
+  if (Array.isArray(node)) return node.map(getNodeText).join('')
+  if (node?.props?.children) return getNodeText(node.props.children)
+  return ''
+}
+
+const MarkdownContent = React.memo(function MarkdownContent({ note, headings = [], headingIdPrefix = '', index, onOpenLink, onOpenCodeModal, titleNavigation }) {
   let titleNavigationRendered = false
+  const headingCounts = React.useRef({})
+  headingCounts.current = {}
+
+  const headingsByBase = React.useMemo(() => {
+    const map = new Map()
+    for (const h of headings) {
+      const base = slug(h.title)
+      if (!map.has(base)) map.set(base, [])
+      map.get(base).push(h)
+    }
+    return map
+  }, [headings])
+
+  const resolveHeadingId = (children) => {
+    const text = getNodeText(children)
+    const title = cleanHeading(text)
+    const base = slug(title)
+
+    headingCounts.current[base] = (headingCounts.current[base] || 0) + 1
+    const occurrence = headingCounts.current[base]
+
+    const matches = headingsByBase.get(base)
+    if (matches && matches[occurrence - 1]) {
+      return `${headingIdPrefix}${matches[occurrence - 1].id}`
+    }
+
+    const fallbackId = occurrence === 1 ? base : `${base}-${occurrence}`
+    return `${headingIdPrefix}${fallbackId}`
+  }
+
   const heading = level => ({ children, ...props }) => {
     const Tag = `h${level}`
-    const headingId = headings?.[headingIndex]?.id
-    const id = headingId ? `${headingIdPrefix}${headingId}` : undefined
-    headingIndex += 1
+    const id = resolveHeadingId(children)
     if (level === 1 && titleNavigation && !titleNavigationRendered) {
       titleNavigationRendered = true
       const { previousNote, nextNote, onNavigate } = titleNavigation
@@ -1239,6 +1316,22 @@ const MarkdownContent = React.memo(function MarkdownContent({ note, headings = [
     pre: ({ children, ...props }) => {
       const codeElement = React.Children.count(children) === 1 ? React.Children.only(children) : null
       const language = /language-([^\s]+)/.exec(codeElement?.props?.className || '')?.[1]?.toLowerCase()
+      if (language === 'notes-code-embed') {
+        try {
+          const embedData = JSON.parse(String(codeElement.props.children).trim())
+          return (
+            <CodeEmbedCard
+              src={embedData.src}
+              startLine={embedData.startLine}
+              endLine={embedData.endLine}
+              note={note}
+              onOpenCodeModal={onOpenCodeModal}
+            />
+          )
+        } catch {
+          return null
+        }
+      }
       if (language === 'notes-math-block') {
         const codeContent = codeElement ? codeElement.props.children : children
         return <MathBlock math={String(codeContent).trim()} />
@@ -1265,7 +1358,7 @@ const MarkdownContent = React.memo(function MarkdownContent({ note, headings = [
       return <CodeBlock language={language} code={codeContent} />
     },
   }
-  const transformed = markdownWithMath(markdownWithReferences(markdownWithTrustedIframes(note.content), note, index))
+  const transformed = markdownWithMath(markdownWithCodeEmbeds(markdownWithReferences(markdownWithTrustedIframes(note.content), note, index)))
   return <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>{transformed}</ReactMarkdown>
 })
 
@@ -1615,7 +1708,7 @@ function NotePresentationMode({ note, index, repository, onOpenLink, onClose }) 
       return
     }
 
-    const items = [...container.querySelectorAll(':scope > p, :scope > blockquote, :scope > pre, :scope > .notes-code-block-card, :scope > .notes-math-block-card, :scope > .notes-table-container, :scope > table, :scope > .notes-mermaid-container, :scope > .mermaid-preview-card, :scope > .notes-image-container, :scope > img, :scope > .notes-trusted-iframe-wrapper, :scope > hr, :scope ul > li, :scope ol > li')]
+    const items = [...container.querySelectorAll(':scope > p, :scope > blockquote, :scope > pre, :scope > .notes-code-block-card, :scope > .notes-code-embed-card, :scope > .notes-math-block-card, :scope > .notes-table-container, :scope > table, :scope > .notes-mermaid-container, :scope > .mermaid-preview-card, :scope > .notes-image-container, :scope > img, :scope > .notes-trusted-iframe-wrapper, :scope > hr, :scope ul > li, :scope ol > li')]
     setFragmentCount(items.length)
 
     items.forEach((item, idx) => {
@@ -2195,6 +2288,7 @@ export default function Notes() {
   const [linkPreviewHistory, setLinkPreviewHistory] = React.useState([])
   const [targetHash, setTargetHash] = React.useState('')
   const [excalidrawModal, setExcalidrawModal] = React.useState(null)
+  const [codeModal, setCodeModal] = React.useState(null)
   const [loadingCatalog, setLoadingCatalog] = React.useState(true)
   const [loadingIndex, setLoadingIndex] = React.useState(false)
   const [loadingNote, setLoadingNote] = React.useState(false)
@@ -2498,7 +2592,7 @@ export default function Notes() {
         ) : note ? (
           <>
             <article className="markdown-body">
-              <MarkdownContent note={note} headings={headings} index={index} onOpenLink={openPreviewLink} titleNavigation={titleNavigation} />
+              <MarkdownContent note={note} headings={headings} index={index} onOpenLink={openPreviewLink} onOpenCodeModal={setCodeModal} titleNavigation={titleNavigation} />
             </article>
             <NotePageNavigation previousNote={previousNote} nextNote={nextNote} rootPath={index?.root_path || ''} onNavigate={selectNote}/>
             {showScrollTop && (
@@ -2553,6 +2647,7 @@ export default function Notes() {
     {isMobile && mobilePanel && <button type="button" className="notes-mobile-backdrop" onClick={() => setMobilePanel(null)} aria-label="Close mobile navigation" />}
     <LinkPreviewDrawer preview={linkPreview} repositoryId={repositoryId} source={noteSource} index={index} onClose={closeLinkPreview} onNavigate={jumpToPreviewedNote} onPreviewLink={followPreviewLink} canGoBack={linkPreviewHistory.length > 0} onBack={goBackInPreview}/>
     <ExcalidrawDialog modal={excalidrawModal} onClose={() => setExcalidrawModal(null)} />
+    <CodeViewerDialog modal={codeModal} onClose={() => setCodeModal(null)} />
     {presentationMode && note && (
       <NotePresentationMode
         note={note}

@@ -77,15 +77,59 @@ function localNotesPlugin(configuredCheckoutRoot) {
             const requestedPath = decodeURIComponent(rawMatch[2]).replaceAll('\\', '/')
             const repositoryPrefix = checkout.repository.path.replace(/^\/+|\/+$/g, '')
             const relativePath = requestedPath.startsWith(`${repositoryPrefix}/`) ? requestedPath.slice(repositoryPrefix.length + 1) : requestedPath
-            const resolvedPath = path.resolve(checkout.docsRoot, relativePath)
-            const docsRootPrefix = `${checkout.docsRoot}${path.sep}`
-            if (resolvedPath !== checkout.docsRoot && !resolvedPath.startsWith(docsRootPrefix)) return json(response, 403, { error: 'Local asset path is outside the configured docs directory.' })
-            const contentTypes = { '.md': 'text/markdown; charset=utf-8', '.markdown': 'text/markdown; charset=utf-8', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.svg': 'image/svg+xml', '.webp': 'image/webp' }
-            const content = await fs.readFile(resolvedPath)
-            response.statusCode = 200
-            response.setHeader('Content-Type', contentTypes[path.extname(resolvedPath).toLowerCase()] || 'application/octet-stream')
-            response.setHeader('Cache-Control', 'no-store')
-            return response.end(content)
+
+            // Try resolving from repository root (supports src/**, draw/**, etc.) first, then fallback to docsRoot
+            let resolvedPath = path.resolve(checkout.root, requestedPath)
+            const rootPrefix = `${checkout.root}${path.sep}`
+            let isValid = resolvedPath === checkout.root || resolvedPath.startsWith(rootPrefix)
+
+            try {
+              const stat = await fs.stat(resolvedPath)
+              if (!stat.isFile()) isValid = false
+            } catch {
+              isValid = false
+            }
+
+            if (!isValid) {
+              resolvedPath = path.resolve(checkout.docsRoot, relativePath)
+              const docsRootPrefix = `${checkout.docsRoot}${path.sep}`
+              isValid = resolvedPath === checkout.docsRoot || resolvedPath.startsWith(docsRootPrefix)
+            }
+
+            if (!isValid) return json(response, 403, { error: 'Local asset path is outside the configured repository directory.' })
+
+            const contentTypes = {
+              '.md': 'text/markdown; charset=utf-8',
+              '.markdown': 'text/markdown; charset=utf-8',
+              '.png': 'image/png',
+              '.jpg': 'image/jpeg',
+              '.jpeg': 'image/jpeg',
+              '.gif': 'image/gif',
+              '.svg': 'image/svg+xml',
+              '.webp': 'image/webp',
+              '.py': 'text/plain; charset=utf-8',
+              '.js': 'text/plain; charset=utf-8',
+              '.jsx': 'text/plain; charset=utf-8',
+              '.ts': 'text/plain; charset=utf-8',
+              '.tsx': 'text/plain; charset=utf-8',
+              '.json': 'application/json; charset=utf-8',
+              '.yaml': 'text/plain; charset=utf-8',
+              '.yml': 'text/plain; charset=utf-8',
+              '.sh': 'text/plain; charset=utf-8',
+              '.sql': 'text/plain; charset=utf-8',
+              '.ipynb': 'application/json; charset=utf-8',
+              '.excalidraw': 'application/json; charset=utf-8',
+            }
+
+            try {
+              const content = await fs.readFile(resolvedPath)
+              response.statusCode = 200
+              response.setHeader('Content-Type', contentTypes[path.extname(resolvedPath).toLowerCase()] || 'text/plain; charset=utf-8')
+              response.setHeader('Cache-Control', 'no-store')
+              return response.end(content)
+            } catch (err) {
+              return json(response, 404, { error: `File not found: ${requestedPath}` })
+            }
           }
           if (!match) return json(response, 404, { error: 'Local notes endpoint not found.' })
           const repositoryId = decodeURIComponent(match[1])
