@@ -1,7 +1,7 @@
 # Tools
 ## Reference
 - https://anthropic-partners.skilljar.com/claude-with-the-anthropic-api/287747
-- [README](../../../../src/y2026/claudeApIProject)
+- [README.md](../README.md)
 
 ---
 ## 1. Create: Tool Function

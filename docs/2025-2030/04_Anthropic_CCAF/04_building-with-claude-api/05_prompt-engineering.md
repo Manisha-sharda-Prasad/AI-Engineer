@@ -2,6 +2,7 @@
 ## Reference
 - [claudeApIProject](../../../../src/y2026/claudeApIProject)
 - https://anthropic-partners.skilljar.com/claude-with-the-anthropic-api/287745
+- [README.md](../README.md)
 
 ---
 ## Iterative Improvement Process

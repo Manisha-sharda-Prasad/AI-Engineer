@@ -11,6 +11,7 @@ import CodeEmbedCard from '../components/CodeEmbedCard'
 import CodeViewerDialog from '../components/CodeViewerDialog'
 import ReferencesSection from '../components/ReferencesSection'
 import { getNoteContent, getNoteRepositories, getNotes } from '../api/githubNotes'
+import { NOTE_REPOSITORIES } from '../config/noteRepositories'
 
 const ExcalidrawViewer = React.lazy(() => import('../components/ExcalidrawViewer'))
 const ExcalidrawThumbnail = React.lazy(() => import('../components/ExcalidrawThumbnail'))
@@ -2299,8 +2300,19 @@ const REPOSITORY_COLORS = {
   'cloud-engineering': ['#2563eb', '#06b6d4'],
 }
 
-function repositoryStyle(repositoryId) {
-  const [accent, secondary] = REPOSITORY_COLORS[repositoryId] || ['#73553f', '#d97706']
+function repositoryStyle(repositoryOrId) {
+  let colors = null
+  if (repositoryOrId && typeof repositoryOrId === 'object') {
+    colors = repositoryOrId.repositoryStyle || repositoryOrId.colors
+  }
+  const repositoryId = typeof repositoryOrId === 'string' ? repositoryOrId : repositoryOrId?.id
+
+  if (!colors && repositoryId) {
+    const configured = NOTE_REPOSITORIES.find(r => r.id === repositoryId)
+    colors = configured?.repositoryStyle || configured?.colors
+  }
+
+  const [accent, secondary] = colors || REPOSITORY_COLORS[repositoryId] || ['#73553f', '#d97706']
   return { '--notes-accent': accent, '--notes-accent-2': secondary, '--notes-glow': `${accent}2e` }
 }
 
@@ -2388,14 +2400,35 @@ function TopicDropdown({ options, selectedTopic, onSelect }) {
 }
 
 function NoteSourceToggle({ source, onChange }) {
-  return <div className="notes-source-toggle" role="group" aria-label="Notes source">
-    <button type="button" className={source === 'remote' ? 'active' : ''} aria-pressed={source === 'remote'} onClick={() => onChange('remote')} title="Read from GitHub">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 18h10a4 4 0 0 0 .5-8A6 6 0 0 0 6 9a4.5 4.5 0 0 0 1 9Z"/></svg><span>Remote</span>
-    </button>
-    <button type="button" className={source === 'local' ? 'active' : ''} aria-pressed={source === 'local'} onClick={() => onChange('local')} title="Read from local checkout">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M8 21h8M12 18v3"/></svg><span>Local</span>
-    </button>
-  </div>
+  return (
+    <div className="notes-source-toggle" role="group" aria-label="Notes source (Remote vs Local)">
+      <button
+        type="button"
+        className={`notes-source-icon-btn ${source === 'remote' ? 'active' : ''}`}
+        aria-pressed={source === 'remote'}
+        onClick={() => onChange('remote')}
+        title="Remote (GitHub live)"
+        aria-label="Read published notes from GitHub"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M7 18h10a4 4 0 0 0 .5-8A6 6 0 0 0 6 9a4.5 4.5 0 0 0 1 9Z"/>
+        </svg>
+      </button>
+      <button
+        type="button"
+        className={`notes-source-icon-btn ${source === 'local' ? 'active' : ''}`}
+        aria-pressed={source === 'local'}
+        onClick={() => onChange('local')}
+        title="Local (Local checkout)"
+        aria-label="Read notes from local checkout"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="4" width="18" height="14" rx="2"/>
+          <path d="M8 21h8M12 18v3"/>
+        </svg>
+      </button>
+    </div>
+  )
 }
 
 function NoteSourceStatus({ source, onRefresh }) {
@@ -2411,6 +2444,36 @@ function NoteSourceStatus({ source, onRefresh }) {
 
 function RepositoryCards({ repositories, loading, onOpen }) {
   return <div className="notes-catalog"><header className="notes-page-header"><div><span className="notes-eyebrow">Your knowledge library</span><h1>Learning notes</h1><p>Choose a configured GitHub repository to explore its topics and notes.</p></div></header>{loading ? <div className="note-reader-status"><span className="spinner" /> Loading repositories…</div> : <div className="notes-repository-grid">{repositories.map(repository => <button type="button" style={repositoryStyle(repository.id)} className="notes-repository-card" key={repository.id} onClick={() => !repository.error && onOpen(repository.id)} disabled={Boolean(repository.error)}><RepositoryMark repositoryId={repository.id}/><span className="notes-repository-copy"><strong>{repository.name}</strong><RepositoryAuthor repository={repository}/><span>{repository.description}</span><small>{repository.error || `${repository.note_count} notes · ${repository.branch} / ${repository.root_path}`}</small></span><span className="notes-card-arrow">›</span></button>)}</div>}</div>
+}
+
+function getLastOpenPath(repoId, topic = '') {
+  if (!repoId) return ''
+  try {
+    if (topic) {
+      return localStorage.getItem(`learning-notes-last-path:${repoId}:${topic}`) || ''
+    }
+    return localStorage.getItem(`learning-notes-last-path:${repoId}`) || ''
+  } catch {
+    return ''
+  }
+}
+
+function setLastOpenPath(repoId, path, rootPath = '') {
+  if (!repoId || !path) return
+  try {
+    localStorage.setItem(`learning-notes-last-path:${repoId}`, path)
+    if (rootPath) {
+      const tax = taxonomy({ path }, rootPath)
+      if (tax?.topic) {
+        localStorage.setItem(`learning-notes-last-path:${repoId}:${tax.topic}`, path)
+      }
+      if (tax?.year) {
+        localStorage.setItem(`learning-notes-last-path:${repoId}:year:${tax.year}`, path)
+      }
+    }
+  } catch {
+    // Ignore storage errors
+  }
 }
 
 export default function Notes() {
@@ -2500,7 +2563,24 @@ export default function Notes() {
     if (!repositoryId) { setIndex(null); setNote(null); return undefined }
     let active = true
     setLoadingIndex(true); setError(''); setQuery('')
-    getNotes(repositoryId, noteSource).then(data => { if (!active) return; setIndex(data); if ((!selectedPath || !data.notes.some(item => item.path === selectedPath)) && data.notes?.length) setSearchParams({ repo: repositoryId, path: data.notes[0].path }, { replace: true }) }).catch(fetchError => active && setError(fetchError.message || 'Unable to load this repository.')).finally(() => active && setLoadingIndex(false))
+    getNotes(repositoryId, noteSource).then(data => {
+      if (!active) return
+      setIndex(data)
+      const validPaths = new Set((data.notes || []).map(item => item.path))
+      const savedPath = getLastOpenPath(repositoryId)
+      const resolvedPath = (selectedPath && validPaths.has(selectedPath))
+        ? selectedPath
+        : (savedPath && validPaths.has(savedPath))
+          ? savedPath
+          : data.notes?.[0]?.path
+
+      if (resolvedPath && resolvedPath !== selectedPath) {
+        setSearchParams({ repo: repositoryId, path: resolvedPath }, { replace: true })
+      }
+      if (resolvedPath) {
+        setLastOpenPath(repositoryId, resolvedPath, data.root_path || '')
+      }
+    }).catch(fetchError => active && setError(fetchError.message || 'Unable to load this repository.')).finally(() => active && setLoadingIndex(false))
     return () => { active = false }
   }, [repositoryId, noteSource, sourceRevision])
 
@@ -2508,9 +2588,14 @@ export default function Notes() {
     if (!repositoryId || !selectedPath) { setNote(null); return undefined }
     let active = true
     setLoadingNote(true); setError('')
-    getNoteContent(repositoryId, selectedPath, noteSource).then(data => active && setNote(data)).catch(fetchError => { if (active) { setNote(null); setError(fetchError.message || 'Unable to load this note.') } }).finally(() => active && setLoadingNote(false))
+    getNoteContent(repositoryId, selectedPath, noteSource).then(data => {
+      if (active) {
+        setNote(data)
+        setLastOpenPath(repositoryId, selectedPath, index?.root_path || '')
+      }
+    }).catch(fetchError => { if (active) { setNote(null); setError(fetchError.message || 'Unable to load this note.') } }).finally(() => active && setLoadingNote(false))
     return () => { active = false }
-  }, [repositoryId, selectedPath, noteSource, sourceRevision])
+  }, [repositoryId, selectedPath, noteSource, sourceRevision, index?.root_path])
 
   const allNotes = index?.notes || []
   const currentTaxonomy = selectedPath ? taxonomy({ path: selectedPath }, index?.root_path || '') : { year: '', topic: '' }
@@ -2611,10 +2696,23 @@ export default function Notes() {
   }, [selectedPath, targetHash, headings])
 
   const selectNote = React.useCallback((path, { keepMobilePanel = false, hash = '' } = {}) => {
+    setLastOpenPath(repositoryId, path, index?.root_path || '')
     setSearchParams({ repo: repositoryId, path })
     setTargetHash(hash || '')
     if (!keepMobilePanel) setMobilePanel(null)
-  }, [repositoryId, setSearchParams])
+  }, [repositoryId, index?.root_path, setSearchParams])
+
+  const handleOpenRepo = React.useCallback((targetRepoOrId) => {
+    const targetRepoId = typeof targetRepoOrId === 'object' ? targetRepoOrId?.id : targetRepoOrId
+    if (!targetRepoId || typeof targetRepoId !== 'string') return
+    const lastPath = getLastOpenPath(targetRepoId)
+    if (lastPath) {
+      setSearchParams({ repo: targetRepoId, path: lastPath })
+    } else {
+      setSearchParams({ repo: targetRepoId })
+    }
+    setMobilePanel(null)
+  }, [setSearchParams])
 
   const openPreviewLink = React.useCallback(descriptor => {
     if (!descriptor?.url) return
@@ -2646,8 +2744,26 @@ export default function Notes() {
   const jumpToPreviewedNote = (path, hash) => { closeLinkPreview(); selectNote(path, { hash }) }
   const chooseFirst = (candidates, options) => { if (candidates.length) selectNote([...candidates].sort((a, b) => a.path.localeCompare(b.path, undefined, { numeric: true }))[0].path, options) }
   const keepMobileLibraryOpen = isMobile && mobilePanel === 'library'
-  const selectYear = year => chooseFirst(allNotes.filter(item => taxonomy(item, index.root_path).year === year), { keepMobilePanel: keepMobileLibraryOpen })
-  const selectTopic = topic => chooseFirst(yearNotes.filter(item => taxonomy(item, index.root_path).topic === topic), { keepMobilePanel: keepMobileLibraryOpen })
+  const selectYear = year => {
+    const candidateNotes = allNotes.filter(item => taxonomy(item, index.root_path || '').year === year)
+    const candidatePaths = new Set(candidateNotes.map(n => n.path))
+    const savedPath = getLastOpenPath(repositoryId, `year:${year}`)
+    if (savedPath && candidatePaths.has(savedPath)) {
+      selectNote(savedPath, { keepMobilePanel: keepMobileLibraryOpen })
+    } else {
+      chooseFirst(candidateNotes, { keepMobilePanel: keepMobileLibraryOpen })
+    }
+  }
+  const selectTopic = topic => {
+    const candidateNotes = yearNotes.filter(item => taxonomy(item, index.root_path || '').topic === topic)
+    const candidatePaths = new Set(candidateNotes.map(n => n.path))
+    const savedPath = getLastOpenPath(repositoryId, topic)
+    if (savedPath && candidatePaths.has(savedPath)) {
+      selectNote(savedPath, { keepMobilePanel: keepMobileLibraryOpen })
+    } else {
+      chooseFirst(candidateNotes, { keepMobilePanel: keepMobileLibraryOpen })
+    }
+  }
   const navigateBreadcrumb = parts => {
     if (parts.length === 1) return selectYear(parts[0])
     if (parts.length === 2) return selectTopic(parts[1])
@@ -2657,7 +2773,7 @@ export default function Notes() {
     window.requestAnimationFrame(() => { const target = [...document.querySelectorAll('[data-tree-path]')].find(element => element.dataset.treePath === directoryPath); target?.scrollIntoView({ behavior: 'smooth', block: 'center' }); target?.focus({ preventScroll: true }) })
   }
 
-  if (!repositoryId) return <RepositoryCards repositories={repositories} loading={loadingCatalog} onOpen={repo => setSearchParams({ repo })} />
+  if (!repositoryId) return <RepositoryCards repositories={repositories} loading={loadingCatalog} onOpen={handleOpenRepo} />
 
   const currentRepository = repositories.find(item => item.id === repositoryId)
   const allExpanded = allTreePaths.length > 0 && allTreePaths.every(path => expanded[path] === true)
@@ -2712,9 +2828,12 @@ export default function Notes() {
       }}
     >
       <aside ref={navigationRef} id="notes-topic-navigation" className={`notes-browser ${mobilePanel === 'library' ? 'mobile-open' : ''}`} aria-label="Repository topics" aria-hidden={!showNavigation || (isMobile && mobilePanel !== 'library')}>
-        <div className="notes-browser-header"><RepositoryDropdown repositories={repositories} selected={currentRepository || index} onSelect={repo => { setSearchParams({ repo }); setMobilePanel(null) }}/>{currentRepository?.local_available && <NoteSourceToggle source={noteSource} onChange={selectNoteSource}/>}<button type="button" className="notes-mobile-drawer-close" onClick={() => setMobilePanel(null)} aria-label="Close notes library">×</button></div>
+        <div className="notes-browser-header"><RepositoryDropdown repositories={repositories} selected={currentRepository || index} onSelect={handleOpenRepo} /><button type="button" className="notes-mobile-drawer-close" onClick={() => setMobilePanel(null)} aria-label="Close notes library">×</button></div>
         <div className="notes-tree-toolbar">
-          <div className="notes-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg><input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Search topics and notes…" aria-label="Search this repository" />{normalizedQuery && <><small className="notes-search-count">{yearFilteredNotes.length}</small><button type="button" className="notes-search-clear" onClick={() => setQuery('')} aria-label="Clear notes search">×</button></>}</div>
+          <div className="notes-search-wrapper">
+            <div className="notes-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg><input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Search topics and notes…" aria-label="Search this repository" />{normalizedQuery && <><small className="notes-search-count">{yearFilteredNotes.length}</small><button type="button" className="notes-search-clear" onClick={() => setQuery('')} aria-label="Clear notes search">×</button></>}</div>
+            {currentRepository?.local_available && <NoteSourceToggle source={noteSource} onChange={selectNoteSource}/>}
+          </div>
           <YearDropdown selectedYear={selectedYear} onSelect={selectYear} options={years.map(year => ({ value: year, label: displayName(year) }))}/>
           <TopicDropdown selectedTopic={selectedTopic} onSelect={selectTopic} options={topics.map(topic => ({ value: topic, label: displayName(topic) }))}/>
         </div>
