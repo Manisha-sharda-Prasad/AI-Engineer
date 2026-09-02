@@ -569,16 +569,114 @@ function ClickableImage({ src, alt, ...props }) {
   )
 }
 
-function Breadcrumbs({ index, selectedPath, onDirectory }) {
+function Breadcrumbs({ index, selectedPath, onDirectory, repositories, selectedRepository, onSelectRepository }) {
+  const [open, setOpen] = React.useState(false)
+  const [query, setQuery] = React.useState('')
+  const pickerRef = React.useRef(null)
+
+  React.useEffect(() => {
+    const close = event => { if (!pickerRef.current?.contains(event.target)) setOpen(false) }
+    document.addEventListener('pointerdown', close)
+    return () => document.removeEventListener('pointerdown', close)
+  }, [])
+
   if (!index || !selectedPath) return null
-  const repoName = index.name || index.repo || 'Notes'
+  const currentRepo = selectedRepository || repositories?.find(r => r.id === index?.id) || index
+  const repoName = currentRepo?.name || index.name || index.repo || 'Notes'
+  const owner = currentRepo?.owner || index.owner || ''
+  const avatarUrl = owner ? `https://github.com/${encodeURIComponent(owner)}.png?size=96` : ''
   const parts = relativeParts(selectedPath, index.root_path)
   const directories = parts.slice(0, -1)
+
+  const visible = (repositories || []).filter(repository =>
+    `${repository.name} ${repository.description}`.toLowerCase().includes(query.trim().toLowerCase())
+  )
+  const choose = repository => {
+    onSelectRepository?.(repository.id)
+    setOpen(false)
+    setQuery('')
+  }
+
   return (
     <nav className="notes-breadcrumbs" aria-label="Note breadcrumb">
-      <button type="button" className="notes-breadcrumb-repo" onClick={() => onDirectory([])} title={`Repository: ${repoName}`}>
-        {repoName}
-      </button>
+      <div className="notes-breadcrumb-repo-picker" ref={pickerRef}>
+        <button
+          type="button"
+          className="notes-breadcrumb-repo"
+          onClick={() => setOpen(value => !value)}
+          aria-haspopup="menu"
+          aria-expanded={open}
+          title={`Switch repository (Current: ${repoName})`}
+        >
+          {avatarUrl && (
+            <img className="notes-breadcrumb-avatar-img" src={avatarUrl} alt={owner} loading="lazy" />
+          )}
+          <span className="notes-breadcrumb-repo-name">{repoName}</span>
+          <svg className={`notes-breadcrumb-chevron ${open ? 'expanded' : ''}`} viewBox="0 0 16 16" aria-hidden="true">
+            <path d="m4 6 4 4 4-4" />
+          </svg>
+        </button>
+        {open && (
+          <>
+            <div className="notes-breadcrumb-repo-backdrop" onClick={() => setOpen(false)} aria-hidden="true" />
+            <div className="notes-repository-menu notes-breadcrumb-repo-menu" role="menu" aria-label="Switch notes repository">
+              <strong>Switch learning notes</strong>
+            <label>
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="10.5" cy="10.5" r="6.5" />
+                <path d="m15.5 15.5 5 5" />
+              </svg>
+              <input
+                type="search"
+                value={query}
+                onChange={event => setQuery(event.target.value)}
+                placeholder="Search repositories…"
+                autoFocus
+              />
+            </label>
+            <div className="notes-repository-menu-list">
+              {visible.map(repository => {
+                const isActive = repository.id === currentRepo?.id
+                return (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className={`notes-repository-item ${isActive ? 'active' : ''}`}
+                    key={repository.id}
+                    onClick={() => choose(repository)}
+                  >
+                    <span className="notes-repository-option-visual">
+                      <img
+                        className="notes-author-avatar-img"
+                        src={`https://github.com/${encodeURIComponent(repository.owner)}.png?size=96`}
+                        alt={repository.owner}
+                        loading="lazy"
+                      />
+                    </span>
+                    <span className="notes-repository-option-copy">
+                      <span className="notes-repository-name-row">
+                        <b>{repository.name}</b>
+                        <span className="notes-repository-option-author">@{repository.owner}</span>
+                      </span>
+                      <small>{repository.description}</small>
+                    </span>
+                    {isActive && (
+                      <span className="notes-repository-option-check" aria-hidden="true">
+                        <svg viewBox="0 0 20 20" width="16" height="16" fill="currentColor">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 0 1 0 1.414l-8 8a1 1 0 0 1-1.414 0l-4-4a1 1 0 0 1 1.414-1.414L8 12.586l7.293-7.293a1 1 0 0 1 1.414 0z" clipRule="evenodd" />
+                        </svg>
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
+              {!visible.length && <p>No repositories match your search.</p>}
+            </div>
+          </div>
+        </>
+        )}
+      </div>
+
       <span aria-hidden="true">›</span>
       {directories.map((part, position) => (
         <React.Fragment key={`${position}-${part}`}>
@@ -2384,7 +2482,6 @@ function OnThisPage({ note, headings, readingStats, scrollContainerRef, mobileOp
   return <aside className={`notes-outline ${mobileOpen ? 'mobile-open' : ''}`} aria-label="On this page" aria-hidden={isMobile && !mobileOpen}>
     {splitter}
     <div className="notes-outline-sticky">
-      <button type="button" className="notes-mobile-drawer-close" onClick={onMobileClose} aria-label="Close page outline">×</button>
       <div className="notes-outline-header-row">
         <div className="notes-outline-header-title">
           <span>On this page</span>
@@ -2425,6 +2522,17 @@ function OnThisPage({ note, headings, readingStats, scrollContainerRef, mobileOp
             <a className="notes-outline-action-btn notes-outline-source" href={note.github_url} target="_blank" rel="noreferrer" title="Edit / view on GitHub" aria-label="Edit or view this note on GitHub">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 0 0-3 17.5c.5.1.7-.2.7-.5v-1.8c-2.8.6-3.4-1.2-3.4-1.2-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 0 1.6 1.1 1.6 1.1.9 1.6 2.4 1.1 2.9.9.1-.7.4-1.1.7-1.4-2.2-.3-4.6-1.1-4.6-5A3.9 3.9 0 0 1 7 7.8 3.6 3.6 0 0 1 7.1 5s.8-.3 2.9 1.1a10 10 0 0 1 5.2 0C17.2 4.7 18 5 18 5a3.6 3.6 0 0 1 .1 2.8 3.9 3.9 0 0 1 1 2.7c0 3.9-2.4 4.7-4.6 5 .4.3.7.9.7 1.8V20c0 .3.2.6.7.5A9 9 0 0 0 12 3Z"/></svg>
             </a>
+          )}
+          {isMobile && (
+            <button
+              type="button"
+              className="notes-outline-action-btn notes-outline-close-mobile"
+              onClick={onMobileClose}
+              aria-label="Close page outline"
+              title="Close outline"
+            >
+              ×
+            </button>
           )}
         </div>
       </div>
@@ -2476,7 +2584,7 @@ function RepositoryAuthor({ repository, compact = false }) {
   const owner = repository?.owner || 'GitHub'
   const avatarUrl = repository?.owner ? `https://github.com/${encodeURIComponent(repository.owner)}.png?size=96` : ''
   return <span className={`notes-repository-author ${compact ? 'compact' : ''}`}>
-    <span className="notes-author-avatar" aria-hidden="true"><b>{owner.slice(0, 1).toUpperCase()}</b>{avatarUrl && <img src={avatarUrl} alt="" loading="lazy"/>}</span>
+    {avatarUrl && <img className="notes-author-avatar-img" src={avatarUrl} alt={owner} loading="lazy"/>}
     <span><small>Repository author</small><strong>@{owner}</strong></span>
   </span>
 }
@@ -2499,7 +2607,7 @@ function RepositoryDropdown({ repositories, selected, onSelect }) {
     {open && <div className="notes-repository-menu" role="menu" aria-label="Switch notes repository">
       <strong>Switch learning notes</strong>
       <label><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg><input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Search repositories…"/></label>
-      <div className="notes-repository-menu-list">{visible.map(repository => <button type="button" role="menuitem" style={repositoryStyle(repository.id)} className={repository.id === selected?.id ? 'active' : ''} key={repository.id} onClick={() => choose(repository)}><span className="notes-repository-option-visual"><span className="notes-author-avatar" aria-hidden="true"><b>{repository.owner.slice(0, 1).toUpperCase()}</b><img src={`https://github.com/${encodeURIComponent(repository.owner)}.png?size=96`} alt="" loading="lazy"/></span></span><span className="notes-repository-option-copy"><b>{repository.name}</b><small>{repository.description}</small><span className="notes-repository-option-author">@{repository.owner}</span></span></button>)}{!visible.length && <p>No repositories match your search.</p>}</div>
+      <div className="notes-repository-menu-list">{visible.map(repository => <button type="button" role="menuitem" className={`notes-repository-item ${repository.id === selected?.id ? 'active' : ''}`} key={repository.id} onClick={() => choose(repository)}><span className="notes-repository-option-visual"><img className="notes-author-avatar-img" src={`https://github.com/${encodeURIComponent(repository.owner)}.png?size=96`} alt={repository.owner} loading="lazy"/></span><span className="notes-repository-option-copy"><span className="notes-repository-name-row"><b>{repository.name}</b><span className="notes-repository-option-author">@{repository.owner}</span></span><small>{repository.description}</small></span>{repository.id === selected?.id && <span className="notes-repository-option-check" aria-hidden="true"><svg viewBox="0 0 20 20" width="16" height="16" fill="currentColor"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 0 1 0 1.414l-8 8a1 1 0 0 1-1.414 0l-4-4a1 1 0 0 1 1.414-1.414L8 12.586l7.293-7.293a1 1 0 0 1 1.414 0z" clipRule="evenodd" /></svg></span>}</button>)}{!visible.length && <p>No repositories match your search.</p>}</div>
     </div>}
   </div>
 }
@@ -2933,7 +3041,7 @@ export default function Notes() {
   return <div className={`notes-page ${showNavigation ? '' : 'navigation-hidden'}`} style={repositoryStyle(repositoryId)}>
     <header className="notes-reader-header">
       <button type="button" className="notes-nav-reveal notes-desktop-nav-toggle" onClick={() => setShowNavigation(value => !value)} aria-controls="notes-topic-navigation" aria-expanded={showNavigation} title={showNavigation ? 'Hide notes navigation' : 'Show notes navigation'} aria-label={showNavigation ? 'Hide notes navigation' : 'Show notes navigation'}><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/><path d={showNavigation ? 'm7 9-3 3 3 3' : 'm5 9 3 3-3 3'}/></svg></button>
-      <Breadcrumbs index={index} selectedPath={selectedPath} onDirectory={navigateBreadcrumb} />
+      <Breadcrumbs index={index} selectedPath={selectedPath} onDirectory={navigateBreadcrumb} repositories={repositories} selectedRepository={currentRepository} onSelectRepository={handleOpenRepo} />
       {note && (
         <div
           className="notes-reader-reading-badge"
@@ -2975,7 +3083,12 @@ export default function Notes() {
       }}
     >
       <aside ref={navigationRef} id="notes-topic-navigation" className={`notes-browser ${mobilePanel === 'library' ? 'mobile-open' : ''}`} aria-label="Repository topics" aria-hidden={!showNavigation || (isMobile && mobilePanel !== 'library')}>
-        <div className="notes-browser-header"><RepositoryDropdown repositories={repositories} selected={currentRepository || index} onSelect={handleOpenRepo} /><button type="button" className="notes-mobile-drawer-close" onClick={() => setMobilePanel(null)} aria-label="Close notes library">×</button></div>
+        {isMobile && (
+          <div className="notes-browser-header">
+            <span className="notes-browser-mobile-title">Topics</span>
+            <button type="button" className="notes-mobile-drawer-close" onClick={() => setMobilePanel(null)} aria-label="Close notes library">×</button>
+          </div>
+        )}
         <div className="notes-tree-toolbar">
           <div className="notes-search-wrapper">
             <div className="notes-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg><input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Search topics and notes…" aria-label="Search this repository" />{normalizedQuery && <><small className="notes-search-count">{yearFilteredNotes.length}</small><button type="button" className="notes-search-clear" onClick={() => setQuery('')} aria-label="Clear notes search">×</button></>}</div>
