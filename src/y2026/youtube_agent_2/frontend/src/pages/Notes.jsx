@@ -30,7 +30,7 @@ function displayName(value = '') {
 }
 
 function internalNotesTarget(href, note, index) {
-  if (!href || !note?.path || !index?.notes?.length || href.startsWith('#')) return null
+  if (!href || !note?.path || (!index?.notes?.length && !index?.allNotes?.length) || href.startsWith('#')) return null
   try {
     const resolved = new URL(href, `https://learning-notes.local/${note.path}`)
     let candidate = null
@@ -46,11 +46,38 @@ function internalNotesTarget(href, note, index) {
     }
     if (candidate === null) return null
     candidate = candidate.replace(/\/+$/, '')
-    const exactNote = index.notes.find(item => item.path.toLowerCase() === candidate.toLowerCase())
+    const pool = index.allNotes || index.notes || []
+    const exactNote = pool.find(item => item.path.toLowerCase() === candidate.toLowerCase())
     if (exactNote) return { type: 'note', note: exactNote, hash }
+    if (/\.(md|markdown)$/i.test(candidate)) {
+      const fileName = candidate.split('/').at(-1).replace(/\.(md|markdown)$/i, '')
+      return {
+        type: 'note',
+        note: {
+          path: candidate,
+          title: displayName(fileName),
+          github_url: index.repository_url ? `${index.repository_url.replace(/\/$/, '')}/blob/${encodeURIComponent(index.branch)}/${candidate}` : '',
+        },
+        hash,
+      }
+    }
     const prefix = candidate ? `${candidate.toLowerCase()}/` : ''
-    const folderNotes = index.notes.filter(item => item.path.toLowerCase().startsWith(prefix))
-    if (!folderNotes.length) return null
+    const folderNotes = pool.filter(item => item.path.toLowerCase().startsWith(prefix))
+    if (!folderNotes.length) {
+      const folderName = candidate.split('/').filter(Boolean).at(-1) || candidate
+      const landingNotePath = `${candidate}/README.md`
+      return {
+        type: 'folder',
+        folderPath: candidate,
+        note: {
+          path: landingNotePath,
+          title: displayName(folderName),
+          github_url: index.repository_url ? `${index.repository_url.replace(/\/$/, '')}/tree/${encodeURIComponent(index.branch)}/${candidate}` : '',
+        },
+        noteCount: 0,
+        hash,
+      }
+    }
     const rankedNotes = [...folderNotes].sort((left, right) => {
       const leftRelative = left.path.slice(candidate.length + (candidate ? 1 : 0))
       const rightRelative = right.path.slice(candidate.length + (candidate ? 1 : 0))
@@ -204,8 +231,39 @@ function taxonomy(note, rootPath) {
   return { year: parts.length > 1 ? parts[0] : 'Notes', topic: parts.length > 2 ? parts[1] : 'General' }
 }
 
-function buildTree(notes, prefixPath) {
-  const root = { path: '', directories: new Map(), notes: [] }
+function formatDirectoryName(name) {
+  if (!name) return ''
+  return name.split(' / ').map(displayName).join(' / ')
+}
+
+function compactNode(node) {
+  const compactedDirectories = new Map()
+  for (const [key, dir] of node.directories.entries()) {
+    let current = compactNode(dir)
+    let combinedName = current.name || key
+    let combinedPath = current.path
+    while (current.notes.length === 0 && current.directories.size === 1) {
+      const child = current.directories.values().next().value
+      const compactedChild = compactNode(child)
+      combinedName = `${combinedName} / ${compactedChild.name}`
+      combinedPath = compactedChild.path
+      current = compactedChild
+    }
+    compactedDirectories.set(combinedPath, {
+      ...current,
+      name: combinedName,
+      path: combinedPath,
+      directories: current.directories,
+    })
+  }
+  return {
+    ...node,
+    directories: compactedDirectories,
+  }
+}
+
+function buildTree(notes, prefixPath, { compact = true } = {}) {
+  const root = { path: '', name: '', directories: new Map(), notes: [] }
   const prefix = prefixPath ? `${prefixPath.replace(/\/$/, '')}/` : ''
   for (const note of notes) {
     const relative = note.path.startsWith(prefix) ? note.path.slice(prefix.length) : note.path
@@ -218,7 +276,7 @@ function buildTree(notes, prefixPath) {
     }
     cursor.notes.push(note)
   }
-  return root
+  return compact ? compactNode(root) : root
 }
 
 function noteCount(node) {
@@ -513,10 +571,15 @@ function ClickableImage({ src, alt, ...props }) {
 
 function Breadcrumbs({ index, selectedPath, onDirectory }) {
   if (!index || !selectedPath) return null
+  const repoName = index.name || index.repo || 'Notes'
   const parts = relativeParts(selectedPath, index.root_path)
   const directories = parts.slice(0, -1)
   return (
     <nav className="notes-breadcrumbs" aria-label="Note breadcrumb">
+      <button type="button" className="notes-breadcrumb-repo" onClick={() => onDirectory([])} title={`Repository: ${repoName}`}>
+        {repoName}
+      </button>
+      <span aria-hidden="true">›</span>
       {directories.map((part, position) => (
         <React.Fragment key={`${position}-${part}`}>
           {position > 0 && <span aria-hidden="true">›</span>}
@@ -548,7 +611,7 @@ function NoteTree({ node, selectedPath, activeDirectories, expanded, onToggle, o
         <button type="button" className={`notes-tree-folder ${isActiveDirectory ? 'active-ancestor' : ''}`} data-tree-path={directory.path} onClick={() => onToggle(directory.path)} aria-expanded={isExpanded}>
           <svg className={`notes-tree-chevron ${isExpanded ? 'expanded' : ''}`} viewBox="0 0 16 16" aria-hidden="true"><path d="m5 3 5 5-5 5"/></svg>
           <TreeFolderIcon />
-          <span className="notes-tree-folder-name">{displayName(directory.name)}</span>
+          <span className="notes-tree-folder-name" title={directory.name}>{formatDirectoryName(directory.name)}</span>
           <small className="notes-count-badge">{noteCount(directory)}</small>
         </button>
         <div className={`notes-tree-children ${isExpanded ? 'expanded' : ''}`}><div><NoteTree node={directory} selectedPath={selectedPath} activeDirectories={activeDirectories} expanded={expanded} onToggle={onToggle} onSelect={onSelect} depth={depth + 1} /></div></div>
@@ -979,13 +1042,68 @@ function ExternalReaderPreview({ preview }) {
   return <iframe className="notes-external-frame" srcDoc={documentHtml} title={`Reader preview: ${preview.title || preview.hostname}`} sandbox="allow-popups allow-popups-to-escape-sandbox" />
 }
 
-function FolderPreviewTree({ node, landingPath, selectedPath, onSelect, depth = 0 }) {
+function FolderPreviewTree({ node, landingPath, selectedPath, onSelect, expanded, onToggle, depth = 0 }) {
   const directories = [...node.directories.values()].sort((left, right) => left.name.localeCompare(right.name, undefined, { numeric: true }))
   const notes = [...node.notes].sort((left, right) => left.path.localeCompare(right.path, undefined, { numeric: true }))
-  return <div className="notes-folder-preview-level" style={{ '--folder-preview-depth': depth }}>
-    {directories.map(directory => <section className="notes-folder-preview-directory" key={directory.path}><div className="notes-folder-preview-folder"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h7l2 2h9v11H3V6Z"/></svg><span><b>{displayName(directory.name)}</b><small>{noteCount(directory)} notes</small></span></div><FolderPreviewTree node={directory} landingPath={landingPath} selectedPath={selectedPath} onSelect={onSelect} depth={depth + 1}/></section>)}
-    {notes.map(folderNote => <button type="button" className={`${folderNote.path === landingPath ? 'is-landing' : ''} ${folderNote.path === selectedPath ? 'is-selected' : ''}`} key={folderNote.path} onClick={() => onSelect(folderNote.path)}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l4 4v14H6V3Z"/><path d="M14 3v5h5M9 12h7M9 16h7"/></svg><span><b>{folderNote.title}</b><small>{folderNote.path.split('/').at(-1)}{folderNote.path === landingPath ? ' · Landing note' : ''}</small></span><span aria-hidden="true">›</span></button>)}
-  </div>
+
+  return (
+    <div className="notes-tree-level" style={{ '--tree-depth': depth }}>
+      {directories.map(directory => {
+        const isExpanded = expanded ? expanded[directory.path] !== false : true
+        return (
+          <div className="notes-tree-directory" key={directory.path}>
+            <button
+              type="button"
+              className="notes-tree-folder"
+              data-tree-path={directory.path}
+              onClick={() => onToggle?.(directory.path)}
+              aria-expanded={isExpanded}
+            >
+              <svg className={`notes-tree-chevron ${isExpanded ? 'expanded' : ''}`} viewBox="0 0 16 16" aria-hidden="true">
+                <path d="m5 3 5 5-5 5" />
+              </svg>
+              <TreeFolderIcon />
+              <span className="notes-tree-folder-name" title={directory.name}>
+                {formatDirectoryName(directory.name)}
+              </span>
+              <small className="notes-count-badge">{noteCount(directory)}</small>
+            </button>
+            <div className={`notes-tree-children ${isExpanded ? 'expanded' : ''}`}>
+              <div>
+                <FolderPreviewTree
+                  node={directory}
+                  landingPath={landingPath}
+                  selectedPath={selectedPath}
+                  onSelect={onSelect}
+                  expanded={expanded}
+                  onToggle={onToggle}
+                  depth={depth + 1}
+                />
+              </div>
+            </div>
+          </div>
+        )
+      })}
+      {notes.map(folderNote => {
+        const isSelected = folderNote.path === selectedPath
+        const isLanding = folderNote.path === landingPath
+        return (
+          <button
+            type="button"
+            key={folderNote.path}
+            className={`notes-tree-note ${isSelected ? 'active' : ''}`}
+            onClick={() => onSelect(folderNote.path)}
+            title={folderNote.path}
+          >
+            <TreeNoteIcon />
+            <strong className="notes-tree-note-title">{folderNote.title}</strong>
+            {isLanding && !isSelected && <span className="notes-landing-pill">Landing</span>}
+            {isSelected && <span className="notes-current-label">Current</span>}
+          </button>
+        )
+      })}
+    </div>
+  )
 }
 
 function PreviewOnThisPage({ note, headings, headingIdPrefix, scrollContainerRef }) {
@@ -1048,8 +1166,11 @@ function PreviewMarkdownLayout({ note, headings, targetHash, index, onOpenLink, 
 function LinkPreviewDrawer({ preview, repositoryId, source, index, onClose, onNavigate, onPreviewLink, canGoBack, onBack }) {
   const [previewNote, setPreviewNote] = React.useState(null)
   const [folderSelectedPath, setFolderSelectedPath] = React.useState('')
+  const [folderExpanded, setFolderExpanded] = React.useState({})
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState('')
+
+  const toggleFolder = path => setFolderExpanded(current => ({ ...current, [path]: current[path] === false ? true : false }))
 
   React.useEffect(() => {
     if (!preview) return undefined
@@ -1062,7 +1183,7 @@ function LinkPreviewDrawer({ preview, repositoryId, source, index, onClose, onNa
 
   React.useEffect(() => {
     setPreviewNote(null); setError('')
-    const contentPath = preview?.type === 'note' ? preview.path : preview?.type === 'folder' ? folderSelectedPath : ''
+    const contentPath = preview?.type === 'note' ? preview.path : preview?.type === 'folder' ? (folderSelectedPath || preview.path) : ''
     if (!contentPath) { setLoading(false); return undefined }
     let active = true
     setLoading(true)
@@ -1076,9 +1197,10 @@ function LinkPreviewDrawer({ preview, repositoryId, source, index, onClose, onNa
     ? (preview.folderPath || preview.path)
     : (() => { try { const value = new URL(preview.url); return `${value.hostname}${decodeURIComponent(value.pathname)}` } catch { return preview.url } })()
   const previewHeadings = previewNote ? extractHeadings(previewNote.content) : []
+  const pool = index?.allNotes || index?.notes || []
   const folderPrefix = preview.type === 'folder' && preview.folderPath ? `${preview.folderPath.toLowerCase().replace(/\/$/, '')}/` : ''
-  const folderNotes = preview.type === 'folder' ? (index?.notes || []).filter(item => item.path.toLowerCase().startsWith(folderPrefix)) : []
-  const folderTree = preview.type === 'folder' ? buildTree(folderNotes, preview.folderPath) : null
+  const folderNotes = preview.type === 'folder' ? pool.filter(item => item.path.toLowerCase().startsWith(folderPrefix)) : []
+  const folderTree = preview.type === 'folder' && folderNotes.length > 0 ? buildTree(folderNotes, preview.folderPath) : null
 
   return <div className="notes-link-drawer-layer" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) onClose() }}>
     <aside className={`notes-link-drawer link-type-${preview.type}`} role="dialog" aria-modal="true" aria-labelledby="notes-link-preview-title">
@@ -1086,12 +1208,33 @@ function LinkPreviewDrawer({ preview, repositoryId, source, index, onClose, onNa
         <button type="button" className="notes-link-back" onClick={onBack} disabled={!canGoBack} aria-label="Back to previous preview" title="Back to previous preview">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14.5 5-7 7 7 7M8 12h10"/></svg>
         </button>
-        <div className="notes-link-brand"><span><LinkBrandIcon type={preview.type}/></span><div><small>{labels[preview.type] || labels.external}</small><strong id="notes-link-preview-title">{preview.title || preview.hostname || 'Link preview'}</strong><p title={description}>{description}</p></div></div>
+        <div className="notes-link-drawer-title">
+          <span className="notes-link-title-icon"><LinkBrandIcon type={preview.type}/></span>
+          <strong id="notes-link-preview-title">{preview.title || preview.hostname || 'Link preview'}</strong>
+          <small title={description}>{description}</small>
+        </div>
         <button type="button" className="notes-link-close" onClick={onClose} aria-label="Close link preview">×</button>
       </header>
       <div className="notes-link-drawer-body">
         {preview.type === 'note' && (loading ? <div className="note-reader-status"><span className="spinner" /> Loading linked note…</div> : error ? <DismissibleError message={error}/> : previewNote ? <PreviewMarkdownLayout note={previewNote} headings={previewHeadings} targetHash={preview.hash} index={index} onOpenLink={onPreviewLink}/> : null)}
-        {preview.type === 'folder' && <div className="notes-folder-master-detail"><aside className="notes-folder-master"><header><span><LinkBrandIcon type="folder"/></span><div><h2>{preview.title}</h2><p>{folderNotes.length} Markdown notes</p></div></header><div className="notes-folder-master-tree">{folderTree && <FolderPreviewTree node={folderTree} landingPath={preview.path} selectedPath={folderSelectedPath} onSelect={setFolderSelectedPath}/>}</div></aside><section className="notes-folder-detail"><header><span>Note preview</span><strong>{previewNote?.title || folderNotes.find(item => item.path === folderSelectedPath)?.title || 'Select a note'}</strong><small>{folderSelectedPath}</small></header><div className="notes-folder-detail-content">{loading ? <div className="note-reader-status"><span className="spinner" /> Loading note…</div> : error ? <DismissibleError message={error}/> : previewNote ? <PreviewMarkdownLayout note={previewNote} headings={previewHeadings} targetHash={folderSelectedPath === preview.path ? preview.hash : ''} index={index} onOpenLink={onPreviewLink}/> : <div className="note-reader-status">Select a note from the folder tree.</div>}</div></section></div>}
+        {preview.type === 'folder' && (
+          folderNotes.length > 0 ? (
+            <div className="notes-folder-master-detail">
+              <aside className="notes-folder-master">
+                <div className="notes-folder-master-tree">
+                  {folderTree && <FolderPreviewTree node={folderTree} landingPath={preview.path} selectedPath={folderSelectedPath} onSelect={setFolderSelectedPath} expanded={folderExpanded} onToggle={toggleFolder}/>}
+                </div>
+              </aside>
+              <section className="notes-folder-detail">
+                <div className="notes-folder-detail-content">
+                  {loading ? <div className="note-reader-status"><span className="spinner" /> Loading note…</div> : error ? <DismissibleError message={error}/> : previewNote ? <PreviewMarkdownLayout note={previewNote} headings={previewHeadings} targetHash={folderSelectedPath === preview.path ? preview.hash : ''} index={index} onOpenLink={onPreviewLink}/> : <div className="note-reader-status">Select a note from the folder tree.</div>}
+                </div>
+              </section>
+            </div>
+          ) : (
+            loading ? <div className="note-reader-status"><span className="spinner" /> Loading folder preview…</div> : error ? <DismissibleError message={error}/> : previewNote ? <PreviewMarkdownLayout note={previewNote} headings={previewHeadings} targetHash={preview.hash} index={index} onOpenLink={onPreviewLink}/> : null
+          )
+        )}
         {preview.type === 'youtube-post' && <div className="notes-youtube-post-preview"><span><LinkBrandIcon type="youtube-post"/></span><h2>Community post</h2><p>YouTube does not provide a video-player embed for Community posts. Open the post on YouTube to view its text, images, poll, and discussion.</p></div>}
         {preview.type === 'youtube' && <div className="notes-external-preview"><iframe key={preview.url} className="notes-external-frame" src={youtubeEmbedUrl(preview.videoId)} title={`${labels.youtube}: ${preview.title || preview.hostname}`} loading="eager" referrerPolicy="strict-origin-when-cross-origin" sandbox="allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-presentation allow-same-origin allow-scripts" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen/></div>}
         {preview.type === 'excalidraw' && <div className="notes-excalidraw-preview"><React.Suspense fallback={<div className="excalidraw-embed-status"><span className="spinner"/><strong>Preparing canvas…</strong></div>}><ExcalidrawViewer url={preview.url} onFallback={() => { window.open(preview.url, '_blank', 'noopener,noreferrer'); onClose() }}/></React.Suspense></div>}
@@ -1100,7 +1243,7 @@ function LinkPreviewDrawer({ preview, repositoryId, source, index, onClose, onNa
       <footer className="notes-link-drawer-actions">
         <button type="button" className="btn btn-secondary" onClick={onClose}>Close preview</button>
         {preview.type === 'note' && <button type="button" className="btn btn-primary" onClick={() => onNavigate(preview.path, preview.hash)}>Jump to note</button>}
-        {preview.type === 'folder' && <button type="button" className="btn btn-primary" disabled={!folderSelectedPath} onClick={() => onNavigate(folderSelectedPath, folderSelectedPath === preview.path ? preview.hash : '')}>Jump to selected note</button>}
+        {preview.type === 'folder' && <button type="button" className="btn btn-primary" onClick={() => onNavigate(folderSelectedPath || preview.path, (folderSelectedPath === preview.path || !folderSelectedPath) ? preview.hash : '')}>Jump to note</button>}
         {preview.url && <a className="btn btn-secondary notes-link-open" href={preview.url} target="_blank" rel="noreferrer">Open in new tab ↗</a>}
       </footer>
     </aside>
@@ -2765,6 +2908,10 @@ export default function Notes() {
     }
   }
   const navigateBreadcrumb = parts => {
+    if (parts.length === 0) {
+      if (years.length > 0) selectYear(years[0])
+      return
+    }
     if (parts.length === 1) return selectYear(parts[0])
     if (parts.length === 2) return selectTopic(parts[1])
     const directoryPath = parts.slice(2).join('/')

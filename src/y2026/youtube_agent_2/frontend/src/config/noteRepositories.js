@@ -24,6 +24,30 @@ export const NOTE_REPOSITORIES = [
     repositoryStyle: ['#0891b2', '#6366f1'],
   },
   {
+    id: 'microservice-python',
+    owner: 'lekhrajdinkar',
+    repo: 'microservice-python',
+    localRepo: 'microservice-python',
+    branch: '2026',
+    path: 'docs',
+    name: 'Microservice Python',
+    description: 'Python and Python microservice engineering notes.',
+    repositoryStyle: ['#0284c7', '#eab308'],
+  },
+
+  {
+    id: 'microservice-java',
+    owner: 'lekhrajdinkar',
+    repo: 'microservice-java',
+    localRepo: 'microservice-java',
+    branch: 'main',
+    path: 'docs',
+    name: 'Microservice Java',
+    description: 'Java, Spring, and microservice engineering notes.',
+    repositoryStyle: ['#ea580c', '#ef4444'],
+  },
+
+  {
     id: 'data-engineer',
     owner: 'lekhrajdinkar',
     repo: 'data-engineer',
@@ -33,26 +57,8 @@ export const NOTE_REPOSITORIES = [
     description: 'Data engineering, ETL, and data pipeline notes.',
     repositoryStyle: ['#059669', '#10b981'],
   },
-  {
-    id: 'microservice-java',
-    owner: 'lekhrajdinkar',
-    repo: 'microservice-java',
-    branch: 'main',
-    path: 'docs',
-    name: 'Microservice Java',
-    description: 'Java, Spring, and microservice engineering notes.',
-    repositoryStyle: ['#ea580c', '#ef4444'],
-  },
-  {
-    id: 'microservice-python',
-    owner: 'lekhrajdinkar',
-    repo: 'microservice-python',
-    branch: 'main',
-    path: 'docs',
-    name: 'Microservice Python',
-    description: 'Python and Python microservice engineering notes.',
-    repositoryStyle: ['#0284c7', '#eab308'],
-  },
+
+
   {
     id: 'cloud-engineering',
     owner: 'Manisha-sharda-Prasad',
