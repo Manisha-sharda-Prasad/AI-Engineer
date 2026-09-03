@@ -46,6 +46,13 @@ function internalNotesTarget(href, note, index) {
     }
     if (candidate === null) return null
     candidate = candidate.replace(/\/+$/, '')
+
+    // Non-markdown file extensions (e.g. .excalidraw, .png, .pdf, etc.) are assets/drawings, not notes or folders
+    const lastSegment = candidate.split('/').at(-1) || ''
+    if (lastSegment.includes('.') && !/\.(md|markdown)$/i.test(lastSegment)) {
+      return null
+    }
+
     const pool = index.allNotes || index.notes || []
     const exactNote = pool.find(item => item.path.toLowerCase() === candidate.toLowerCase())
     if (exactNote) return { type: 'note', note: exactNote, hash }

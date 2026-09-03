@@ -150,8 +150,9 @@ export async function getNoteRepositories() {
 export async function getNoteContent(repositoryId, path, source = 'remote') {
   const repository = repositoryById(repositoryId)
   const index = await getNotes(repositoryId, source)
-  const isDocFile = /\.(md|markdown)$/i.test(path)
-  const normalizedPath = isDocFile ? path : `${path.replace(/\/+$/, '')}/README.md`
+  const lastSegment = (path || '').split('/').at(-1) || ''
+  const isFileWithExt = lastSegment.includes('.')
+  const normalizedPath = isFileWithExt ? path : `${path.replace(/\/+$/, '')}/README.md`
   const selected = index.notes.find(note => note.path === path || note.path === normalizedPath)
   const noteMeta = selected || {
     path: normalizedPath,
