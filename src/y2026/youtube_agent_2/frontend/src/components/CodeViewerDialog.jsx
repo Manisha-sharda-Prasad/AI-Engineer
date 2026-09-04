@@ -35,7 +35,7 @@ export default function CodeViewerDialog({ modal, onClose }) {
 
   if (!modal) return null
 
-  const { title, path, url, code, language, totalLines } = modal
+  const { title, path, url, code, language, totalLines, section } = modal
   const normalizedLang = LANGUAGE_ALIASES[language?.toLowerCase()] || language?.toLowerCase() || ''
   const displayLabel = LANGUAGE_LABELS[normalizedLang] || (normalizedLang ? normalizedLang.toUpperCase() : 'CODE')
 
@@ -105,9 +105,14 @@ export default function CodeViewerDialog({ modal, onClose }) {
               <div className="code-dialog-tags">
                 <span className="code-dialog-lang-tag">{displayLabel}</span>
                 <span className="code-dialog-lines-tag">{totalLines || lines.length} lines</span>
+                {section && (
+                  <span className="code-dialog-jump-tag" title={`Section: ${section}`}>
+                    § {section}
+                  </span>
+                )}
                 {targetStart && (
                   <span className="code-dialog-jump-tag">
-                    Jumped to Line {targetStart}
+                    Jumped to Line {targetStart}{targetEnd && targetEnd !== targetStart ? `–${targetEnd}` : ''}
                   </span>
                 )}
               </div>

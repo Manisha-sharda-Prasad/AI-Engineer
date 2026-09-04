@@ -799,24 +799,42 @@ function markdownWithCodeEmbeds(content = '') {
 
     let text = parts[i]
 
-    // Match @[code:274-], @[code:274-end], @[code:1-35], @[code:274], @[code](path)
-    text = text.replace(/@\[code(?::(?:(\d+|start))?(?:-(?:(\d+|end))?)?)?\]\(([^)]+)\)/gi, (match, start, end, srcPath) => {
+    // Match @[code:sliding-window], @[code:section::sliding-window], @[code:274-], @[code:274-end], @[code:1-35], @[code:274], @[code](path)
+    text = text.replace(/@\[code(?::([^\]]+))?\]\(([^)]+)\)/gi, (match, rawSpec, srcPath) => {
       let startLine = null
-      if (start && start.toLowerCase() !== 'start') {
-        startLine = parseInt(start, 10)
-      } else if (start && start.toLowerCase() === 'start') {
-        startLine = 1
-      }
-
       let endLine = null
-      if (end && end.toLowerCase() !== 'end') {
-        endLine = parseInt(end, 10)
+      let section = null
+
+      const spec = (rawSpec || '').trim()
+      if (spec) {
+        // Check if spec is a numeric line range (e.g., "3-10", "1-", "start-20", "274", "1-end")
+        const rangeMatch = spec.match(/^(?:(\d+|start))?(?:-(?:(\d+|end))?)?$/i)
+        const isNumericRange = rangeMatch && (rangeMatch[1] != null || spec.includes('-'))
+
+        if (isNumericRange) {
+          const start = rangeMatch[1]
+          const end = spec.includes('-') ? spec.slice(spec.indexOf('-') + 1).trim() : null
+
+          if (start && start.toLowerCase() !== 'start') {
+            startLine = parseInt(start, 10)
+          } else if (start && start.toLowerCase() === 'start') {
+            startLine = 1
+          }
+
+          if (end && end.toLowerCase() !== 'end' && end !== '') {
+            endLine = parseInt(end, 10)
+          }
+        } else {
+          // Section name: support plain "my-section", "section:my-section", or "section::my-section"
+          section = spec.replace(/^section:+/i, '').trim()
+        }
       }
 
       const data = {
         src: srcPath.trim(),
         startLine,
         endLine,
+        section,
       }
       return `\n\n\`\`\`notes-code-embed\n${JSON.stringify(data)}\n\`\`\`\n\n`
     })
@@ -1573,6 +1591,7 @@ const MarkdownContent = React.memo(function MarkdownContent({ note, headings = [
               src={embedData.src}
               startLine={embedData.startLine}
               endLine={embedData.endLine}
+              section={embedData.section}
               note={note}
               onOpenCodeModal={onOpenCodeModal}
             />

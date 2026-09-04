@@ -26,15 +26,21 @@ function parseIpynbCode(jsonStr) {
   }
 }
 
-async function fetchCodeFile(url) {
-  if (codeFileCache.has(url)) return codeFileCache.get(url)
-  const res = await fetch(url)
+async function fetchCodeFile(url, bypassCache = false) {
+  if (!bypassCache && codeFileCache.has(url)) {
+    const cached = codeFileCache.get(url)
+    if (Date.now() - cached.timestamp < 3000) {
+      return cached.text
+    }
+  }
+
+  const res = await fetch(url, { cache: 'no-cache' })
   if (!res.ok) throw new Error(`HTTP ${res.status}: Unable to fetch file from ${url}`)
   let text = await res.text()
   if (url.toLowerCase().endsWith('.ipynb')) {
     text = parseIpynbCode(text)
   }
-  codeFileCache.set(url, text)
+  codeFileCache.set(url, { text, timestamp: Date.now() })
   return text
 }
 
@@ -86,11 +92,12 @@ function relativeUrl(value, rawUrl) {
   try { return new URL(value, rawUrl).toString() } catch { return value }
 }
 
-export default function CodeEmbedCard({ src, startLine, endLine, note, onOpenCodeModal }) {
+export default function CodeEmbedCard({ src, startLine, endLine, section, note, onOpenCodeModal }) {
   const [status, setStatus] = React.useState('loading')
   const [code, setCode] = React.useState('')
   const [error, setError] = React.useState('')
   const [copied, setCopied] = React.useState(false)
+  const [reloadToken, setReloadToken] = React.useState(0)
 
   const resolvedUrl = relativeUrl(src, note?.raw_url)
   const filename = (src || '').split('/').at(-1) || 'source-file'
@@ -103,7 +110,7 @@ export default function CodeEmbedCard({ src, startLine, endLine, note, onOpenCod
     setStatus('loading')
     setError('')
 
-    fetchCodeFile(resolvedUrl)
+    fetchCodeFile(resolvedUrl, reloadToken > 0)
       .then(fullText => {
         if (!cancelled) {
           setCode(fullText)
@@ -118,13 +125,61 @@ export default function CodeEmbedCard({ src, startLine, endLine, note, onOpenCod
       })
 
     return () => { cancelled = true }
-  }, [resolvedUrl])
+  }, [resolvedUrl, reloadToken])
 
   const allLines = React.useMemo(() => (code || '').split(/\r?\n/), [code])
   const totalLines = allLines.length
 
-  const sliceStart = startLine ? Math.max(0, startLine - 1) : 0
-  const sliceEnd = endLine ? Math.min(totalLines, endLine) : totalLines
+  // Resolve section if specified
+  const sectionResolution = React.useMemo(() => {
+    if (!section || !code) return { found: true, startLine: null, endLine: null, error: null }
+
+    const cleanSec = section.trim()
+    const escapedSec = cleanSec.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    // Matches start marker inside any comment: section::<name>::start or section:name:start
+    const startRegex = new RegExp(`section\\s*:{1,2}\\s*${escapedSec}\\s*:{1,2}\\s*(?:start|begin)\\b`, 'i')
+    // Matches end marker inside any comment: section::<name>::end or section:name:end
+    const endRegex = new RegExp(`section\\s*:{1,2}\\s*${escapedSec}\\s*:{1,2}\\s*(?:end|stop|finish)\\b`, 'i')
+
+    let startIdx = -1
+    let endIdx = -1
+
+    for (let idx = 0; idx < allLines.length; idx++) {
+      const line = allLines[idx]
+      if (startIdx === -1 && startRegex.test(line)) {
+        startIdx = idx
+      } else if (startIdx !== -1 && endRegex.test(line)) {
+        endIdx = idx
+        break
+      }
+    }
+
+    if (startIdx === -1) {
+      return {
+        found: false,
+        startLine: null,
+        endLine: null,
+        error: `Section "${cleanSec}" not found in file`,
+      }
+    }
+
+    // Exclude the marker comment lines themselves
+    const resolvedStart = startIdx + 2 // 1-indexed, line after start marker
+    const resolvedEnd = endIdx !== -1 ? endIdx : totalLines // 1-indexed, line before end marker
+
+    return {
+      found: true,
+      startLine: resolvedStart,
+      endLine: Math.max(resolvedStart, resolvedEnd),
+      error: null,
+    }
+  }, [section, code, allLines, totalLines])
+
+  const effectiveStartLine = section ? sectionResolution.startLine : startLine
+  const effectiveEndLine = section ? sectionResolution.endLine : endLine
+
+  const sliceStart = effectiveStartLine ? Math.max(0, effectiveStartLine - 1) : 0
+  const sliceEnd = effectiveEndLine ? Math.min(totalLines, effectiveEndLine) : totalLines
   const displayedLines = React.useMemo(() => allLines.slice(sliceStart, sliceEnd), [allLines, sliceStart, sliceEnd])
   const displayedCode = React.useMemo(() => displayedLines.join('\n'), [displayedLines])
 
@@ -150,6 +205,11 @@ export default function CodeEmbedCard({ src, startLine, endLine, note, onOpenCod
     } catch {}
   }
 
+  const handleReload = (e) => {
+    e.stopPropagation()
+    setReloadToken(prev => prev + 1)
+  }
+
   const handleOpenFull = () => {
     if (onOpenCodeModal) {
       onOpenCodeModal({
@@ -159,8 +219,9 @@ export default function CodeEmbedCard({ src, startLine, endLine, note, onOpenCod
         code,
         language: lang,
         totalLines,
-        startLine,
-        endLine,
+        startLine: effectiveStartLine,
+        endLine: effectiveEndLine,
+        section,
       })
     }
   }
@@ -174,16 +235,38 @@ export default function CodeEmbedCard({ src, startLine, endLine, note, onOpenCod
     )
   }
 
-  if (status === 'error') {
+  if (status === 'error' || (section && !sectionResolution.found && status === 'ready')) {
+    const errMsg = (section && !sectionResolution.found)
+      ? sectionResolution.error
+      : (error || 'Failed to load source code')
+
     return (
       <div className="notes-code-embed-error">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
         <div className="notes-code-embed-error-info">
           <strong>Unable to embed code from <code>{src}</code></strong>
-          <small>{error}</small>
-          {resolvedUrl && (
-            <a href={resolvedUrl} target="_blank" rel="noreferrer noopener">Open raw file ↗</a>
-          )}
+          <small>{errMsg}</small>
+          <div style={{ marginTop: '6px', display: 'flex', gap: '14px', alignItems: 'center' }}>
+            {status === 'ready' && (
+              <button
+                type="button"
+                onClick={handleOpenFull}
+                style={{ background: 'none', border: 'none', padding: 0, color: 'var(--notes-accent, #6366f1)', cursor: 'pointer', fontSize: '0.8rem', textDecoration: 'underline' }}
+              >
+                Open full file ({totalLines} lines)
+              </button>
+            )}
+            {resolvedUrl && (
+              <a href={resolvedUrl} target="_blank" rel="noreferrer noopener" style={{ fontSize: '0.8rem' }}>Open raw ↗</a>
+            )}
+            <button
+              type="button"
+              onClick={handleReload}
+              style={{ background: 'none', border: 'none', padding: 0, color: 'var(--notes-accent, #6366f1)', cursor: 'pointer', fontSize: '0.8rem', textDecoration: 'underline' }}
+            >
+              Reload file ↻
+            </button>
+          </div>
         </div>
       </div>
     )
@@ -204,7 +287,9 @@ export default function CodeEmbedCard({ src, startLine, endLine, note, onOpenCod
         : ''
 
   const lineRangeLabel = isPartial
-    ? `${rangeDirection} Lines ${sliceStart + 1}–${sliceEnd} of ${totalLines}`.trim()
+    ? (section
+        ? `§ ${section} (Lines ${sliceStart + 1}–${sliceEnd} of ${totalLines})`
+        : `${rangeDirection} Lines ${sliceStart + 1}–${sliceEnd} of ${totalLines}`.trim())
     : `${totalLines} lines`
 
   return (
