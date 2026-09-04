@@ -2,7 +2,7 @@
 ## Reference
 - https://anthropic-partners.skilljar.com/claude-with-the-anthropic-api/287763 | RAG
 - [README.md](../README.md)
-- [KodeKloud : RAG](../../02_AgenticAI/04_RAG) 
+- [KodeKloud : RAG](../../02_01_AgenticAI/04_RAG) 
 
 ## RAG 
 ### Introduction

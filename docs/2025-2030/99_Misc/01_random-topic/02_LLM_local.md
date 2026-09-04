@@ -3,7 +3,7 @@
 ### Overview
 - https://docs.docker.com/ai/model-runner/
 - https://www.youtube.com/watch?v=tYg6T_DAP-k
-- [🧪lab_04_docker_model_runner](../../../src/y2025/kodeKloud_labs/lab_04_docker_model_runner) 👈🏻
+- [🧪lab_04_docker_model_runner](../../../../src/y2025/kodeKloud_labs/lab_04_docker_model_runner) 👈🏻
 - AI model, now can be stored as docker layered images.
 - manage Dependency Hell - **Docker** 
   - https://hub.docker.com/repositories/lekhrajdinkar18 (signed-up up git account)
@@ -14,8 +14,8 @@
     - follows same standard to run container
     - expose via API
 
-- ![img.png](../../99_img/2026/dmr/img.png)
-- ![img_1.png](../../99_img/2026/dmr/img_1.png)
+- ![img.png](../../../99_img/2026/dmr/img.png)
+- ![img_1.png](../../../99_img/2026/dmr/img_1.png)
 
 
 ### Inference Engine

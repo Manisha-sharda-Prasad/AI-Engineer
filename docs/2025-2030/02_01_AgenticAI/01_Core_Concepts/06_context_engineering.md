@@ -1,6 +1,6 @@
 # Context Engineering
 ## Overview
-- prompt engineering (passive) [more](../../01_AWS-AIF-C01/DC-01-Funda-of-ML-and-AI/02_03_prompt_eng.md)
+- prompt engineering (passive) [more](../../03_02_cert_AWS-AIF-C01/DC-01-Funda-of-ML-and-AI/02_03_prompt_eng.md)
   - practice of designing and refining prompts to get accurate, useful, and reliable model outputs.
   - it Does not real industry problem
   - but Agent with right context, does

@@ -2,7 +2,7 @@
 
 A system-design proof of concept that turns YouTube sources and public GitHub notes into structured, searchable learning experiences.
 
-[Open the live application](https://youtube-learning-ui.onrender.com/) · [Browse the implementation](../../../src/y2026/youtube_agent_2) · [Start the system-design showcase](11_system-design-showcase.md)
+[Open the live application](https://youtube-learning-ui.onrender.com/) · [Browse the implementation](../../../../src/y2026/youtube_agent_2) · [Start the system-design showcase](11_system-design-showcase.md)
 
 ## What it demonstrates
 

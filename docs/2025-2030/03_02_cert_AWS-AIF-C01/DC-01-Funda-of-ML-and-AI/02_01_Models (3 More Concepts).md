@@ -34,7 +34,7 @@
     - Demo: [udemy demo 1](https://www.udemy.com/course/aws-ai-practitioner-certified/learn/lecture/44886393#overview), [udemy demo 2](https://www.udemy.com/course/aws-ai-practitioner-certified/learn/lecture/44901525#overview)
 
 ## RAG (Retrieval Augmented Generation)
-- [Agentic AI >> RAG ](../../02_AgenticAI/04_RAG)
+- [Agentic AI >> RAG ](../../02_01_AgenticAI/04_RAG)
 - RAG combines LLMs with vector search to provide more accurate and context-aware responses.
 - eg: LangChain, LlamaIndex
 - Popular libraries: `sentence-transformers`, `transformers`, `faiss`, `chromadb`

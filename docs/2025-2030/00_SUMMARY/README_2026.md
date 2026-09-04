@@ -1,26 +1,30 @@
 # 2026
 ## Docs
-- [01_AWS-AIF-C01](01_AWS-AIF-C01)
-- [02_AgenticAI](02_AgenticAI)
-- [99_Misc](99_Misc)
+- [01_AWS-AIF-C01](../03_02_cert_AWS-AIF-C01)
+- [04_Anthropic_CCAF](../03_01_cert_Anthropic_CCAF)
+- [02_AgenticAI](../02_01_AgenticAI)
+- [03_youtube_agent](../99_Misc/02_youtube_agent)
+- [99_Misc](../99_Misc)
 
+---
 ## POC Projects
-- [YouTube_agent_2026](../../src/y2026/youtube_agent_2) | v1.0.0 `complete`
+- [YouTube_agent_2026](../../../src/y2026/youtube_agent_2) | v1.0.0 `complete`
 - Java SpringAIModule https://github.com/lekhrajdinkar/microservice-java/tree/main/SpringAIModule ... in progress
 
+---
 ## Labs
-- [lab_01_ai_agent_fundamental | 01/2026 kodeKloud](../../src/y2026/lab_01_ai_agent)
+- [lab_01_ai_agent_fundamental | 01/2026 kodeKloud](../../../src/y2026/lab_01_ai_agent)
 
 ---
 ## Certification/s
-Anthropic | https://anthropic.skilljar.com/
-- 🎖️https://verify.skilljar.com/c/qsvy5x38s5ob | Claude 101
-- 🎖️https://verify.skilljar.com/c/pyadqx2jf8ss | Claude Code 101
+### Anthropic 
+> [04_Anthropic_CCAF](../03_01_cert_Anthropic_CCAF)
 
-Microsoft Github-Copilot:
+### Microsoft Github-Copilot:
 - [Learning-plan-1](https://learn.microsoft.com/en-us/plans/2x0jcgtzome4k0?tab=tab-learning-paths)
 
-AWS Certified AI Practitioner | AIF-C01
+### AWS Certified AI Practitioner | AIF-C01
+> [01_AWS-AIF-C01](../03_02_cert_AWS-AIF-C01)
 - **https://skillbuilder.aws/learn**:
     - [learning plan-1](https://skillbuilder.aws/learning-plan/G8ENMJ5QBE/aws-artificial-intelligence-practitioner-learning-plan/SU2A1EJM1A)
     - [learning plan-2](https://skillbuilder.aws/learning-plan/3NRN71QZR2/exam-prep-plan-aws-certified-ai-practitioner-aifc01--english/FBV4STG94B)
@@ -29,10 +33,11 @@ AWS Certified AI Practitioner | AIF-C01
 - KK https://notes.kodekloud.com/docs/AWS-Certified-AI-Practitioner/Introduction/Introduction
 
 ---
-## More Artifacts
-### **Anthropic A\**:
+## Artifacts
+### **Anthropic**
 - https://www.youtube.com/@anthropic-ai/videos
 - https://anthropic.skilljar.com/ | `ldus@g J12a`
+- https://anthropic-partners.skilljar.com/ | `l_d@i`
 
 ### **OpenAI**
 - https://www.youtube.com/@OpenAI

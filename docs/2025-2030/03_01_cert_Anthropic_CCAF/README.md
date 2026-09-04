@@ -15,6 +15,9 @@ Anthropic-partner
 | 2 | **AI Fluency Framework Foundations** | [Skilljar](https://anthropic-partners.skilljar.com/ai-fluency-framework-foundations?utm_source=chatgpt.com) | [Claude Academy](https://academy.claude.com/courses/ai-fluency-framework-foundations?utm_source=chatgpt.com) |
 | 3 | **Claude Code in Action**            | [Skilljar](https://anthropic-partners.skilljar.com/claude-code-in-action?utm_source=chatgpt.com)            | [Claude Academy](https://academy.claude.com/courses/claude-code-in-action?utm_source=chatgpt.com)            |
 
+Certificate of completion (ldus@g)
+- 🎖️https://verify.skilljar.com/c/qsvy5x38s5ob | Claude 101
+- 🎖️https://verify.skilljar.com/c/pyadqx2jf8ss | Claude Code 101
 
 | # | Course                                           | Skilljar                                                                                                          | Claude Academy                                                                                                     |
 | - | ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |

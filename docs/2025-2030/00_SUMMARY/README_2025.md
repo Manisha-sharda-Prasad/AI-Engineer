@@ -1,25 +1,22 @@
 # 2025
-## Docs
-- ⚠️ Merged all notes with [2026 docs]() 
 
 ## POC projects
-- [chatbot_poc](../../src/y2025/chatbot_poc)
-- [first_rag_poc](../../src/y2025/first_rag_poc)
+- [chatbot_poc](../../../src/y2025/chatbot_poc)
+- [first_rag_poc](../../../src/y2025/first_rag_poc)
 
 ## Labs
-- [lab_02_mcp](../../src/y2025/kodeKloud_labs/lab_02_mcp)
-- [lab_03_rag_advance](../../src/y2025/kodeKloud_labs/lab_03_rag_advance)
-- [lab_04_docker_model_runner](../../src/y2025/kodeKloud_labs/lab_04_docker_model_runner)
-- [lab_05_langGraph_advance](../../src/y2025/kodeKloud_labs/lab_05_langGraph_advance)
+- [lab_02_mcp](../../../src/y2025/kodeKloud_labs/lab_02_mcp)
+- [lab_03_rag_advance](../../../src/y2025/kodeKloud_labs/lab_03_rag_advance)
+- [lab_04_docker_model_runner](../../../src/y2025/kodeKloud_labs/lab_04_docker_model_runner)
+- [lab_05_langGraph_advance](../../../src/y2025/kodeKloud_labs/lab_05_langGraph_advance)
 
 ---
 ## Artifacts
-- KodeKloud | https://www.youtube.com/watch?v=ZaPbP9DwBOE&list=PL2We04F3Y_43f3x3n9pawcEuAwru7bcMG 👈
-- [🗨️ chapgpt - gen ai 1](https://chatgpt.com/c/685dfae8-a808-800d-bc8c-4d992926601d)
-- [🗨️ chapgpt - gen ai 2](https://chatgpt.com/c/685e3233-8420-800d-a08a-2cd8b933dad6)
-- MCP Security with **teleport** | https://bit.ly/45YwXVS
-- [bbgo blogs](https://github.com/lekhrajdinkar/solution-engineer/blob/main/docs/10_System_Design/blogs_01_byteByteGo.md#%EF%B8%8Fagentic-ai)
-- online course considering...
+- https://www.youtube.com/watch?v=ZaPbP9DwBOE&list=PL2We04F3Y_43f3x3n9pawcEuAwru7bcMG 👈
+- https://chatgpt.com/c/685dfae8-a808-800d-bc8c-4d992926601d
+- https://chatgpt.com/c/685e3233-8420-800d-a08a-2cd8b933dad6
+- https://github.com/lekhrajdinkar/solution-engineer/blob/main/docs/10_System_Design/blogs_01_byteByteGo.md#%EF%B8%8Fagentic-ai
+- online course considering... `never started`
   - [AgenticAI course](https://www.udacity.com/course/agentic-ai--nd900?ranMID=53187&ranEAID=01rQoZZYOzo&ranSiteID=01rQoZZYOzo-P5Qp8ftYB4qAx3o.QPgN9A&utm_source=affiliates)
   - [Deep Learning course](https://www.udacity.com/course/deep-learning-nanodegree--nd101?ranMID=53187&ranEAID=01rQoZZYOzo&ranSiteID=01rQoZZYOzo-mfm8HZ1rHcRgUmo6RF_2Mw&utm_source=affiliates)
 - Books

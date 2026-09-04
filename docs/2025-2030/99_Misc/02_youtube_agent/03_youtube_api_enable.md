@@ -3,7 +3,7 @@
 - Enable API | https://developers.google.com/youtube/v3/docs/?apix=true
 - Set up credential
 
-![google-console.png](../../../src/y2026/youtube_agent_2/resource/img/google-console.png)
+![google-console.png](../../../../src/y2026/youtube_agent_2/resource/img/google-console.png)
 
 
 ## Steps
