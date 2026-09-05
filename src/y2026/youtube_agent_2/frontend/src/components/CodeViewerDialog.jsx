@@ -4,7 +4,16 @@ import { LANGUAGE_ALIASES, LANGUAGE_LABELS, escapeHtml } from './CodeBlock'
 
 export default function CodeViewerDialog({ modal, onClose }) {
   const [copied, setCopied] = React.useState(false)
+  const [currentTabIdx, setCurrentTabIdx] = React.useState(modal?.activeTabIdx || 0)
   const scrollRef = React.useRef(null)
+
+  const tabs = modal?.tabs
+  const hasTabs = Array.isArray(tabs) && tabs.length > 1
+  const activeTab = hasTabs ? (tabs[currentTabIdx] || tabs[0]) : null
+
+  const targetStart = activeTab ? activeTab.startLine : modal?.startLine
+  const targetEnd = activeTab ? activeTab.endLine : modal?.endLine
+  const activeSection = activeTab ? activeTab.section : modal?.section
 
   React.useEffect(() => {
     if (!modal) return undefined
@@ -14,9 +23,6 @@ export default function CodeViewerDialog({ modal, onClose }) {
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [modal, onClose])
-
-  const targetStart = modal?.startLine
-  const targetEnd = modal?.endLine
 
   React.useEffect(() => {
     if (!modal) return undefined
@@ -31,11 +37,11 @@ export default function CodeViewerDialog({ modal, onClose }) {
     } else if (scrollRef.current) {
       scrollRef.current.scrollTop = 0
     }
-  }, [modal, targetStart])
+  }, [modal, targetStart, currentTabIdx])
 
   if (!modal) return null
 
-  const { title, path, url, code, language, totalLines, section } = modal
+  const { title, path, url, code, language, totalLines } = modal
   const normalizedLang = LANGUAGE_ALIASES[language?.toLowerCase()] || language?.toLowerCase() || ''
   const displayLabel = LANGUAGE_LABELS[normalizedLang] || (normalizedLang ? normalizedLang.toUpperCase() : 'CODE')
 
@@ -105,9 +111,9 @@ export default function CodeViewerDialog({ modal, onClose }) {
               <div className="code-dialog-tags">
                 <span className="code-dialog-lang-tag">{displayLabel}</span>
                 <span className="code-dialog-lines-tag">{totalLines || lines.length} lines</span>
-                {section && (
-                  <span className="code-dialog-jump-tag" title={`Section: ${section}`}>
-                    § {section}
+                {activeSection && (
+                  <span className="code-dialog-jump-tag" title={`Section: ${activeSection}`}>
+                    § {activeSection}
                   </span>
                 )}
                 {targetStart && (
@@ -120,6 +126,28 @@ export default function CodeViewerDialog({ modal, onClose }) {
               {path && path !== title && <small title={path}>{path}</small>}
             </div>
           </div>
+
+          {hasTabs && (
+            <div className="code-dialog-tabs-bar" role="tablist">
+              {tabs.map((tab, idx) => {
+                const isActive = idx === currentTabIdx
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    role="tab"
+                    aria-selected={isActive}
+                    className={`code-dialog-tab-btn ${isActive ? 'is-active' : ''}`}
+                    onClick={() => setCurrentTabIdx(idx)}
+                  >
+                    <span>{tab.section ? '§' : '☷'}</span>
+                    <span>{tab.label || tab.section}</span>
+                    {tab.linesCount > 0 && <small>{tab.linesCount}L</small>}
+                  </button>
+                )
+              })}
+            </div>
+          )}
 
           <div className="code-dialog-actions">
             <button

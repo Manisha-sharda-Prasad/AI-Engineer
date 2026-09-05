@@ -799,34 +799,75 @@ function markdownWithCodeEmbeds(content = '') {
 
     let text = parts[i]
 
-    // Match @[code:sliding-window], @[code:section::sliding-window], @[code:274-], @[code:274-end], @[code:1-35], @[code:274], @[code](path)
+    // Match @[code:section-1,section-2], @[code:section::section-57,section-58], @[code:sliding-window], @[code:274-], @[code:1-35], @[code](path)
     text = text.replace(/@\[code(?::([^\]]+))?\]\(([^)]+)\)/gi, (match, rawSpec, srcPath) => {
       let startLine = null
       let endLine = null
       let section = null
+      let tabs = []
 
       const spec = (rawSpec || '').trim()
       if (spec) {
-        // Check if spec is a numeric line range (e.g., "3-10", "1-", "start-20", "274", "1-end")
-        const rangeMatch = spec.match(/^(?:(\d+|start))?(?:-(?:(\d+|end))?)?$/i)
-        const isNumericRange = rangeMatch && (rangeMatch[1] != null || spec.includes('-'))
+        // Check if comma-separated list of tabs/sections (e.g. "section::sec1,sec2" or "sec1, sec2" or "1-10, 20-30")
+        const rawParts = spec.split(',').map(p => p.trim()).filter(Boolean)
 
-        if (isNumericRange) {
-          const start = rangeMatch[1]
-          const end = spec.includes('-') ? spec.slice(spec.indexOf('-') + 1).trim() : null
+        if (rawParts.length > 1) {
+          tabs = rawParts.map(part => {
+            const cleanPart = part.replace(/^section:+/i, '').trim()
+            const rangeMatch = cleanPart.match(/^(?:(\d+|start))?(?:-(?:(\d+|end))?)?$/i)
+            const isNumericRange = rangeMatch && (rangeMatch[1] != null || cleanPart.includes('-'))
 
-          if (start && start.toLowerCase() !== 'start') {
-            startLine = parseInt(start, 10)
-          } else if (start && start.toLowerCase() === 'start') {
-            startLine = 1
-          }
+            if (isNumericRange) {
+              const start = rangeMatch[1]
+              const end = cleanPart.includes('-') ? cleanPart.slice(cleanPart.indexOf('-') + 1).trim() : null
+              const sLine = start && start.toLowerCase() !== 'start' ? parseInt(start, 10) : (start ? 1 : null)
+              const eLine = end && end.toLowerCase() !== 'end' && end !== '' ? parseInt(end, 10) : null
+              return {
+                type: 'range',
+                label: sLine && eLine ? `Lines ${sLine}–${eLine}` : (sLine ? `Line ${sLine}+` : cleanPart),
+                startLine: sLine,
+                endLine: eLine,
+                section: null,
+              }
+            } else {
+              return {
+                type: 'section',
+                label: cleanPart,
+                startLine: null,
+                endLine: null,
+                section: cleanPart,
+              }
+            }
+          })
 
-          if (end && end.toLowerCase() !== 'end' && end !== '') {
-            endLine = parseInt(end, 10)
+          if (tabs.length > 0) {
+            section = tabs[0].section
+            startLine = tabs[0].startLine
+            endLine = tabs[0].endLine
           }
         } else {
-          // Section name: support plain "my-section", "section:my-section", or "section::my-section"
-          section = spec.replace(/^section:+/i, '').trim()
+          // Single specifier
+          const cleanSpec = spec.replace(/^section:+/i, '').trim()
+          const rangeMatch = cleanSpec.match(/^(?:(\d+|start))?(?:-(?:(\d+|end))?)?$/i)
+          const isNumericRange = rangeMatch && (rangeMatch[1] != null || cleanSpec.includes('-'))
+
+          if (isNumericRange) {
+            const start = rangeMatch[1]
+            const end = cleanSpec.includes('-') ? cleanSpec.slice(cleanSpec.indexOf('-') + 1).trim() : null
+
+            if (start && start.toLowerCase() !== 'start') {
+              startLine = parseInt(start, 10)
+            } else if (start && start.toLowerCase() === 'start') {
+              startLine = 1
+            }
+
+            if (end && end.toLowerCase() !== 'end' && end !== '') {
+              endLine = parseInt(end, 10)
+            }
+          } else {
+            // Section name: support plain "my-section", "section:my-section", or "section::my-section"
+            section = cleanSpec
+          }
         }
       }
 
@@ -835,6 +876,7 @@ function markdownWithCodeEmbeds(content = '') {
         startLine,
         endLine,
         section,
+        tabs: tabs.length > 1 ? tabs : undefined,
       }
       return `\n\n\`\`\`notes-code-embed\n${JSON.stringify(data)}\n\`\`\`\n\n`
     })
@@ -1592,6 +1634,7 @@ const MarkdownContent = React.memo(function MarkdownContent({ note, headings = [
               startLine={embedData.startLine}
               endLine={embedData.endLine}
               section={embedData.section}
+              tabs={embedData.tabs}
               note={note}
               onOpenCodeModal={onOpenCodeModal}
             />

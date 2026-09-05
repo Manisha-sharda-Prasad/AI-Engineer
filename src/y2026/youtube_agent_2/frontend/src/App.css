@@ -13376,6 +13376,151 @@ img.notes-reveal-item.is-revealed {
   gap: 0.25rem;
 }
 
+/* ── Code Embed Tabs ── */
+.notes-code-embed-tabs-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.65rem;
+  background: color-mix(in srgb, var(--code-header-bg) 75%, var(--code-bg));
+  border-bottom: 1px solid var(--code-header-border);
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.notes-code-embed-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.65rem;
+  font-family: inherit;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.notes-code-embed-tab-btn:hover {
+  color: var(--code-text, #f1f5f9);
+  background: color-mix(in srgb, var(--code-header-text, #cbd5e1) 12%, transparent);
+}
+
+.notes-code-embed-tab-btn.is-active {
+  color: #ffffff;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--notes-accent, #6366f1) 85%, #000), color-mix(in srgb, #8b5cf6 85%, #000));
+  border-color: color-mix(in srgb, var(--notes-accent, #6366f1) 50%, transparent);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25);
+}
+
+.notes-code-embed-tab-btn.has-error {
+  color: var(--danger, #ef4444);
+  border-color: color-mix(in srgb, var(--danger, #ef4444) 30%, transparent);
+}
+
+.notes-code-tab-pill-icon {
+  font-size: 0.75rem;
+  opacity: 0.8;
+}
+
+.notes-code-tab-label {
+  font-family: 'JetBrains Mono', Consolas, monospace;
+}
+
+.notes-code-tab-lines-pill {
+  font-size: 0.64rem;
+  font-weight: 700;
+  padding: 0.08rem 0.32rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, currentColor 18%, transparent);
+  color: inherit;
+}
+
+.notes-code-tab-err-dot {
+  display: inline-grid;
+  place-items: center;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--danger, #ef4444);
+  color: #fff;
+  font-size: 0.6rem;
+  font-weight: 800;
+}
+
+.notes-code-embed-tabs-spacer {
+  flex: 1;
+}
+
+.notes-code-embed-tab-meta {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  padding-right: 0.25rem;
+  white-space: nowrap;
+}
+
+.notes-code-embed-tab-error {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.85rem 1rem;
+  color: var(--danger, #ef4444);
+  background: color-mix(in srgb, var(--danger, #ef4444) 10%, transparent);
+  font-size: 0.84rem;
+}
+
+/* ── Code Dialog Tabs ── */
+.code-dialog-tabs-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  overflow-x: auto;
+  padding: 0.2rem 0;
+  scrollbar-width: thin;
+}
+
+.code-dialog-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--border-color, #e2e8f0) 80%, transparent);
+  background: color-mix(in srgb, var(--card-bg, #fff) 80%, transparent);
+  color: var(--text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.code-dialog-tab-btn:hover {
+  background: color-mix(in srgb, var(--notes-accent, #6366f1) 15%, transparent);
+  color: var(--text-primary);
+}
+
+.code-dialog-tab-btn.is-active {
+  background: var(--notes-accent, #6366f1);
+  color: #ffffff;
+  border-color: var(--notes-accent, #6366f1);
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--notes-accent, #6366f1) 35%, transparent);
+}
+
+.code-dialog-tab-btn small {
+  font-size: 0.65rem;
+  padding: 0.05rem 0.28rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.2);
+  color: inherit;
+}
+
 /* ── Code Dialog Modal ── */
 
 .code-dialog-backdrop {

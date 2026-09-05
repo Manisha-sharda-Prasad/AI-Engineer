@@ -92,18 +92,117 @@ function relativeUrl(value, rawUrl) {
   try { return new URL(value, rawUrl).toString() } catch { return value }
 }
 
-export default function CodeEmbedCard({ src, startLine, endLine, section, note, onOpenCodeModal }) {
+function resolveSnippetTarget(target, allLines) {
+  const totalLines = allLines.length
+  if (!target) {
+    return {
+      found: true,
+      startLine: null,
+      endLine: null,
+      sliceStart: 0,
+      sliceEnd: totalLines,
+      label: 'Full File',
+      linesCount: totalLines,
+      error: null,
+    }
+  }
+
+  // Explicit line range
+  if (target.startLine != null || target.endLine != null) {
+    const sLine = target.startLine
+    const eLine = target.endLine
+    const sliceStart = sLine ? Math.max(0, sLine - 1) : 0
+    const sliceEnd = eLine ? Math.min(totalLines, eLine) : totalLines
+    const label = target.label || (sLine && eLine ? `Lines ${sLine}–${eLine}` : (sLine ? `Line ${sLine}+` : 'Snippet'))
+    return {
+      found: true,
+      startLine: sLine,
+      endLine: eLine,
+      sliceStart,
+      sliceEnd,
+      label,
+      linesCount: Math.max(0, sliceEnd - sliceStart),
+      error: null,
+    }
+  }
+
+  // Section name
+  const sectionName = (typeof target === 'string' ? target : target.section || target.label || '').trim()
+  if (!sectionName) {
+    return {
+      found: true,
+      startLine: null,
+      endLine: null,
+      sliceStart: 0,
+      sliceEnd: totalLines,
+      label: 'Full File',
+      linesCount: totalLines,
+      error: null,
+    }
+  }
+
+  const cleanSec = sectionName.trim()
+  const escapedSec = cleanSec.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const startRegex = new RegExp(`section\\s*:{1,2}\\s*${escapedSec}\\s*:{1,2}\\s*(?:start|begin)\\b`, 'i')
+  const endRegex = new RegExp(`section\\s*:{1,2}\\s*${escapedSec}\\s*:{1,2}\\s*(?:end|stop|finish)\\b`, 'i')
+
+  let startIdx = -1
+  let endIdx = -1
+
+  for (let idx = 0; idx < allLines.length; idx++) {
+    const line = allLines[idx]
+    if (startIdx === -1 && startRegex.test(line)) {
+      startIdx = idx
+    } else if (startIdx !== -1 && endRegex.test(line)) {
+      endIdx = idx
+      break
+    }
+  }
+
+  if (startIdx === -1) {
+    return {
+      found: false,
+      section: cleanSec,
+      label: target.label || cleanSec,
+      startLine: null,
+      endLine: null,
+      sliceStart: 0,
+      sliceEnd: 0,
+      linesCount: 0,
+      error: `Section "${cleanSec}" not found in file`,
+    }
+  }
+
+  const resolvedStart = startIdx + 2
+  const resolvedEnd = endIdx !== -1 ? endIdx : totalLines
+  const sliceStart = Math.max(0, resolvedStart - 1)
+  const sliceEnd = Math.min(totalLines, Math.max(sliceStart, resolvedEnd))
+
+  return {
+    found: true,
+    section: cleanSec,
+    label: target.label || cleanSec,
+    startLine: resolvedStart,
+    endLine: Math.max(resolvedStart, resolvedEnd),
+    sliceStart,
+    sliceEnd,
+    linesCount: Math.max(0, sliceEnd - sliceStart),
+    error: null,
+  }
+}
+
+export default function CodeEmbedCard({ src, startLine, endLine, section, tabs, note, onOpenCodeModal }) {
   const [status, setStatus] = React.useState('loading')
   const [code, setCode] = React.useState('')
   const [error, setError] = React.useState('')
   const [copied, setCopied] = React.useState(false)
   const [reloadToken, setReloadToken] = React.useState(0)
+  const [activeTabIdx, setActiveTabIdx] = React.useState(0)
 
   const resolvedUrl = relativeUrl(src, note?.raw_url)
   const filename = (src || '').split('/').at(-1) || 'source-file'
   const lang = detectLanguage(filename)
   const normalizedLang = LANGUAGE_ALIASES[lang?.toLowerCase()] || lang?.toLowerCase() || ''
-  const displayLabel = LANGUAGE_LABELS[normalizedLang] || (normalizedLang ? normalizedLang.toUpperCase() : 'CODE')
 
   React.useEffect(() => {
     let cancelled = false
@@ -130,56 +229,33 @@ export default function CodeEmbedCard({ src, startLine, endLine, section, note, 
   const allLines = React.useMemo(() => (code || '').split(/\r?\n/), [code])
   const totalLines = allLines.length
 
-  // Resolve section if specified
-  const sectionResolution = React.useMemo(() => {
-    if (!section || !code) return { found: true, startLine: null, endLine: null, error: null }
-
-    const cleanSec = section.trim()
-    const escapedSec = cleanSec.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    // Matches start marker inside any comment: section::<name>::start or section:name:start
-    const startRegex = new RegExp(`section\\s*:{1,2}\\s*${escapedSec}\\s*:{1,2}\\s*(?:start|begin)\\b`, 'i')
-    // Matches end marker inside any comment: section::<name>::end or section:name:end
-    const endRegex = new RegExp(`section\\s*:{1,2}\\s*${escapedSec}\\s*:{1,2}\\s*(?:end|stop|finish)\\b`, 'i')
-
-    let startIdx = -1
-    let endIdx = -1
-
-    for (let idx = 0; idx < allLines.length; idx++) {
-      const line = allLines[idx]
-      if (startIdx === -1 && startRegex.test(line)) {
-        startIdx = idx
-      } else if (startIdx !== -1 && endRegex.test(line)) {
-        endIdx = idx
-        break
-      }
+  const tabList = React.useMemo(() => {
+    if (Array.isArray(tabs) && tabs.length > 0) {
+      return tabs
     }
-
-    if (startIdx === -1) {
-      return {
-        found: false,
-        startLine: null,
-        endLine: null,
-        error: `Section "${cleanSec}" not found in file`,
-      }
+    if (section) {
+      return [{ section, label: section }]
     }
-
-    // Exclude the marker comment lines themselves
-    const resolvedStart = startIdx + 2 // 1-indexed, line after start marker
-    const resolvedEnd = endIdx !== -1 ? endIdx : totalLines // 1-indexed, line before end marker
-
-    return {
-      found: true,
-      startLine: resolvedStart,
-      endLine: Math.max(resolvedStart, resolvedEnd),
-      error: null,
+    if (startLine || endLine) {
+      return [{ startLine, endLine, label: startLine && endLine ? `Lines ${startLine}–${endLine}` : 'Snippet' }]
     }
-  }, [section, code, allLines, totalLines])
+    return [{ label: 'Full File' }]
+  }, [tabs, section, startLine, endLine])
 
-  const effectiveStartLine = section ? sectionResolution.startLine : startLine
-  const effectiveEndLine = section ? sectionResolution.endLine : endLine
+  const resolvedTabs = React.useMemo(() => {
+    return tabList.map(tab => resolveSnippetTarget(tab, allLines))
+  }, [tabList, allLines])
 
-  const sliceStart = effectiveStartLine ? Math.max(0, effectiveStartLine - 1) : 0
-  const sliceEnd = effectiveEndLine ? Math.min(totalLines, effectiveEndLine) : totalLines
+  const hasTabs = resolvedTabs.length > 1
+  const safeActiveIdx = Math.min(activeTabIdx, resolvedTabs.length - 1)
+  const activeResolution = resolvedTabs[safeActiveIdx] || resolvedTabs[0] || resolveSnippetTarget(null, allLines)
+
+  const effectiveStartLine = activeResolution.startLine
+  const effectiveEndLine = activeResolution.endLine
+  const effectiveSection = activeResolution.section
+  const sliceStart = activeResolution.sliceStart
+  const sliceEnd = activeResolution.sliceEnd
+
   const displayedLines = React.useMemo(() => allLines.slice(sliceStart, sliceEnd), [allLines, sliceStart, sliceEnd])
   const displayedCode = React.useMemo(() => displayedLines.join('\n'), [displayedLines])
 
@@ -221,7 +297,9 @@ export default function CodeEmbedCard({ src, startLine, endLine, section, note, 
         totalLines,
         startLine: effectiveStartLine,
         endLine: effectiveEndLine,
-        section,
+        section: effectiveSection,
+        tabs: hasTabs ? resolvedTabs : undefined,
+        activeTabIdx: safeActiveIdx,
       })
     }
   }
@@ -235,9 +313,9 @@ export default function CodeEmbedCard({ src, startLine, endLine, section, note, 
     )
   }
 
-  if (status === 'error' || (section && !sectionResolution.found && status === 'ready')) {
-    const errMsg = (section && !sectionResolution.found)
-      ? sectionResolution.error
+  if (status === 'error' || (!hasTabs && !activeResolution.found && status === 'ready')) {
+    const errMsg = !activeResolution.found
+      ? activeResolution.error
       : (error || 'Failed to load source code')
 
     return (
@@ -287,22 +365,35 @@ export default function CodeEmbedCard({ src, startLine, endLine, section, note, 
         : ''
 
   const lineRangeLabel = isPartial
-    ? (section
-        ? `§ ${section} (Lines ${sliceStart + 1}–${sliceEnd} of ${totalLines})`
+    ? (effectiveSection
+        ? `§ ${effectiveSection} (Lines ${sliceStart + 1}–${sliceEnd} of ${totalLines})`
         : `${rangeDirection} Lines ${sliceStart + 1}–${sliceEnd} of ${totalLines}`.trim())
     : `${totalLines} lines`
 
   return (
-    <div className={`notes-code-embed-card ${isPartial ? 'is-partial-snippet' : ''}`}>
+    <div className={`notes-code-embed-card ${isPartial ? 'is-partial-snippet' : ''} ${hasTabs ? 'has-tabs' : ''}`}>
       <div className="notes-code-embed-header">
         <div className="notes-code-embed-info">
           <span className="notes-code-block-dot" aria-hidden="true" />
           <strong className="notes-code-embed-filename" title={src}>{filename}</strong>
-          <span className="notes-code-embed-range-tag" title={isPartial ? `Snippet showing lines ${sliceStart + 1} to ${sliceEnd} of ${totalLines} total lines` : `${totalLines} total lines`}>
-            {lineRangeLabel}
-          </span>
+          {!hasTabs && (
+            <span className="notes-code-embed-range-tag" title={isPartial ? `Snippet showing lines ${sliceStart + 1} to ${sliceEnd} of ${totalLines} total lines` : `${totalLines} total lines`}>
+              {lineRangeLabel}
+            </span>
+          )}
         </div>
         <div className="notes-code-embed-actions">
+          <button
+            type="button"
+            className="notes-code-action-icon-btn"
+            onClick={handleReload}
+            title="Reload source file"
+            aria-label="Reload source file"
+          >
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.3"/>
+            </svg>
+          </button>
           <button
             type="button"
             className="notes-code-action-icon-btn"
@@ -335,54 +426,103 @@ export default function CodeEmbedCard({ src, startLine, endLine, section, note, 
         </div>
       </div>
 
-      {hasMoreAbove && (
-        <button
-          type="button"
-          className="notes-code-truncation-bar is-top"
-          onClick={handleOpenFull}
-          title={`Click to view all ${totalLines} lines in dialog (${hiddenAboveCount} lines hidden above)`}
-          aria-label={`View full file in dialog: ${hiddenAboveCount} lines above`}
-        >
-          <span className="notes-code-truncation-icon" aria-hidden="true">▲</span>
-          <span className="notes-code-truncation-dots" aria-hidden="true">····</span>
-          <span className="notes-code-truncation-text">
-            <strong>{hiddenAboveCount} {hiddenAboveCount === 1 ? 'line' : 'lines'} above</strong>
-            <small className="notes-code-truncation-range">(Lines 1–{hiddenAboveCount})</small>
+      {hasTabs && (
+        <div className="notes-code-embed-tabs-bar" role="tablist">
+          {resolvedTabs.map((tab, idx) => {
+            const isActive = idx === safeActiveIdx
+            return (
+              <button
+                key={idx}
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                className={`notes-code-embed-tab-btn ${isActive ? 'is-active' : ''} ${!tab.found ? 'has-error' : ''}`}
+                onClick={() => setActiveTabIdx(idx)}
+                title={tab.found ? (tab.startLine ? `Lines ${tab.startLine}–${tab.endLine} (${tab.linesCount} lines)` : `${tab.label}`) : tab.error}
+              >
+                <span className="notes-code-tab-pill-icon">{tab.section ? '§' : '☷'}</span>
+                <span className="notes-code-tab-label">{tab.label || tab.section}</span>
+                {tab.found && tab.linesCount > 0 && (
+                  <span className="notes-code-tab-lines-pill">{tab.linesCount}L</span>
+                )}
+                {!tab.found && (
+                  <span className="notes-code-tab-err-dot" title={tab.error}>!</span>
+                )}
+              </button>
+            )
+          })}
+          <div className="notes-code-embed-tabs-spacer" />
+          <span className="notes-code-embed-tab-meta">
+            {activeResolution.found && activeResolution.startLine ? `Lines ${activeResolution.startLine}–${activeResolution.endLine}` : ''}
           </span>
-          <span className="notes-code-truncation-dots" aria-hidden="true">····</span>
-        </button>
+        </div>
       )}
 
-      <div className="notes-code-embed-body">
-        <div className="notes-code-gutter" aria-hidden="true">
-          {displayedLines.map((_, idx) => (
-            <span key={idx}>{sliceStart + idx + 1}</span>
-          ))}
+      {!activeResolution.found ? (
+        <div className="notes-code-embed-tab-error">
+          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+          <span>{activeResolution.error || `Section "${activeResolution.label}" not found`}</span>
+          <button
+            type="button"
+            onClick={handleReload}
+            className="notes-code-dialog-inline-btn"
+            style={{ marginLeft: 'auto', background: 'none', border: 'none', padding: 0, color: 'var(--notes-accent, #6366f1)', cursor: 'pointer', fontSize: '0.8rem', textDecoration: 'underline' }}
+          >
+            Reload file ↻
+          </button>
         </div>
-        <pre className={`language-${normalizedLang || 'none'}`}>
-          <code
-            className={`language-${normalizedLang || 'none'}`}
-            dangerouslySetInnerHTML={{ __html: highlightedHtml }}
-          />
-        </pre>
-      </div>
+      ) : (
+        <>
+          {hasMoreAbove && (
+            <button
+              type="button"
+              className="notes-code-truncation-bar is-top"
+              onClick={handleOpenFull}
+              title={`Click to view all ${totalLines} lines in dialog (${hiddenAboveCount} lines hidden above)`}
+              aria-label={`View full file in dialog: ${hiddenAboveCount} lines above`}
+            >
+              <span className="notes-code-truncation-icon" aria-hidden="true">▲</span>
+              <span className="notes-code-truncation-dots" aria-hidden="true">····</span>
+              <span className="notes-code-truncation-text">
+                <strong>{hiddenAboveCount} {hiddenAboveCount === 1 ? 'line' : 'lines'} above</strong>
+                <small className="notes-code-truncation-range">(Lines 1–{hiddenAboveCount})</small>
+              </span>
+              <span className="notes-code-truncation-dots" aria-hidden="true">····</span>
+            </button>
+          )}
 
-      {hasMoreBelow && (
-        <button
-          type="button"
-          className="notes-code-truncation-bar is-bottom"
-          onClick={handleOpenFull}
-          title={`Click to view all ${totalLines} lines in dialog (${hiddenBelowCount} lines hidden below)`}
-          aria-label={`View full file in dialog: ${hiddenBelowCount} more lines below`}
-        >
-          <span className="notes-code-truncation-icon" aria-hidden="true">▼</span>
-          <span className="notes-code-truncation-dots" aria-hidden="true">····</span>
-          <span className="notes-code-truncation-text">
-            <strong>{hiddenBelowCount} more {hiddenBelowCount === 1 ? 'line' : 'lines'} below</strong>
-            <small className="notes-code-truncation-range">(Lines {sliceEnd + 1}–{totalLines})</small>
-          </span>
-          <span className="notes-code-truncation-dots" aria-hidden="true">····</span>
-        </button>
+          <div className="notes-code-embed-body">
+            <div className="notes-code-gutter" aria-hidden="true">
+              {displayedLines.map((_, idx) => (
+                <span key={idx}>{sliceStart + idx + 1}</span>
+              ))}
+            </div>
+            <pre className={`language-${normalizedLang || 'none'}`}>
+              <code
+                className={`language-${normalizedLang || 'none'}`}
+                dangerouslySetInnerHTML={{ __html: highlightedHtml }}
+              />
+            </pre>
+          </div>
+
+          {hasMoreBelow && (
+            <button
+              type="button"
+              className="notes-code-truncation-bar is-bottom"
+              onClick={handleOpenFull}
+              title={`Click to view all ${totalLines} lines in dialog (${hiddenBelowCount} lines hidden below)`}
+              aria-label={`View full file in dialog: ${hiddenBelowCount} more lines below`}
+            >
+              <span className="notes-code-truncation-icon" aria-hidden="true">▼</span>
+              <span className="notes-code-truncation-dots" aria-hidden="true">····</span>
+              <span className="notes-code-truncation-text">
+                <strong>{hiddenBelowCount} more {hiddenBelowCount === 1 ? 'line' : 'lines'} below</strong>
+                <small className="notes-code-truncation-range">(Lines {sliceEnd + 1}–{totalLines})</small>
+              </span>
+              <span className="notes-code-truncation-dots" aria-hidden="true">····</span>
+            </button>
+          )}
+        </>
       )}
     </div>
   )
