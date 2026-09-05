@@ -26,7 +26,7 @@ function parseIpynbCode(jsonStr) {
   }
 }
 
-async function fetchCodeFile(url, bypassCache = false) {
+export async function fetchCodeFile(url, bypassCache = false) {
   if (!bypassCache && codeFileCache.has(url)) {
     const cached = codeFileCache.get(url)
     if (Date.now() - cached.timestamp < 3000) {
@@ -44,7 +44,7 @@ async function fetchCodeFile(url, bypassCache = false) {
   return text
 }
 
-function detectLanguage(filePath = '') {
+export function detectLanguage(filePath = '') {
   const clean = filePath.split('?')[0].split('#')[0]
   const ext = clean.split('.').at(-1)?.toLowerCase()
   const map = {
@@ -87,12 +87,12 @@ function detectLanguage(filePath = '') {
   return map[ext] || 'text'
 }
 
-function relativeUrl(value, rawUrl) {
+export function relativeUrl(value, rawUrl) {
   if (!value || !rawUrl || /^(?:[a-z]+:|#|\/\/)/i.test(value)) return value
   try { return new URL(value, rawUrl).toString() } catch { return value }
 }
 
-function resolveSnippetTarget(target, allLines) {
+export function resolveSnippetTarget(target, allLines) {
   const totalLines = allLines.length
   if (!target) {
     return {
@@ -191,20 +191,47 @@ function resolveSnippetTarget(target, allLines) {
   }
 }
 
-export default function CodeEmbedCard({ src, startLine, endLine, section, tabs, note, onOpenCodeModal }) {
+export default function CodeEmbedCard({ files, src, startLine, endLine, section, tabs, note, onOpenCodeModal }) {
+  const fileList = React.useMemo(() => {
+    if (Array.isArray(files) && files.length > 0) {
+      return files.map(f => ({
+        ...f,
+        filename: f.filename || (f.src || '').split('/').at(-1)?.split('?')[0]?.split('#')[0] || 'source-file'
+      }))
+    }
+    if (src) {
+      return [{
+        src,
+        filename: (src || '').split('/').at(-1)?.split('?')[0]?.split('#')[0] || 'source-file',
+        startLine,
+        endLine,
+        section,
+        tabs
+      }]
+    }
+    return []
+  }, [files, src, startLine, endLine, section, tabs])
+
+  const [activeFileIdx, setActiveFileIdx] = React.useState(0)
+  const [activeTabIdx, setActiveTabIdx] = React.useState(0)
   const [status, setStatus] = React.useState('loading')
   const [code, setCode] = React.useState('')
   const [error, setError] = React.useState('')
   const [copied, setCopied] = React.useState(false)
   const [reloadToken, setReloadToken] = React.useState(0)
-  const [activeTabIdx, setActiveTabIdx] = React.useState(0)
 
-  const resolvedUrl = relativeUrl(src, note?.raw_url)
-  const filename = (src || '').split('/').at(-1) || 'source-file'
+  const hasParentTabs = fileList.length > 1
+  const safeFileIdx = Math.min(activeFileIdx, Math.max(0, fileList.length - 1))
+  const currentFile = fileList[safeFileIdx] || fileList[0] || {}
+
+  const currentSrc = currentFile.src || ''
+  const resolvedUrl = relativeUrl(currentSrc, note?.raw_url)
+  const filename = currentFile.filename || (currentSrc.split('/').at(-1) || 'source-file').split('?')[0].split('#')[0]
   const lang = detectLanguage(filename)
   const normalizedLang = LANGUAGE_ALIASES[lang?.toLowerCase()] || lang?.toLowerCase() || ''
 
   React.useEffect(() => {
+    if (!resolvedUrl) return
     let cancelled = false
     setStatus('loading')
     setError('')
@@ -230,25 +257,29 @@ export default function CodeEmbedCard({ src, startLine, endLine, section, tabs, 
   const totalLines = allLines.length
 
   const tabList = React.useMemo(() => {
-    if (Array.isArray(tabs) && tabs.length > 0) {
-      return tabs
+    if (Array.isArray(currentFile.tabs) && currentFile.tabs.length > 0) {
+      return currentFile.tabs
     }
-    if (section) {
-      return [{ section, label: section }]
+    if (currentFile.section) {
+      return [{ section: currentFile.section, label: currentFile.section }]
     }
-    if (startLine || endLine) {
-      return [{ startLine, endLine, label: startLine && endLine ? `Lines ${startLine}–${endLine}` : 'Snippet' }]
+    if (currentFile.startLine || currentFile.endLine) {
+      return [{
+        startLine: currentFile.startLine,
+        endLine: currentFile.endLine,
+        label: currentFile.startLine && currentFile.endLine ? `Lines ${currentFile.startLine}–${currentFile.endLine}` : 'Snippet'
+      }]
     }
     return [{ label: 'Full File' }]
-  }, [tabs, section, startLine, endLine])
+  }, [currentFile])
 
   const resolvedTabs = React.useMemo(() => {
     return tabList.map(tab => resolveSnippetTarget(tab, allLines))
   }, [tabList, allLines])
 
-  const hasTabs = resolvedTabs.length > 1
-  const safeActiveIdx = Math.min(activeTabIdx, resolvedTabs.length - 1)
-  const activeResolution = resolvedTabs[safeActiveIdx] || resolvedTabs[0] || resolveSnippetTarget(null, allLines)
+  const hasSubTabs = resolvedTabs.length > 1
+  const safeActiveTabIdx = Math.min(activeTabIdx, Math.max(0, resolvedTabs.length - 1))
+  const activeResolution = resolvedTabs[safeActiveTabIdx] || resolvedTabs[0] || resolveSnippetTarget(null, allLines)
 
   const effectiveStartLine = activeResolution.startLine
   const effectiveEndLine = activeResolution.endLine
@@ -290,7 +321,7 @@ export default function CodeEmbedCard({ src, startLine, endLine, section, tabs, 
     if (onOpenCodeModal) {
       onOpenCodeModal({
         title: filename,
-        path: src,
+        path: currentSrc,
         url: resolvedUrl,
         code,
         language: lang,
@@ -298,89 +329,43 @@ export default function CodeEmbedCard({ src, startLine, endLine, section, tabs, 
         startLine: effectiveStartLine,
         endLine: effectiveEndLine,
         section: effectiveSection,
-        tabs: hasTabs ? resolvedTabs : undefined,
-        activeTabIdx: safeActiveIdx,
+        tabs: hasSubTabs ? resolvedTabs : undefined,
+        activeTabIdx: safeActiveTabIdx,
+        files: hasParentTabs ? fileList : undefined,
+        activeFileIdx: safeFileIdx,
+        noteRawUrl: note?.raw_url,
       })
     }
   }
 
-  if (status === 'loading') {
+  const renderParentTabs = () => {
+    if (!hasParentTabs) return null
     return (
-      <div className="notes-code-embed-loading">
-        <span className="spinner" />
-        <span>Loading <code>{src}</code>…</span>
-      </div>
-    )
-  }
-
-  if (status === 'error' || (!hasTabs && !activeResolution.found && status === 'ready')) {
-    const errMsg = !activeResolution.found
-      ? activeResolution.error
-      : (error || 'Failed to load source code')
-
-    return (
-      <div className="notes-code-embed-error">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
-        <div className="notes-code-embed-error-info">
-          <strong>Unable to embed code from <code>{src}</code></strong>
-          <small>{errMsg}</small>
-          <div style={{ marginTop: '6px', display: 'flex', gap: '14px', alignItems: 'center' }}>
-            {status === 'ready' && (
+      <div className="notes-code-embed-parent-tabs-bar" role="tablist" aria-label="Source Files">
+        <div className="notes-code-embed-parent-tabs-group">
+          {fileList.map((file, fIdx) => {
+            const isActive = fIdx === safeFileIdx
+            const fName = file.filename || (file.src || '').split('/').at(-1)?.split('?')[0] || `File ${fIdx + 1}`
+            const fExt = fName.includes('.') ? fName.split('.').pop().toUpperCase() : 'CODE'
+            return (
               <button
+                key={fIdx}
                 type="button"
-                onClick={handleOpenFull}
-                style={{ background: 'none', border: 'none', padding: 0, color: 'var(--notes-accent, #6366f1)', cursor: 'pointer', fontSize: '0.8rem', textDecoration: 'underline' }}
+                role="tab"
+                aria-selected={isActive}
+                className={`notes-code-embed-parent-tab-btn ${isActive ? 'is-active' : ''}`}
+                onClick={() => {
+                  setActiveFileIdx(fIdx)
+                  setActiveTabIdx(0)
+                }}
+                title={file.src}
               >
-                Open full file ({totalLines} lines)
+                <span className="notes-code-file-icon">📄</span>
+                <span className="notes-code-file-name">{fName}</span>
+                <span className="notes-code-file-lang">{fExt}</span>
               </button>
-            )}
-            {resolvedUrl && (
-              <a href={resolvedUrl} target="_blank" rel="noreferrer noopener" style={{ fontSize: '0.8rem' }}>Open raw ↗</a>
-            )}
-            <button
-              type="button"
-              onClick={handleReload}
-              style={{ background: 'none', border: 'none', padding: 0, color: 'var(--notes-accent, #6366f1)', cursor: 'pointer', fontSize: '0.8rem', textDecoration: 'underline' }}
-            >
-              Reload file ↻
-            </button>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  const hasMoreAbove = sliceStart > 0
-  const hasMoreBelow = sliceEnd < totalLines
-  const isPartial = hasMoreAbove || hasMoreBelow
-  const hiddenAboveCount = sliceStart
-  const hiddenBelowCount = totalLines - sliceEnd
-
-  const rangeDirection = hasMoreAbove && hasMoreBelow
-    ? '↕'
-    : hasMoreAbove
-      ? '↑'
-      : hasMoreBelow
-        ? '↓'
-        : ''
-
-  const lineRangeLabel = isPartial
-    ? (effectiveSection
-        ? `§ ${effectiveSection} (Lines ${sliceStart + 1}–${sliceEnd} of ${totalLines})`
-        : `${rangeDirection} Lines ${sliceStart + 1}–${sliceEnd} of ${totalLines}`.trim())
-    : `${totalLines} lines`
-
-  return (
-    <div className={`notes-code-embed-card ${isPartial ? 'is-partial-snippet' : ''} ${hasTabs ? 'has-tabs' : ''}`}>
-      <div className="notes-code-embed-header">
-        <div className="notes-code-embed-info">
-          <span className="notes-code-block-dot" aria-hidden="true" />
-          <strong className="notes-code-embed-filename" title={src}>{filename}</strong>
-          {!hasTabs && (
-            <span className="notes-code-embed-range-tag" title={isPartial ? `Snippet showing lines ${sliceStart + 1} to ${sliceEnd} of ${totalLines} total lines` : `${totalLines} total lines`}>
-              {lineRangeLabel}
-            </span>
-          )}
+            )
+          })}
         </div>
         <div className="notes-code-embed-actions">
           <button
@@ -425,11 +410,145 @@ export default function CodeEmbedCard({ src, startLine, endLine, section, tabs, 
           </button>
         </div>
       </div>
+    )
+  }
 
-      {hasTabs && (
-        <div className="notes-code-embed-tabs-bar" role="tablist">
+  if (status === 'loading') {
+    return (
+      <div className={`notes-code-embed-card ${hasParentTabs ? 'has-parent-tabs' : ''}`}>
+        {renderParentTabs()}
+        <div className="notes-code-embed-loading">
+          <span className="spinner" />
+          <span>Loading <code>{currentSrc}</code>…</span>
+        </div>
+      </div>
+    )
+  }
+
+  if (status === 'error' || (!hasSubTabs && !activeResolution.found && status === 'ready')) {
+    const errMsg = !activeResolution.found
+      ? activeResolution.error
+      : (error || 'Failed to load source code')
+
+    return (
+      <div className={`notes-code-embed-card ${hasParentTabs ? 'has-parent-tabs' : ''}`}>
+        {renderParentTabs()}
+        <div className="notes-code-embed-error">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+          <div className="notes-code-embed-error-info">
+            <strong>Unable to embed code from <code>{currentSrc}</code></strong>
+            <small>{errMsg}</small>
+            <div style={{ marginTop: '6px', display: 'flex', gap: '14px', alignItems: 'center' }}>
+              {status === 'ready' && (
+                <button
+                  type="button"
+                  onClick={handleOpenFull}
+                  style={{ background: 'none', border: 'none', padding: 0, color: 'var(--notes-accent, #6366f1)', cursor: 'pointer', fontSize: '0.8rem', textDecoration: 'underline' }}
+                >
+                  Open full file ({totalLines} lines)
+                </button>
+              )}
+              {resolvedUrl && (
+                <a href={resolvedUrl} target="_blank" rel="noreferrer noopener" style={{ fontSize: '0.8rem' }}>Open raw ↗</a>
+              )}
+              <button
+                type="button"
+                onClick={handleReload}
+                style={{ background: 'none', border: 'none', padding: 0, color: 'var(--notes-accent, #6366f1)', cursor: 'pointer', fontSize: '0.8rem', textDecoration: 'underline' }}
+              >
+                Reload file ↻
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  const hasMoreAbove = sliceStart > 0
+  const hasMoreBelow = sliceEnd < totalLines
+  const isPartial = hasMoreAbove || hasMoreBelow
+  const hiddenAboveCount = sliceStart
+  const hiddenBelowCount = totalLines - sliceEnd
+
+  const rangeDirection = hasMoreAbove && hasMoreBelow
+    ? '↕'
+    : hasMoreAbove
+      ? '↑'
+      : hasMoreBelow
+        ? '↓'
+        : ''
+
+  const lineRangeLabel = isPartial
+    ? (effectiveSection
+        ? `§ ${effectiveSection} (Lines ${sliceStart + 1}–${sliceEnd} of ${totalLines})`
+        : `${rangeDirection} Lines ${sliceStart + 1}–${sliceEnd} of ${totalLines}`.trim())
+    : `${totalLines} lines`
+
+  return (
+    <div className={`notes-code-embed-card ${isPartial ? 'is-partial-snippet' : ''} ${hasSubTabs ? 'has-tabs' : ''} ${hasParentTabs ? 'has-parent-tabs' : ''}`}>
+      {renderParentTabs()}
+
+      {!hasParentTabs && (
+        <div className="notes-code-embed-header">
+          <div className="notes-code-embed-info">
+            <span className="notes-code-block-dot" aria-hidden="true" />
+            <strong className="notes-code-embed-filename" title={currentSrc}>{filename}</strong>
+            {!hasSubTabs && (
+              <span className="notes-code-embed-range-tag" title={isPartial ? `Snippet showing lines ${sliceStart + 1} to ${sliceEnd} of ${totalLines} total lines` : `${totalLines} total lines`}>
+                {lineRangeLabel}
+              </span>
+            )}
+          </div>
+          <div className="notes-code-embed-actions">
+            <button
+              type="button"
+              className="notes-code-action-icon-btn"
+              onClick={handleReload}
+              title="Reload source file"
+              aria-label="Reload source file"
+            >
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.3"/>
+              </svg>
+            </button>
+            <button
+              type="button"
+              className="notes-code-action-icon-btn"
+              onClick={handleOpenFull}
+              title="Expand full code in dialog"
+              aria-label="Expand full code in dialog"
+            >
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
+              </svg>
+            </button>
+            <button
+              type="button"
+              className={`notes-code-action-icon-btn ${copied ? 'copied' : ''}`}
+              onClick={handleCopy}
+              aria-label={copied ? 'Copied code' : 'Copy code snippet'}
+              title={copied ? 'Copied!' : 'Copy code snippet'}
+            >
+              {copied ? (
+                <svg viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
+                  <path d="m4 10 4 4 8-8" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              ) : (
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                  <rect x="9" y="9" width="13" height="13" rx="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              )}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {hasSubTabs && (
+        <div className="notes-code-embed-tabs-bar is-sub-tabs" role="tablist" aria-label="Code Sections">
           {resolvedTabs.map((tab, idx) => {
-            const isActive = idx === safeActiveIdx
+            const isActive = idx === safeActiveTabIdx
             return (
               <button
                 key={idx}
@@ -453,7 +572,9 @@ export default function CodeEmbedCard({ src, startLine, endLine, section, tabs, 
           })}
           <div className="notes-code-embed-tabs-spacer" />
           <span className="notes-code-embed-tab-meta">
-            {activeResolution.found && activeResolution.startLine ? `Lines ${activeResolution.startLine}–${activeResolution.endLine}` : ''}
+            {activeResolution.found && activeResolution.linesCount > 0
+              ? `Lines ${activeResolution.sliceStart + 1}–${activeResolution.sliceEnd} of ${totalLines}`
+              : ''}
           </span>
         </div>
       )}

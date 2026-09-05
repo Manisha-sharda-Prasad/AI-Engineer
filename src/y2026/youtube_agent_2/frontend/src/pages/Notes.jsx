@@ -787,6 +787,86 @@ function markdownWithTrustedIframes(content = '') {
   })
 }
 
+function parseSingleCodeSpec(rawSpec, srcPath) {
+  let startLine = null
+  let endLine = null
+  let section = null
+  let tabs = []
+
+  const spec = (rawSpec || '').trim()
+  if (spec) {
+    const rawParts = spec.split(',').map(p => p.trim()).filter(Boolean)
+    if (rawParts.length > 1) {
+      tabs = rawParts.map(part => {
+        const cleanPart = part.replace(/^section:+/i, '').trim()
+        const rangeMatch = cleanPart.match(/^(?:(\d+|start))?(?:-(?:(\d+|end))?)?$/i)
+        const isNumericRange = rangeMatch && (rangeMatch[1] != null || cleanPart.includes('-'))
+
+        if (isNumericRange) {
+          const start = rangeMatch[1]
+          const end = cleanPart.includes('-') ? cleanPart.slice(cleanPart.indexOf('-') + 1).trim() : null
+          const sLine = start && start.toLowerCase() !== 'start' ? parseInt(start, 10) : (start ? 1 : null)
+          const eLine = end && end.toLowerCase() !== 'end' && end !== '' ? parseInt(end, 10) : null
+          return {
+            type: 'range',
+            label: sLine && eLine ? `Lines ${sLine}–${eLine}` : (sLine ? `Line ${sLine}+` : cleanPart),
+            startLine: sLine,
+            endLine: eLine,
+            section: null,
+          }
+        } else {
+          return {
+            type: 'section',
+            label: cleanPart,
+            startLine: null,
+            endLine: null,
+            section: cleanPart,
+          }
+        }
+      })
+
+      if (tabs.length > 0) {
+        section = tabs[0].section
+        startLine = tabs[0].startLine
+        endLine = tabs[0].endLine
+      }
+    } else {
+      const cleanSpec = spec.replace(/^section:+/i, '').trim()
+      const rangeMatch = cleanSpec.match(/^(?:(\d+|start))?(?:-(?:(\d+|end))?)?$/i)
+      const isNumericRange = rangeMatch && (rangeMatch[1] != null || cleanSpec.includes('-'))
+
+      if (isNumericRange) {
+        const start = rangeMatch[1]
+        const end = cleanSpec.includes('-') ? cleanSpec.slice(cleanSpec.indexOf('-') + 1).trim() : null
+
+        if (start && start.toLowerCase() !== 'start') {
+          startLine = parseInt(start, 10)
+        } else if (start && start.toLowerCase() === 'start') {
+          startLine = 1
+        }
+
+        if (end && end.toLowerCase() !== 'end' && end !== '') {
+          endLine = parseInt(end, 10)
+        }
+      } else {
+        section = cleanSpec
+      }
+    }
+  }
+
+  const cleanSrc = srcPath.trim()
+  const filename = (cleanSrc.split('/').at(-1) || 'file').split('?')[0].split('#')[0]
+
+  return {
+    src: cleanSrc,
+    filename,
+    startLine,
+    endLine,
+    section,
+    tabs: tabs.length > 1 ? tabs : undefined,
+  }
+}
+
 function markdownWithCodeEmbeds(content = '') {
   if (!content || typeof content !== 'string') return content || ''
 
@@ -799,85 +879,37 @@ function markdownWithCodeEmbeds(content = '') {
 
     let text = parts[i]
 
-    // Match @[code:section-1,section-2], @[code:section::section-57,section-58], @[code:sliding-window], @[code:274-], @[code:1-35], @[code](path)
-    text = text.replace(/@\[code(?::([^\]]+))?\]\(([^)]+)\)/gi, (match, rawSpec, srcPath) => {
-      let startLine = null
-      let endLine = null
-      let section = null
-      let tabs = []
+    // Matches single or grouped code embeds, e.g.:
+    // @[code:section-57,section-57-console](intervals57.py), [code:section-58](intervals58.py)
+    const clusterRegex = /(?:@?\[code(?::[^\]]*)?\]\([^)]+\)[\s,]*)+/gi
 
-      const spec = (rawSpec || '').trim()
-      if (spec) {
-        // Check if comma-separated list of tabs/sections (e.g. "section::sec1,sec2" or "sec1, sec2" or "1-10, 20-30")
-        const rawParts = spec.split(',').map(p => p.trim()).filter(Boolean)
+    text = text.replace(clusterRegex, (clusterMatch) => {
+      const itemRegex = /@?\[code(?::([^\]]+))?\]\(([^)]+)\)/gi
+      const fileItems = []
+      let item
 
-        if (rawParts.length > 1) {
-          tabs = rawParts.map(part => {
-            const cleanPart = part.replace(/^section:+/i, '').trim()
-            const rangeMatch = cleanPart.match(/^(?:(\d+|start))?(?:-(?:(\d+|end))?)?$/i)
-            const isNumericRange = rangeMatch && (rangeMatch[1] != null || cleanPart.includes('-'))
+      while ((item = itemRegex.exec(clusterMatch)) !== null) {
+        fileItems.push(parseSingleCodeSpec(item[1], item[2]))
+      }
 
-            if (isNumericRange) {
-              const start = rangeMatch[1]
-              const end = cleanPart.includes('-') ? cleanPart.slice(cleanPart.indexOf('-') + 1).trim() : null
-              const sLine = start && start.toLowerCase() !== 'start' ? parseInt(start, 10) : (start ? 1 : null)
-              const eLine = end && end.toLowerCase() !== 'end' && end !== '' ? parseInt(end, 10) : null
-              return {
-                type: 'range',
-                label: sLine && eLine ? `Lines ${sLine}–${eLine}` : (sLine ? `Line ${sLine}+` : cleanPart),
-                startLine: sLine,
-                endLine: eLine,
-                section: null,
-              }
-            } else {
-              return {
-                type: 'section',
-                label: cleanPart,
-                startLine: null,
-                endLine: null,
-                section: cleanPart,
-              }
-            }
-          })
+      if (fileItems.length === 0) return clusterMatch
 
-          if (tabs.length > 0) {
-            section = tabs[0].section
-            startLine = tabs[0].startLine
-            endLine = tabs[0].endLine
-          }
-        } else {
-          // Single specifier
-          const cleanSpec = spec.replace(/^section:+/i, '').trim()
-          const rangeMatch = cleanSpec.match(/^(?:(\d+|start))?(?:-(?:(\d+|end))?)?$/i)
-          const isNumericRange = rangeMatch && (rangeMatch[1] != null || cleanSpec.includes('-'))
-
-          if (isNumericRange) {
-            const start = rangeMatch[1]
-            const end = cleanSpec.includes('-') ? cleanSpec.slice(cleanSpec.indexOf('-') + 1).trim() : null
-
-            if (start && start.toLowerCase() !== 'start') {
-              startLine = parseInt(start, 10)
-            } else if (start && start.toLowerCase() === 'start') {
-              startLine = 1
-            }
-
-            if (end && end.toLowerCase() !== 'end' && end !== '') {
-              endLine = parseInt(end, 10)
-            }
-          } else {
-            // Section name: support plain "my-section", "section:my-section", or "section::my-section"
-            section = cleanSpec
-          }
+      let data
+      if (fileItems.length === 1) {
+        const single = fileItems[0]
+        data = {
+          src: single.src,
+          startLine: single.startLine,
+          endLine: single.endLine,
+          section: single.section,
+          tabs: single.tabs,
+        }
+      } else {
+        data = {
+          files: fileItems,
         }
       }
 
-      const data = {
-        src: srcPath.trim(),
-        startLine,
-        endLine,
-        section,
-        tabs: tabs.length > 1 ? tabs : undefined,
-      }
       return `\n\n\`\`\`notes-code-embed\n${JSON.stringify(data)}\n\`\`\`\n\n`
     })
 
@@ -1630,6 +1662,7 @@ const MarkdownContent = React.memo(function MarkdownContent({ note, headings = [
           const embedData = JSON.parse(String(codeElement.props.children).trim())
           return (
             <CodeEmbedCard
+              files={embedData.files}
               src={embedData.src}
               startLine={embedData.startLine}
               endLine={embedData.endLine}
